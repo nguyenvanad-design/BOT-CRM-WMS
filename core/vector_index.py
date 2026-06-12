@@ -420,25 +420,47 @@ def build_part_chunk(p: dict) -> dict:
 
 def build_consumable_set_chunk(cs: dict) -> dict:
 
-    """Tạo text chunk cho 1 consumable set."""
+    """Tạo text chunk cho 1 consumable set.
 
-    parts = ", ".join(cs.get("parts", []))
+    FIX (restructure 2026-06): hỗ trợ cả 2 schema —
+      cũ  (≤v18): parts=[str], name, note, compatible_torches
+      mới (v19) : items=[{part_id, part_role, note, ...}],
+                  display_name_vi, notes, torch_current_class
+    Trước đây v19 làm build_index crash: "expected str instance, dict found".
+    """
 
-    torch_list = ", ".join(cs.get("compatible_torches", [])[:6])
+    def _part_label(x):
+        if isinstance(x, dict):
+            pid  = x.get("part_id") or x.get("tokin_part_no") or ""
+            role = x.get("part_role") or ""
+            note = x.get("note") or ""
+            return " ".join(s for s in (pid, role, note) if s)
+        return str(x)
+
+    raw_parts = cs.get("items") or cs.get("parts") or []
+    parts = ", ".join(_part_label(x) for x in raw_parts)
+
+    torch_list = ", ".join(str(t) for t in (cs.get("compatible_torches") or [])[:6])
+
+    name = cs.get("display_name_vi") or cs.get("name") or ""
+    note = cs.get("notes") or cs.get("note") or ""
+    cc   = cs.get("torch_current_class") or ""
 
     text = (
 
         f"Consumable set: {cs.get('set_id', '')}. "
 
-        f"Name: {cs.get('name', '')}. "
+        f"Name: {name}. "
 
         f"Ecosystem: {cs.get('ecosystem', '')}. "
+
+        f"Current class: {cc}. "
 
         f"Parts included: {parts}. "
 
         f"Compatible torches: {torch_list}. "
 
-        f"Note: {cs.get('note', '')}."
+        f"Note: {note}."
 
     )
 
