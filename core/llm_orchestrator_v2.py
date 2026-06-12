@@ -49,50 +49,53 @@ _OOS_PAT = re.compile(
     re.I | re.UNICODE,
 )
 
+# FIX (restructure 2026-06): dedupe (bỏ ~30 mục lặp 2-3 lần, tập keyword
+# KHÔNG đổi) + chuyển ra module-level để không rebuild list mỗi request.
+_DOMAIN_KW = (
+    'bec','boc','chup','liner','ong trong','cach dien','than giu','tipbody',
+    'tip','nozzle','insulator','orifice','collet','tungsten','inner tube',
+    'he n','he d','wx ','tcc ','350a','500a','200a','450a','700a','300a',
+    'vat tu','linh kien','tieu hao','bo do','consumable','set vat',
+    'liet ke','danh sach','co may loai','bao nhieu loai','hien co','dang ban',
+    'co gi','tat ca','model nao','model sung',
+    'thay the nao','buoc nao','quy trinh','huong dan','luc siet','torque',
+    'lap liner','thay chup','thay bec','thao lap','lap dung',
+    'ban bi','ban toa','spatter','ro khi','ket day','chay bec',
+    'mo han xau','ho quang','khi khong ra','day ra khong deu',
+    'sung bi','bi ro','rong khi','toa lua',
+    'day cuon','cuon trong','liner bi','chay nhanh','bec den','nam den',
+    'ra khong deu','khong ra','bi hong','bi dut','bi chay','bi ket','bi tuot',
+    'khong on dinh','ho quang nhay','bi loi','gap su co',
+    'duoc khong','tuong thich','lap duoc','dung chung','fit vao',
+    'khac gi','khac nhau','tot hon','ben hon','so sanh','vs ',
+    'tim mua','can mua','mua ','gia ','sung ','robot ',
+    'ong lot','day dan','cup ','chup ','bec ',
+    'liet ke set','cac set','set hien','hay ',
+    'thi tot','cai nao tot','chon cai','phan biet',
+    'back cap','backcap','ceramic','vonfram','dien cuc',
+    'tig ','kep dien','innertube',
+    'tip adapter','liner oring','o-ring','wave washer',
+    'insulation','nozzle sleeve','nozzle nut','wx center',
+    'wx702','wx500','tl-20','tla-20','a-350r',
+    'dat mua','mua hang','mua 10','mua 100','so luong',
+    'electrode','nap duoi','nap hau','cap hau',
+    'ymxa','ymsa','tk-308','tk-508','acc-308',
+    'wx451','wx452','csl',
+    'yt-','tcc-','srct-','dsrc-',
+    'von fram',
+    'mua them','order',
+    'chup su','chup sao','gom',
+    'ong dan',
+    'o ring',
+)
+
+
 def _detect_oos(query: str) -> Optional[str]:
     q = query.lower().strip()
     if not q or len(q) < 3:
         return "Dạ chào anh/chị! Em là trợ lý tư vấn kỹ thuật linh kiện súng hàn Tokinarc của Autoss. Anh/chị cần tư vấn gì ạ?"
     if re.match(r'^(hi|hello|hey|ch[aà]o|xin\s*ch[aà]o|alo)\s*[!.]*\s*$', q, re.I | re.UNICODE):
         return "Dạ chào anh/chị! Em là trợ lý tư vấn kỹ thuật linh kiện súng hàn Tokinarc của Autoss. Anh/chị cần tư vấn gì ạ?"
-    _DOMAIN_KW = [
-        'bec','boc','chup','liner','ong trong','cach dien','than giu','tipbody',
-        'tip','nozzle','insulator','orifice','collet','tungsten','inner tube',
-        'he n','he d','wx ','tcc ','350a','500a','200a','450a','700a','300a',
-        'vat tu','linh kien','tieu hao','bo do','consumable','set vat',
-        'liet ke','danh sach','co may loai','bao nhieu loai','hien co','dang ban',
-        'co gi','tat ca','model nao','model sung',
-        'thay the nao','buoc nao','quy trinh','huong dan','luc siet','torque',
-        'lap liner','thay chup','thay bec','thao lap','lap dung',
-        'ban bi','ban toa','spatter','ro khi','ket day','chay bec',
-        'mo han xau','ho quang','khi khong ra','day ra khong deu',
-        'sung bi','bi ro','rong khi','toa lua',
-        'day cuon','cuon trong','liner bi','chay nhanh','bec den','nam den',
-        'ra khong deu','khong ra','bi hong','bi dut','bi chay','bi ket','bi ro','bi tuot',
-        'khong on dinh','ho quang nhay','bi loi','gap su co',
-        'duoc khong','tuong thich','lap duoc','dung chung','fit vao',
-        'khac gi','khac nhau','tot hon','ben hon','so sanh','vs ',
-        'tim mua','can mua','mua ','gia ','sung ','robot ',
-        'ong lot','day dan','cup ','chup ','bec ',
-        'consumable','liet ke set','cac set','set hien','tot hon','hay ','khac gi','khac nhau','so sanh','vs ',
-        'thi tot','cai nao tot','chon cai','phan biet',
-        'collet','back cap','backcap','ceramic','tungsten','vonfram','dien cuc',
-        'tig ','kep dien','inner tube','innertube','ong lot',
-        'tip adapter','liner oring','o-ring','wave washer',
-        'insulation','nozzle sleeve','nozzle nut','wx center',
-        'wx702','wx500','tl-20','tla-20','a-350r',
-        'dat mua','mua hang','mua 10','mua 100','so luong',
-        'electrode','nap duoi','nap hau','cap hau',
-        'ymxa','ymsa','tk-308','tk-508','acc-308',
-        'wx500','wx451','wx452','wx702','tl-20','tla-20','csl',
-        'a-350r','yt-','tcc-','srct-','dsrc-',
-        'vonfram','von fram','dien cuc','kep dien',
-        'tim mua','can mua','dat mua','mua them','order',
-        'nap duoi','nap hau','cap hau','back cap',
-        'ceramic','chup su','chup sao','gom',
-        'ong lot','ong dan','ong trong',
-        'wave washer','liner oring','o ring',
-    ]
     if any(k in q for k in _DOMAIN_KW):
         return None
     m = _OOS_PAT.search(q)
@@ -389,6 +392,41 @@ def _detect_category_from_query(query: str) -> list:
             found.append(cat)
     # Chỉ return nếu tìm thấy ĐÚNG 1 category — nhiều hơn thì không filter
     return found if len(found) == 1 else []
+
+
+# FIX (restructure 2026-06): các keyword list + map này trước đây bị copy
+# 2-3 bản trong run()/stream_response() — gom về module-level dùng chung.
+_PAGINATION_KW = ("liệt kê tiếp", "liet ke tiep", "còn nữa", "con nua",
+                  "còn loại nào", "con loai nao", "xem thêm", "xem them",
+                  "thêm nữa", "them nua", "còn gì", "con gi", "tiếp theo",
+                  "tiep theo", "page 2", "trang 2")
+
+_UPSELL_KW = ("bec", "than gi", "cach dien", "di kem", "can them",
+              "tu van", "linh kien", "béc", "thân giữ",
+              "cách điện", "đi kèm", "cần thêm",
+              "tư vấn", "linh kiện", "vật tư", "vat tu",
+              "tiêu hao", "tieu hao", "sử dụng với", "dùng với")
+
+# Map keyword trong assistant text → category name (dùng cho pagination lock)
+_CAT_KEYWORD_MAP = {
+    "chụp khí": "Nozzle", "nozzle": "Nozzle",
+    "béc hàn": "Tip", "tip ": "Tip",
+    "thân giữ béc": "TipBody", "tip body": "TipBody",
+    "cách điện": "Insulator", "insulator": "Insulator",
+    "sứ chia khí": "Orifice", "orifice": "Orifice",
+    "liner": "Liner", "ống lót dây": "Liner",
+    "back cap": "BackCap", "nắp sau": "BackCap",
+}
+
+
+def _is_pagination_query(query: str) -> bool:
+    q = query.lower()
+    return any(kw in q for kw in _PAGINATION_KW)
+
+
+def _needs_upsell_query(query: str) -> bool:
+    q = query.lower()
+    return any(kw in q for kw in _UPSELL_KW)
 
 
 def _build_context_hint(tool_results: list) -> str:
@@ -979,152 +1017,31 @@ class OrchestratorV2REST:
                     for tr in tool_results
                 )
 
-                # AUTO-INJECT: lookup_part OK + query upsell → gọi find_upsell_companions
-                _already_upsell = "find_upsell_companions" in tools_called
-                _pagination_kw = ("liệt kê tiếp", "liet ke tiep", "còn nữa", "con nua",
-                                   "còn loại nào", "con loai nao", "xem thêm", "xem them",
-                                   "thêm nữa", "them nua", "còn gì", "con gi", "tiếp theo",
-                                   "tiep theo", "page 2", "trang 2")
-                _is_pagination = any(kw in query.lower() for kw in _pagination_kw)
-
-                # Pagination AUTO-INJECT: tìm part_no + page từ history
-                if all_success and _is_pagination and not _already_upsell:
-                    _prev_pno  = None
-                    _prev_page = 1
-                    _prev_cat  = []
-                    # Map keyword trong assistant text → category name
-                    _CAT_KEYWORD_MAP = {
-                        "chụp khí": "Nozzle", "nozzle": "Nozzle",
-                        "béc hàn": "Tip", "tip ": "Tip",
-                        "thân giữ béc": "TipBody", "tip body": "TipBody",
-                        "cách điện": "Insulator", "insulator": "Insulator",
-                        "sứ chia khí": "Orifice", "orifice": "Orifice",
-                        "liner": "Liner", "ống lót dây": "Liner",
-                        "back cap": "BackCap", "nắp sau": "BackCap",
-                    }
-                    _last_assistant_text = ""
-                    for _msg in reversed(contents[:-1]):
-                        _msg_text = str(_msg)
-                        # Tìm part_no từ tool result trong history
-                        import re as _re
-                        _pno_match = _re.search(r'tokin_part_no["\s:]+([0-9A-Z]{6,})', _msg_text)
-                        if _pno_match:
-                            _prev_pno = _pno_match.group(1)
-                        _page_match = _re.search(r'"page":\s*(\d+)', _msg_text)
-                        if _page_match:
-                            _prev_page = int(_page_match.group(1))
-                        # Tìm include_categories từ history (nếu đã được set trước đó)
-                        _cat_match = _re.search(r'include_categories.*?\[([^\]]+)\]', _msg_text)
-                        if _cat_match:
-                            _prev_cat = [c.strip().strip('"\'') for c in _cat_match.group(1).split(',')]
-                        # Lưu assistant message gần nhất để detect category đã trả
-                        if not _last_assistant_text and "role='model'" in _msg_text:
-                            _last_assistant_text = _msg_text.lower()
-                        if _prev_pno:
-                            break
-                    # Nếu chưa có _prev_cat → detect từ nội dung assistant đã trả
-                    if _prev_pno and not _prev_cat and _last_assistant_text:
-                        _detected_cats = []
-                        for _kw, _cat in _CAT_KEYWORD_MAP.items():
-                            if _kw in _last_assistant_text and _cat not in _detected_cats:
-                                _detected_cats.append(_cat)
-                        # Chỉ 1 category được trả ở turn trước → page tiếp category đó
-                        if len(_detected_cats) == 1:
-                            _prev_cat = _detected_cats
-                            log.info(f"[PAGINATION] Category lock from prev assistant: {_prev_cat}")
-                    if _prev_pno:
-                        _next_page = _prev_page + 1
-                        _pag_args = {"part_no": _prev_pno, "page": _next_page}
-                        if _prev_cat:
-                            _pag_args["include_categories"] = _prev_cat
-                        log.info(f"[REST] PAGINATION-INJECT find_upsell_companions({_prev_pno}, page={_next_page}, cat={_prev_cat})")
-                        try:
-                            _pag_result = self._dispatch("find_upsell_companions", _pag_args)
-                        except Exception as _e:
-                            _pag_result = {"success": False, "reason": str(_e)}
-                        tool_results.append({
-                            "tool": "find_upsell_companions",
-                            "args": _pag_args,
-                            "result": _sanitize(_pag_result),
-                        })
-                        tools_called.append("find_upsell_companions")
-
-                _upsell_kw = ("bec", "than gi", "cach dien", "di kem", "can them",
-                              "tu van", "linh kien", "béc", "thân giữ",
-                              "cách điện", "đi kèm", "cần thêm",
-                              "tư vấn", "linh kiện", "vật tư", "vat tu",
-                              "tiêu hao", "tieu hao", "sử dụng với", "dùng với")
-                _needs_upsell = any(kw in query.lower() for kw in _upsell_kw)
-                _already_upsell = "find_upsell_companions" in tools_called
-                _lookup_ok = any(
-                    tr["tool"] == "lookup_part" and
-                    (tr.get("result") or {}).get("success", False)
-                    for tr in tool_results
-                )
-                if all_success and _lookup_ok and _needs_upsell and not _already_upsell:
-                    _lookup_pno = None
-                    for tr in tool_results:
-                        if tr["tool"] == "lookup_part":
-                            _d = (tr.get("result") or {}).get("data") or {}
-                            _lookup_pno = _d.get("tokin_part_no")
-                            break
-                    if _lookup_pno:
-                        log.info(f"[REST] AUTO-INJECT find_upsell_companions({_lookup_pno})")
-                        try:
-                            _cat_filter = _detect_category_from_query(query)
-                            _upsell_args = {"part_no": _lookup_pno}
-                            if _cat_filter:
-                                _upsell_args["include_categories"] = _cat_filter
-                                log.info(f"[AUTO-INJECT] category_filter={_cat_filter}")
-                            _upsell_result = self._dispatch(
-                                "find_upsell_companions", _upsell_args
-                            )
-                        except Exception as _e:
-                            _upsell_result = {"success": False, "reason": str(_e)}
-                        _safe = _sanitize(_upsell_result)
-                        tool_results.append({
-                            "tool": "find_upsell_companions",
-                            "args": {"part_no": _lookup_pno},
-                            "result": _safe,
-                        })
-                        tools_called.append("find_upsell_companions")
-
                 if all_success:
+                    # Pagination AUTO-INJECT: tìm part_no + page từ history
+                    _pag_args = self._prep_pagination_from_history(
+                        query, contents, tools_called)
+                    if _pag_args:
+                        log.info(f"[REST] PAGINATION-INJECT find_upsell_companions({_pag_args})")
+                        self._exec_inject("find_upsell_companions", _pag_args,
+                                          tools_called, tool_results)
+                    # AUTO-INJECT: lookup_part OK + query upsell
+                    _ups_args = self._prep_auto_upsell(query, tools_called, tool_results)
+                    if _ups_args:
+                        log.info(f"[REST] AUTO-INJECT find_upsell_companions({_ups_args})")
+                        self._exec_inject("find_upsell_companions", _ups_args,
+                                          tools_called, tool_results)
                     break
 
             # ── PAGINATION PRE-INJECT (ngoài loop, trước LLM2) ────────────────
             # Chạy khi LLM1 không gọi tool nào nhưng query là "thêm nữa/liệt kê tiếp"
-            import re as _re2
-            _pagination_kw2 = ("liệt kê tiếp", "liet ke tiep", "còn nữa", "con nua",
-                                "còn loại nào", "con loai nao", "xem thêm", "xem them",
-                                "thêm nữa", "them nua", "còn gì", "con gi", "tiếp theo",
-                                "tiep theo", "page 2", "trang 2")
-            _is_pagination2 = any(kw in query.lower() for kw in _pagination_kw2)
-            _already_upsell2 = "find_upsell_companions" in tools_called
-            if _is_pagination2 and not _already_upsell2:
-                # Đọc upsell context từ session (được lưu cuối turn trước)
-                _prev_pno2  = getattr(ctx, "last_upsell_pno",  None) if ctx else None
-                _prev_page2 = getattr(ctx, "last_upsell_page", 1)    if ctx else 1
-                _prev_cat2  = getattr(ctx, "last_upsell_cats", [])   if ctx else []
-                log.info(f"[PRE-INJECT PAGINATION] ctx read: pno={_prev_pno2} page={_prev_page2} cats={_prev_cat2}")
-                if _prev_pno2:
-                    _next_page2 = _prev_page2 + 1
-                    _pag_args2 = {"part_no": _prev_pno2, "page": _next_page2}
-                    if _prev_cat2:
-                        _pag_args2["include_categories"] = _prev_cat2
-                    log.info(f"[PRE-INJECT PAGINATION] find_upsell_companions({_prev_pno2}, page={_next_page2}, cat={_prev_cat2})")
-                    yield {"type": "tool_start", "tool": "find_upsell_companions"}
-                    try:
-                        _pag_res2 = self._dispatch("find_upsell_companions", _pag_args2)
-                    except Exception as _e2:
-                        _pag_res2 = {"success": False, "reason": str(_e2)}
-                    yield {"type": "tool_done", "tool": "find_upsell_companions", "ms": 0}
-                    tool_results.append({
-                        "tool": "find_upsell_companions",
-                        "args": _pag_args2,
-                        "result": _sanitize(_pag_res2),
-                    })
-                    tools_called.append("find_upsell_companions")
+            _pre_args = self._prep_pre_inject_pagination(ctx, query, tools_called)
+            if _pre_args:
+                log.info(f"[PRE-INJECT PAGINATION] find_upsell_companions({_pre_args})")
+                yield {"type": "tool_start", "tool": "find_upsell_companions"}
+                self._exec_inject("find_upsell_companions", _pre_args,
+                                  tools_called, tool_results)
+                yield {"type": "tool_done", "tool": "find_upsell_companions", "ms": 0}
 
             # ── LLM 2: Responder (streaming) ──────────────────────────────────
             full_text = ""
@@ -1182,20 +1099,151 @@ class OrchestratorV2REST:
         if ctx:
             self._ss.update(ctx, intent, safe_ent, returned,
                             query=query, response_text=full_text[:200])
-            # Lưu upsell context để PRE-INJECT dùng ở turn tiếp theo
-            for _tr in tool_results:
-                if _tr.get("tool") == "find_upsell_companions":
-                    _a = _tr.get("args", {})
-                    if _a.get("part_no"):
-                        # FIX (restructure): field chính thức trên SessionContext
-                        # (hack __dict__ cũ bị mất khi serialize Redis)
-                        ctx.last_upsell_pno  = _a["part_no"]
-                        ctx.last_upsell_page = _a.get("page", 1)
-                        ctx.last_upsell_cats = _a.get("include_categories", [])
-                    break
+            self._save_upsell_ctx(ctx, tool_results)
         yield {"type": "done", "intent": intent,
                "latency_ms": int((time.time()-t0)*1000),
                "tools_called": tools_called}
+
+    # ══════════════════════════════════════════════════════════════════════
+    # Inject helpers — dùng chung cho run() và stream_response()
+    # FIX (restructure 2026-06): trước đây logic này bị copy 2-3 bản và chỉ
+    # tồn tại trong stream_response() — run() (pipeline /api/v2/query) thiếu
+    # hẳn pagination/upsell inject. Gom về 1 chỗ, 2 path gọi chung.
+    # ══════════════════════════════════════════════════════════════════════
+
+    def _exec_inject(self, tool_name: str, args: dict,
+                     tools_called: list, tool_results: list) -> None:
+        """Dispatch 1 tool inject + append kết quả vào tools_called/tool_results."""
+        try:
+            result = self._dispatch(tool_name, args)
+        except Exception as e:
+            result = {"success": False, "reason": str(e)}
+        tool_results.append({"tool": tool_name, "args": args,
+                             "result": _sanitize(result)})
+        tools_called.append(tool_name)
+
+    @staticmethod
+    def _prep_pagination_from_history(query: str, contents: list,
+                                      tools_called: list) -> Optional[dict]:
+        """
+        In-loop PAGINATION: query là 'liệt kê tiếp/xem thêm...' → tìm part_no,
+        page, include_categories từ history. Trả về args cho
+        find_upsell_companions, hoặc None nếu không áp dụng.
+        """
+        if not _is_pagination_query(query):
+            return None
+        if "find_upsell_companions" in tools_called:
+            return None
+        import re as _re
+        _prev_pno  = None
+        _prev_page = 1
+        _prev_cat: list = []
+        _last_assistant_text = ""
+        for _msg in reversed(contents[:-1]):
+            _msg_text = str(_msg)
+            # Tìm part_no từ tool result trong history
+            _pno_match = _re.search(r'tokin_part_no["\s:]+([0-9A-Z]{6,})', _msg_text)
+            if _pno_match:
+                _prev_pno = _pno_match.group(1)
+            _page_match = _re.search(r'"page":\s*(\d+)', _msg_text)
+            if _page_match:
+                _prev_page = int(_page_match.group(1))
+            # Tìm include_categories từ history (nếu đã được set trước đó)
+            _cat_match = _re.search(r'include_categories.*?\[([^\]]+)\]', _msg_text)
+            if _cat_match:
+                _prev_cat = [c.strip().strip('"\'') for c in _cat_match.group(1).split(',')]
+            # Lưu assistant message gần nhất để detect category đã trả
+            if not _last_assistant_text and "role='model'" in _msg_text:
+                _last_assistant_text = _msg_text.lower()
+            if _prev_pno:
+                break
+        if not _prev_pno:
+            return None
+        # Nếu chưa có category → detect từ nội dung assistant đã trả
+        if not _prev_cat and _last_assistant_text:
+            _detected_cats: list = []
+            for _kw, _cat in _CAT_KEYWORD_MAP.items():
+                if _kw in _last_assistant_text and _cat not in _detected_cats:
+                    _detected_cats.append(_cat)
+            # Chỉ 1 category được trả ở turn trước → page tiếp category đó
+            if len(_detected_cats) == 1:
+                _prev_cat = _detected_cats
+                log.info(f"[PAGINATION] Category lock from prev assistant: {_prev_cat}")
+        args = {"part_no": _prev_pno, "page": _prev_page + 1}
+        if _prev_cat:
+            args["include_categories"] = _prev_cat
+        return args
+
+    @staticmethod
+    def _prep_auto_upsell(query: str, tools_called: list,
+                          tool_results: list) -> Optional[dict]:
+        """
+        AUTO-INJECT: lookup_part thành công + query có ý upsell →
+        args cho find_upsell_companions, hoặc None nếu không áp dụng.
+        """
+        if not _needs_upsell_query(query):
+            return None
+        if "find_upsell_companions" in tools_called:
+            return None
+        _lookup_ok = any(
+            tr["tool"] == "lookup_part" and
+            (tr.get("result") or {}).get("success", False)
+            for tr in tool_results
+        )
+        if not _lookup_ok:
+            return None
+        _lookup_pno = None
+        for tr in tool_results:
+            if tr["tool"] == "lookup_part":
+                _d = (tr.get("result") or {}).get("data") or {}
+                _lookup_pno = _d.get("tokin_part_no")
+                break
+        if not _lookup_pno:
+            return None
+        args = {"part_no": _lookup_pno}
+        _cat_filter = _detect_category_from_query(query)
+        if _cat_filter:
+            args["include_categories"] = _cat_filter
+            log.info(f"[AUTO-INJECT] category_filter={_cat_filter}")
+        return args
+
+    @staticmethod
+    def _prep_pre_inject_pagination(ctx, query: str,
+                                    tools_called: list) -> Optional[dict]:
+        """
+        PRE-INJECT (ngoài loop, trước LLM2): LLM1 không tự gọi tool nhưng
+        query là 'thêm nữa/liệt kê tiếp' → đọc upsell context từ session
+        (lưu cuối turn trước) để page tiếp.
+        """
+        if not _is_pagination_query(query):
+            return None
+        if "find_upsell_companions" in tools_called:
+            return None
+        _prev_pno  = getattr(ctx, "last_upsell_pno",  None) if ctx else None
+        _prev_page = getattr(ctx, "last_upsell_page", 1)    if ctx else 1
+        _prev_cat  = getattr(ctx, "last_upsell_cats", [])   if ctx else []
+        log.info(f"[PRE-INJECT PAGINATION] ctx read: pno={_prev_pno} "
+                 f"page={_prev_page} cats={_prev_cat}")
+        if not _prev_pno:
+            return None
+        args = {"part_no": _prev_pno, "page": _prev_page + 1}
+        if _prev_cat:
+            args["include_categories"] = _prev_cat
+        return args
+
+    @staticmethod
+    def _save_upsell_ctx(ctx, tool_results: list) -> None:
+        """Lưu upsell context vào session để PRE-INJECT dùng ở turn tiếp theo."""
+        if ctx is None:
+            return
+        for _tr in tool_results:
+            if _tr.get("tool") == "find_upsell_companions":
+                _a = _tr.get("args", {})
+                if _a.get("part_no"):
+                    ctx.last_upsell_pno  = _a["part_no"]
+                    ctx.last_upsell_page = _a.get("page", 1)
+                    ctx.last_upsell_cats = _a.get("include_categories", [])
+                break
 
     def _run_tools_parallel(self, fc_parts: list) -> list:
         """
@@ -1277,6 +1325,13 @@ class OrchestratorV2REST:
         planner_payload = {
             "systemInstruction": {"parts":[{"text":self._planner_system}]},
             "tools":             self._tools(),
+            # FIX (eval 2026-06): ép Planner gọi tool (mode ANY) — đồng bộ với
+            # stream_response(). Trước đây run() thiếu config này → 129/239
+            # case fail vì "no_tool_called". OOS đã được chặn trước bằng
+            # _detect_oos nên không sợ ép tool với câu chit-chat.
+            "tool_config": {
+                "function_calling_config": {"mode": "ANY"}
+            },
             "generationConfig":  {"temperature":PLANNER_TEMP,"maxOutputTokens":MAX_OUTPUT_TOKENS,"thinkingConfig":{"thinkingBudget":0}},
             "contents":          contents,
         }
@@ -1316,6 +1371,37 @@ class OrchestratorV2REST:
 
                 current.append({"role":"user","parts":fn_resps})
                 tool_call_count += 1
+
+                # FIX (eval 2026-06): đồng bộ với stream_response() — với mode
+                # ANY, Planner luôn bị ép gọi tool nên PHẢI break khi tất cả
+                # tool đã thành công, nếu không loop sẽ chạy đủ MAX_TOOL_CALLS.
+                all_success = all(
+                    (tr.get("result") or {}).get("success", False)
+                    for tr in tool_results
+                )
+                if all_success:
+                    # Pagination AUTO-INJECT: tìm part_no + page từ history
+                    _pag_args = self._prep_pagination_from_history(
+                        query, contents, tools_called)
+                    if _pag_args:
+                        log.info(f"[run] PAGINATION-INJECT find_upsell_companions({_pag_args})")
+                        self._exec_inject("find_upsell_companions", _pag_args,
+                                          tools_called, tool_results)
+                    # AUTO-INJECT: lookup_part OK + query upsell
+                    _ups_args = self._prep_auto_upsell(query, tools_called, tool_results)
+                    if _ups_args:
+                        log.info(f"[run] AUTO-INJECT find_upsell_companions({_ups_args})")
+                        self._exec_inject("find_upsell_companions", _ups_args,
+                                          tools_called, tool_results)
+                    break
+
+            # PAGINATION PRE-INJECT (ngoài loop) — LLM1 không gọi tool nhưng
+            # query là "thêm nữa/liệt kê tiếp" → đọc upsell context từ session
+            _pre_args = self._prep_pre_inject_pagination(ctx, query, tools_called)
+            if _pre_args:
+                log.info(f"[run] PRE-INJECT find_upsell_companions({_pre_args})")
+                self._exec_inject("find_upsell_companions", _pre_args,
+                                  tools_called, tool_results)
 
             final_text = ""
             if tool_results:
@@ -1363,17 +1449,7 @@ class OrchestratorV2REST:
         if ctx:
             self._ss.update(ctx, intent, safe_ent, returned,
                             query=query, response_text=final_text[:200])
-            # Lưu upsell context để PRE-INJECT dùng ở turn tiếp theo
-            for _tr in tool_results:
-                if _tr.get("tool") == "find_upsell_companions":
-                    _a = _tr.get("args", {})
-                    if _a.get("part_no"):
-                        # FIX (restructure): field chính thức trên SessionContext
-                        # (hack __dict__ cũ bị mất khi serialize Redis)
-                        ctx.last_upsell_pno  = _a["part_no"]
-                        ctx.last_upsell_page = _a.get("page", 1)
-                        ctx.last_upsell_cats = _a.get("include_categories", [])
-                    break
+            self._save_upsell_ctx(ctx, tool_results)
         latency_ms = int((time.time()-t0)*1000)
         return OrchestratorResponse(
             text=final_text, tools_called=tools_called, tool_results=tool_results,
