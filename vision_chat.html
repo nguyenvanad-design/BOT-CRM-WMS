@@ -462,9 +462,9 @@
 <!-- Config panel -->
 <div class="cfg-panel" id="cfgPanel">
   <div class="cfg-label">API BASE URL</div>
-  <input class="cfg-input" id="cfgBase" type="text" placeholder="http://14.224.210.210:8080">
+  <input class="cfg-input" id="cfgBase" type="text" placeholder="URL server (mặc định: trang hiện tại)">
   <div class="cfg-label">API KEY</div>
-  <input class="cfg-input" id="cfgKey" type="password" placeholder="dev-tokinarc-2026">
+  <input class="cfg-input" id="cfgKey" type="password" placeholder="Nhập API key">
   <button class="cfg-save" onclick="saveCfg()">Lưu cấu hình</button>
 </div>
 
@@ -544,8 +544,8 @@
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
 let CFG = {
-  base: localStorage.getItem('tknrc_base') || 'http://14.224.210.210:8080',
-  key:  localStorage.getItem('tknrc_key')  || 'dev-tokinarc-2026',
+  base: localStorage.getItem('tknrc_base') || window.location.origin,
+  key:  localStorage.getItem('tknrc_key')  || '',
 };
 document.getElementById('cfgBase').value = CFG.base;
 document.getElementById('cfgKey').value  = CFG.key;
@@ -896,7 +896,7 @@ async function sendRest(text, imgSrc) {
   } catch (err) {
     removeTyping();
     addMessage('bot',
-      `❌ Không kết nối được server.\n\n• Kiểm tra server đang chạy\n• Vào ⚙ để cấu hình URL và API key\n• Mặc định: http://14.224.210.210:8080`,
+      `❌ Không kết nối được server.\n\n• Kiểm tra server đang chạy\n• Vào ⚙ để cấu hình URL và API key`,
       null, 'err');
   }
 }

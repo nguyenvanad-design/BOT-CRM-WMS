@@ -54,11 +54,19 @@ class VisionWebhookRequest(BaseModel):
 
 
 # ── Auth helper (đồng bộ với main.py) ─────────────────────────────────────────
-def _verify_api_key(api_key: str) -> bool:
-    """Trùng logic main.py — kiểm X-API-Key."""
+def _verify_api_key(api_key) -> bool:
+    """Trùng logic main.py — kiểm X-API-Key.
+
+    FIX (security 2026-06): trước đây đọc env "API_KEY" (khác main.py dùng
+    "TOKINARC_API_KEY") nên dù production đổi key, endpoint vision vẫn nhận
+    key dev mặc định. Đồng bộ env var + constant-time compare.
+    """
     import os
-    expected = os.getenv("API_KEY", "dev-tokinarc-2026")
-    return api_key == expected
+    import secrets
+    if not isinstance(api_key, str):
+        return False
+    expected = os.getenv("TOKINARC_API_KEY", "dev-tokinarc-2026")
+    return secrets.compare_digest(api_key, expected)
 
 
 # ── Core processor ────────────────────────────────────────────────────────────
@@ -87,32 +95,21 @@ async def _process_vision(
     # Step 3: Build query text
     query_text = build_query(vision_result, user_text=user_text)
 
-    # Step 4: Reuse pipeline run_v7 — không tạo engine mới
+    # Step 4: Chạy query qua pipeline V2 (orchestrator) — reuse instance đã load.
+    # FIX (restructure 2026-06): bỏ run_v7 — pipeline_v7 đã chuyển vào legacy/,
+    # import luôn fail nên nhánh này là dead code. Dùng orch_v2 như main.py.
     qe_result = None
     if conf_level in ("high", "low") and query_text and app_state:
-        try:
-            from core.pipeline_v7 import run_v7
-            # Lấy các dependencies từ app_state
-            extractor      = getattr(app_state, "extractor", None)
-            data_store     = getattr(app_state, "data_store", None)
-            gemini_model   = getattr(app_state, "gemini_model", None)
-            graph_traversal= getattr(app_state, "graph_traversal", None)
-            session_store  = getattr(app_state, "session_store", None)
-
-            if extractor and data_store:
-                qe_result = run_v7(
-                    query=query_text,
-                    extractor=extractor,
-                    data_store=data_store,
-                    gemini_model=gemini_model,
-                    graph_traversal=graph_traversal,
-                    session_store=session_store,
-                )
-            else:
-                logger.warning("[VisionEndpoint] app_state missing extractor or data_store")
-        except Exception as e:
-            logger.warning(f"[VisionEndpoint] run_v7 error: {e}", exc_info=True)
-            qe_result = {"error": str(e)}
+        orch = getattr(app_state, "orch_v2", None)
+        if orch is not None:
+            try:
+                result = orch.run(query=query_text)
+                qe_result = result.to_dict()
+            except Exception as e:
+                logger.warning(f"[VisionEndpoint] orch_v2 error: {e}", exc_info=True)
+                qe_result = {"error": str(e)}
+        else:
+            logger.warning("[VisionEndpoint] app_state missing orch_v2")
 
     response = {
         "platform":         platform,
@@ -207,7 +204,7 @@ def register_vision_routes(app):
         return {
             "vision_module":  "ready",
             "gemini_api_key": bool(os.getenv("GEMINI_API_KEY", "")),
-            "query_engine":   app_state is not None and getattr(app_state, "engine", None) is not None,
+            "query_engine":   app_state is not None and getattr(app_state, "orch_v2", None) is not None,
             "prompts": ["part_id", "torch_id", "damage_check", "component_locate"],
         }
 

@@ -1,7 +1,8 @@
-﻿import requests
+﻿import os
+import requests
 
-API_KEY = "dev-tokinarc-2026"
-BASE    = "http://192.168.1.100:8080"
+API_KEY = os.getenv("TOKINARC_API_KEY", "")
+BASE    = os.getenv("TOKINARC_EVAL_BASE", "http://localhost:8080")
 
 queries = [
     ("nozzle cho sung MIG 350A he N",         "web_ajvglzb3"),

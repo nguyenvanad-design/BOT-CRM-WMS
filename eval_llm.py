@@ -5,7 +5,7 @@ Gọi /api/v2/query với từng case trong eval_700.json,
 extract part_nos từ tool_results, so sánh với expected_part_nos.
 
 Usage:
-  python eval_llm.py --url http://127.0.0.1:8000 --key dev-tokinarc-2026
+  python eval_llm.py --url http://127.0.0.1:8000 --key <TOKINARC_API_KEY>
   python eval_llm.py --workers 3 --limit 50   # chạy thử 50 case
   python eval_llm.py --intent UPSELL           # chỉ chạy 1 intent
 """
@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import time
 import urllib.request
 import urllib.error
@@ -186,7 +187,7 @@ def run_eval(args):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--url",     default="http://127.0.0.1:8000")
-    ap.add_argument("--key",     default="dev-tokinarc-2026")
+    ap.add_argument("--key",     default=os.getenv("TOKINARC_API_KEY", ""))
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--timeout", type=int, default=30)
     ap.add_argument("--limit",   type=int, default=0)

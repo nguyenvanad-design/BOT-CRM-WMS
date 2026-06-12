@@ -1,15 +1,27 @@
 # run_eval.py — TokinArc eval script
 # Chạy: python run_eval.py
+# FIX (security 2026-06): bỏ hardcode URL public + API key dev.
+#   set TOKINARC_EVAL_URL / TOKINARC_API_KEY trước khi chạy (hoặc dùng .env).
+import os
 import requests
 import json
 import time
 from collections import Counter
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 with open('eval_700.json', encoding='utf-8') as f:
     cases = json.load(f)
 
-URL = 'http://14.224.210.210:8080/api/v2/query'
-H   = {'X-API-Key': 'dev-tokinarc-2026', 'Content-Type': 'application/json'}
+URL = os.getenv('TOKINARC_EVAL_URL', 'http://localhost:8080/api/v2/query')
+_KEY = os.getenv('TOKINARC_API_KEY', '')
+if not _KEY:
+    raise SystemExit('TOKINARC_API_KEY chưa được set (env hoặc .env) — không chạy eval.')
+H   = {'X-API-Key': _KEY, 'Content-Type': 'application/json'}
 
 results = Counter()
 fails   = []
