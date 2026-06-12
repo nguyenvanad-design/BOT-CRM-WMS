@@ -1,0 +1,2200 @@
+{
+  "meta": {
+    "version": "v1.3",
+    "generated_at": "2026-05-17",
+    "source": "CATALOG_05 Instruction Manual (TC1601T05-8, Dec 2024 Ver 8.0) + assembly notes from CATALOG_01/02/03",
+    "scope": "Installation, replacement, torque specs, liner/inner-tube length tables, safety warnings for TOKINARC MIG/MAG robotic torches",
+    "purpose": "Source data for fine-tune QA dataset — Installation QA + Troubleshooting QA. NOT a runtime catalog.",
+    "note": "Extracted from technical drawings and procedure pages. Values are manufacturer internal standards, not guaranteed specs.",
+    "regenerated_at": "2026-05-19T11:03:24.585393",
+    "patch_v1_1": {
+      "cross_check_against": "Cat05 PDF p.2-3, p.5-6, p.25-26",
+      "fixes": [
+        "Added 8 Wire-Clamp inner tube variants (Cat05 p.5)",
+        "Added inner-tube conditional offset notes for liner protrusion (Cat05 p.6)",
+        "Added catalog-style aliases to liner protrusion table",
+        "Added 6 critical safety warnings (Cat05 p.2-3)",
+        "Added 10 power cable variants (Cat05 p.25 [9])",
+        "Added 7 adapter parts (Cat05 p.26 [10])",
+        "Added 5 bracket assembly parts (Cat05 p.26 [11])",
+        "Added wire feeder model reference YWE-WFR42DX2 (Cat05 p.5)"
+      ]
+    },
+    "stats": {
+      "torque_specs": 4,
+      "assembly_sequences": 4,
+      "replacement_procedures": 9,
+      "liner_length_table": 6,
+      "liner_protrusion_table": 45,
+      "liner_protrusion_inner_tube_offset": 2,
+      "inner_tube_length_table": 24,
+      "warnings": 16,
+      "troubleshooting": 10,
+      "power_cable_variants": 10,
+      "adapters": 7,
+      "torch_mounting_brackets": 5,
+      "coverage_inheritance": 10,
+      "adapter_fittings": 15
+    },
+    "patch_v1_2": {
+      "cross_check_against": [
+        "tokinarc_schema_v11_r5.py",
+        "tokinarc_data_v11g.json",
+        "compatibility_matrix_v11f.py"
+      ],
+      "fixes": [
+        "Renamed 4 WX part_role values to match PartCategory enum (NozzleNut→WXNozzleNut, etc.)",
+        "Expanded 5 WX series shorthand (WX451→WX451S/R)",
+        "Linked WX-role steps to actual data parts (061445/061448/061449)",
+        "Extended coverage to 10 robotic torches via inheritance (TK-308RW/ALW, DSRC-3531, TR-300R/308R, YMENS-300R/308R/500R/508R/250RA)",
+        "Added 10 inner-tube entries and 9 protrusion entries via inheritance",
+        "Added coverage_inheritance mapping table for cross-system routing"
+      ]
+    },
+    "file_structure": {
+      "version": "v1.2 (reordered)",
+      "sections": [
+        {
+          "name": "SAFETY",
+          "keys": [
+            "warnings",
+            "troubleshooting"
+          ]
+        },
+        {
+          "name": "REFERENCES",
+          "keys": [
+            "torque_specs",
+            "inner_tube_length_table",
+            "liner_length_table",
+            "liner_protrusion_table",
+            "liner_protrusion_inner_tube_offset"
+          ]
+        },
+        {
+          "name": "PROCEDURES",
+          "keys": [
+            "assembly_sequences",
+            "replacement_procedures"
+          ]
+        },
+        {
+          "name": "HARDWARE",
+          "keys": [
+            "power_cable_variants",
+            "power_cable_length_spec",
+            "adapters",
+            "adapter_fittings",
+            "torch_mounting_brackets"
+          ]
+        },
+        {
+          "name": "INDEXING",
+          "keys": [
+            "coverage_inheritance"
+          ]
+        }
+      ],
+      "note": "Single file maintained for atomic updates and simpler cross-referencing with data/schema/matrix."
+    },
+    "patch_v1_3": {
+      "patched_at": "2026-05-21T09:20:44.088861+00:00",
+      "based_on": "cat05_audit_report.json (2026-05-21)",
+      "cross_check_against": "CATALOG_05.pdf p.26 (TC1601T05-8 Ver 8.0)",
+      "fixes": [
+        "Added adapter_fittings section with 15 entries from Cat05 p.26 (audit Section 9 GAP)",
+        "Enriched 7 adapters with sub_parts field for 2-way lookup"
+      ]
+    },
+    "patch_v1_4": {
+      "patched_at": "2026-05-31",
+      "fixes": [
+        "Added rep_tip, rep_nozzle, rep_insulator, rep_orifice procedures",
+        "Added ts_spatter_excessive, ts_gas_leak_extended, ts_wire_stuck, ts_arc_unstable, ts_weld_quality_poor troubleshooting",
+        "All new entries include related_parts for eval code_not_mentioned fix"
+      ]
+    }
+  },
+  "warnings": [
+    {
+      "id": "insulation_spacer_silicone",
+      "context": "Reassembling insulation spacer (YMSA-500W/508W and related water-cooled torches)",
+      "text": "Always apply silicone coating when assembling the insulation spacer. Failure to do so may cause a ground fault.",
+      "severity": "high",
+      "applies_to": [
+        "YMSA-500W",
+        "YMSA-508W",
+        "YMSA-500AW",
+        "all torches with insulation spacer"
+      ],
+      "source": "Cat05_p8_multiple"
+    },
+    {
+      "id": "tip_adapter_overtighten",
+      "context": "Tightening tip adapter to torch body",
+      "text": "Over-tightening the tip adapter damages the torch body. Tighten to 8 N·m maximum.",
+      "severity": "high",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p8"
+    },
+    {
+      "id": "tip_overtighten",
+      "context": "Tightening tip",
+      "text": "Over-tightening the tip damages both the tip and the tip adapter. Tighten to 3 N·m. Use a tool with a preset torque value.",
+      "severity": "medium",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p8"
+    },
+    {
+      "id": "center_ceramic_damage",
+      "context": "Tightening tip body on WX water-cooled torches",
+      "text": "Over-tightening the tip body damages the WX center ceramic. Be careful while fastening.",
+      "severity": "high",
+      "applies_to": [
+        "YMSA-500W",
+        "YMSA-508W",
+        "WX451S",
+        "WX451R",
+        "WX452S",
+        "WX452R"
+      ],
+      "source": "Cat05_p10"
+    },
+    {
+      "id": "liner_oring_gas_leak",
+      "context": "Liner replacement",
+      "text": "The O-ring at the end of the liner prevents gas leaks. Do not omit it when reinstalling the liner.",
+      "severity": "medium",
+      "applies_to": [
+        "all torches with liner"
+      ],
+      "source": "Cat05_p6"
+    },
+    {
+      "id": "liner_burr",
+      "context": "Cutting liner to length",
+      "text": "Remove burr after cutting the liner. Burr obstructs wire feeding.",
+      "severity": "medium",
+      "applies_to": [
+        "all torches with liner"
+      ],
+      "source": "Cat05_p6"
+    },
+    {
+      "id": "oring_molybdenum",
+      "context": "Attaching/detaching O-rings (JASO 1009/1015/1016)",
+      "text": "Coating O-rings with molybdenum reduces the risk of damage when attaching or detaching parts. O-rings are commercially available — replace periodically.",
+      "severity": "low",
+      "applies_to": [
+        "WX water-cooled torches"
+      ],
+      "source": "Cat05_p10"
+    },
+    {
+      "id": "cable_connection_fire",
+      "context": "Connecting welding/power cable",
+      "text": "Connect the welding cable as close as possible to the base metal and secure it tightly. A loose connection or incomplete contact causes heat buildup and fire risk.",
+      "severity": "high",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p3"
+    },
+    {
+      "id": "hot_nozzle_tip",
+      "context": "Handling torch after welding",
+      "text": "The nozzle and contact tip become very hot after use and can cause serious burns. Do not touch immediately after welding.",
+      "severity": "high",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p3"
+    },
+    {
+      "id": "wx_orifice_not_interchangeable",
+      "context": "WX nozzle orifice selection",
+      "text": "WX orifices (034120 air-cooled, 034121 water-cooled) are NOT interchangeable with standard N Orifice S (003002) — different geometry and coolant routing.",
+      "severity": "high",
+      "applies_to": [
+        "YMSA-500W",
+        "YMSA-508W",
+        "WX451S",
+        "WX451R",
+        "WX452S",
+        "WX452R"
+      ],
+      "source": "Cat01_p7_assembly_note"
+    },
+    {
+      "id": "electric_shock_charged_parts",
+      "context": "Welding wire, contact tip, and tip body are CHARGED while torch is operating",
+      "text": "DANGER: Never touch charged parts (welding wire, contact tip, tip body) while the welding torch is turned ON. Direct contact with charged parts can cause fatal electric shocks or burns. Turn OFF all input power supplies at the distribution box before any inspection or maintenance.",
+      "severity": "critical",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p2_WARNING"
+    },
+    {
+      "id": "magnetic_field_pacemaker",
+      "context": "Welding equipment generates a magnetic field while ON",
+      "text": "WARNING: Welding equipment generates a magnetic field that may affect sensors, gauges, and heartbeat pacemakers. Personnel with a pacemaker must not approach operating welding equipment or enter workshops where welding equipment is being used without prior medical approval.",
+      "severity": "high",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p2_WARNING"
+    },
+    {
+      "id": "confined_space_suffocation",
+      "context": "Welding in confined spaces reduces oxygen content",
+      "text": "DANGER: Welding in confined spaces reduces the oxygen content in the air and can result in suffocation. Always use proper ventilation equipment to vent gases locally or entirely as stipulated by safety regulations. When welding in a confined space, wear a breathing apparatus and work only under the supervision of a properly trained supervisor.",
+      "severity": "critical",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p2_CAUTION_fumes"
+    },
+    {
+      "id": "toxic_fumes_zinc_plating",
+      "context": "Welding plated or treated metals generates toxic fumes",
+      "text": "CAUTION: Welding metal plated with zinc generates toxic fumes. Remove the plating before welding or wear adequate absorption equipment. Welding near degreasing, cleaning, or demisting operations may also generate toxic gases — avoid welding in such areas.",
+      "severity": "high",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p2_CAUTION_fumes"
+    },
+    {
+      "id": "sealed_tank_pipe_explosion",
+      "context": "Welding sealed objects",
+      "text": "DANGER: Do not weld gas cylinders that still contain gas. Do not weld sealed tanks or pipes — rupture and explosion can occur due to internal pressure buildup from welding heat. Explosions can also occur if an arc is generated near containers of flammable substances such as gasoline.",
+      "severity": "critical",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p2_CAUTION_fires"
+    },
+    {
+      "id": "flammable_materials_clearance",
+      "context": "Welding near flammable materials",
+      "text": "CAUTION: Do not use the welding torch where flying spatter can ignite flammable materials. Keep base metals away from flammable materials immediately after welding — they may still be hot. Remove flammable materials on the OTHER side of ceilings, floors, and walls being welded — sparks can travel through and ignite them. Keep a fire extinguisher close to the welding area.",
+      "severity": "high",
+      "applies_to": [
+        "all torches"
+      ],
+      "source": "Cat05_p2_CAUTION_fires"
+    }
+  ],
+  "troubleshooting": [
+    {
+      "id": "ts_wire_feeding_unstable",
+      "symptom": "Wire feeding is not smooth / unstable",
+      "likely_causes": [
+        "Liner clogged with wire shavings, rust, or dirt",
+        "Inner tube worn",
+        "Liner length incorrect"
+      ],
+      "recommended_action": "Replace the liner (rep_liner). If problem persists, replace the inner tube (rep_inner_tube).",
+      "related_procedures": [
+        "rep_liner",
+        "rep_inner_tube"
+      ],
+      "source": "Cat05_p5_p6"
+    },
+    {
+      "id": "ts_ground_fault",
+      "symptom": "Ground fault after torch reassembly",
+      "likely_causes": [
+        "Silicone coating not applied on insulation spacer"
+      ],
+      "recommended_action": "Disassemble and apply silicone coating on the insulation spacer, then reassemble.",
+      "related_procedures": [
+        "rep_ymsa500w_tip_adapter"
+      ],
+      "related_warnings": [
+        "insulation_spacer_silicone"
+      ],
+      "source": "Cat05_p8"
+    },
+    {
+      "id": "ts_gas_leak",
+      "symptom": "Gas leak at the liner connection",
+      "likely_causes": [
+        "Liner O-ring missing or damaged"
+      ],
+      "recommended_action": "Check and replace the liner O-ring (036035).",
+      "related_warnings": [
+        "liner_oring_gas_leak"
+      ],
+      "source": "Cat05_p6"
+    },
+    {
+      "id": "ts_torch_body_damaged_threads",
+      "symptom": "Torch body threads damaged / stripped",
+      "likely_causes": [
+        "Tip adapter over-tightened beyond 8 N·m"
+      ],
+      "recommended_action": "Replace torch body. Use a torque wrench set to 8 N·m for future installations.",
+      "related_warnings": [
+        "tip_adapter_overtighten"
+      ],
+      "source": "Cat05_p8"
+    },
+    {
+      "id": "ts_center_ceramic_cracked",
+      "symptom": "WX center ceramic cracked or damaged",
+      "likely_causes": [
+        "Tip body over-tightened"
+      ],
+      "recommended_action": "Replace the WX center ceramic. Tighten the tip body carefully during reassembly.",
+      "related_warnings": [
+        "center_ceramic_damage"
+      ],
+      "source": "Cat05_p10"
+    },
+    {
+      "id": "ts_spatter_excessive",
+      "symptom": "Excessive spatter / bắn tóe nhiều",
+      "likely_causes": [
+        "Nozzle contaminated with spatter buildup",
+        "Contact tip hole worn beyond spec",
+        "Orifice blocked reducing gas coverage",
+        "Wire feeding speed or voltage parameters incorrect"
+      ],
+      "recommended_action": "Clean or replace nozzle. Replace worn contact tip. Check orifice gas holes. Verify welding parameters.",
+      "related_parts": [
+        "001002",
+        "001001",
+        "002003",
+        "003001",
+        "033203",
+        "003002"
+      ],
+      "related_procedures": [
+        "rep_nozzle",
+        "rep_tip"
+      ],
+      "source": "domain_knowledge"
+    },
+    {
+      "id": "ts_gas_leak_extended",
+      "symptom": "Gas leak from torch / rò khí / khí không ra đủ",
+      "likely_causes": [
+        "Liner O-ring missing or damaged",
+        "Orifice cracked or improperly seated",
+        "Insulator damaged allowing gas bypass",
+        "Nozzle not properly installed"
+      ],
+      "recommended_action": "Check liner O-ring (036035). Inspect orifice and insulator. Reinstall nozzle properly.",
+      "related_parts": [
+        "003001",
+        "003002",
+        "004001",
+        "004002",
+        "036035",
+        "023014",
+        "023015"
+      ],
+      "related_procedures": [
+        "rep_insulator",
+        "rep_orifice"
+      ],
+      "source": "Cat05_p6 + domain_knowledge"
+    },
+    {
+      "id": "ts_wire_stuck",
+      "symptom": "Wire stuck / kẹt dây / dây hàn bị kẹt không chạy",
+      "likely_causes": [
+        "Liner clogged with wire shavings or rust",
+        "Inner tube worn or bent",
+        "Liner length incorrect",
+        "Wire spool tangled"
+      ],
+      "recommended_action": "Replace liner. Check inner tube condition. Verify liner length per model specification.",
+      "related_parts": [
+        "036001",
+        "037002",
+        "037003",
+        "016051",
+        "016076",
+        "016126"
+      ],
+      "related_procedures": [
+        "rep_liner",
+        "rep_inner_tube"
+      ],
+      "source": "Cat05_p6 + domain_knowledge"
+    },
+    {
+      "id": "ts_arc_unstable",
+      "symptom": "Hồ quang không ổn định / arc unstable / hồ quang nhảy loạn",
+      "likely_causes": [
+        "Contact tip hole worn or oversized",
+        "Orifice blocked reducing shielding gas",
+        "Insulator damaged causing electrical leakage",
+        "Poor tip-to-wire contact"
+      ],
+      "recommended_action": "Replace contact tip. Check orifice. Inspect insulator for cracks.",
+      "related_parts": [
+        "002003",
+        "003001",
+        "004001",
+        "036001",
+        "002001",
+        "002005"
+      ],
+      "related_procedures": [
+        "rep_tip",
+        "rep_insulator"
+      ],
+      "source": "domain_knowledge"
+    },
+    {
+      "id": "ts_weld_quality_poor",
+      "symptom": "Mối hàn xấu / poor weld quality / mối hàn rỗ khí",
+      "likely_causes": [
+        "Inadequate shielding gas due to blocked orifice or nozzle",
+        "Contact tip worn causing arc instability",
+        "Liner feeding issues causing wire speed variation",
+        "Insulator damaged"
+      ],
+      "recommended_action": "Inspect and replace nozzle/orifice. Replace worn contact tip. Check liner condition.",
+      "related_parts": [
+        "002003",
+        "003001",
+        "004001",
+        "036001",
+        "002001",
+        "002005",
+        "033203"
+      ],
+      "related_procedures": [
+        "rep_tip",
+        "rep_nozzle",
+        "rep_insulator"
+      ],
+      "source": "domain_knowledge"
+    }
+  ],
+  "torque_specs": [
+    {
+      "id": "torque_tip",
+      "component": "Tip",
+      "category": "Tip",
+      "value_nm": 3.0,
+      "value_display": "3 N·m",
+      "tool_recommended": "Handy Tip Changer 046703 with TG3 torque grip (made by TONE)",
+      "applies_to": [
+        "all N tips",
+        "all D tips",
+        "MAG/MIG straight-body tips"
+      ],
+      "warning": "Over-tightening damages the tip and tip adapter. Use a tool with a preset torque value.",
+      "source": "Cat05_p8"
+    },
+    {
+      "id": "torque_tip_adapter",
+      "component": "Tip Adapter",
+      "category": "TipAdapter",
+      "value_nm": 8.0,
+      "value_display": "8 N·m",
+      "tool_recommended": "Torque wrench",
+      "applies_to": [
+        "NEWβ/WX Tip Adapter 034135",
+        "tip adapter to torch body connection"
+      ],
+      "warning": "CRITICAL: over-tightening damages the torch body. Tighten carefully.",
+      "source": "Cat05_p8"
+    },
+    {
+      "id": "torque_tip_body",
+      "component": "Tip Body",
+      "category": "TipBody",
+      "value_nm": 8.0,
+      "value_display": "8 N·m",
+      "tool_recommended": "Torque wrench",
+      "applies_to": [
+        "tip body replacement on all robotic torch models"
+      ],
+      "warning": "When tip body is damaged by heat or screw is jammed, replace carefully. Over-tightening can damage threads.",
+      "source": "Cat05_p5"
+    },
+    {
+      "id": "torque_handy_tip_changer",
+      "component": "Handy Tip Changer",
+      "category": "Tool",
+      "value_range_nm": [
+        2.5,
+        3.0
+      ],
+      "value_display": "2.5–3 N·m",
+      "tool_recommended": "046703 — compatible with all 6.35mm (1/4 inch) torque drivers",
+      "applies_to": [
+        "nozzles with inner diameter 12mm or wider"
+      ],
+      "warning": "Tips are installed with proper torque every time; tip replacement possible without removing the nozzle.",
+      "source": "Cat02_p17"
+    }
+  ],
+  "inner_tube_length_table": [
+    {
+      "part_id": "016053",
+      "torch_models": [
+        "TK-308RR",
+        "TK-308RX",
+        "TK-308RW",
+        "TK-308ALW"
+      ],
+      "inner_tube_length_mm": 335,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "016053",
+      "torch_models": [
+        "TK-308RS"
+      ],
+      "inner_tube_length_mm": 269,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "016053",
+      "torch_models": [
+        "TK-508RR",
+        "TK-508RX",
+        "TK-508RS"
+      ],
+      "inner_tube_length_mm": 335,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "016053",
+      "torch_models": [
+        "TK-309R1"
+      ],
+      "inner_tube_length_mm": 230,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "016505",
+      "torch_models": [
+        "ACC-308RR",
+        "ACC-308RX"
+      ],
+      "inner_tube_length_mm": 270,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "3001004",
+      "torch_models": [
+        "SRCT-308R"
+      ],
+      "inner_tube_length_mm": 410.5,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "3001047",
+      "torch_models": [
+        "SRCT-307R"
+      ],
+      "inner_tube_length_mm": 331,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YEA003013",
+      "torch_models": [
+        "YMXA-300R",
+        "YMSA-300R",
+        "TR-300R",
+        "YMENS-300R"
+      ],
+      "inner_tube_length_mm": 174.5,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YEA003812",
+      "torch_models": [
+        "YMXA-308R",
+        "YMSA-308R",
+        "TR-308R",
+        "YMENS-308R"
+      ],
+      "inner_tube_length_mm": 262.5,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YEA005013",
+      "torch_models": [
+        "YMXA-500R",
+        "YMSA-500R",
+        "YMENS-500R"
+      ],
+      "inner_tube_length_mm": 188.5,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YEA005812",
+      "torch_models": [
+        "YMXA-508R",
+        "YMSA-508R",
+        "YMENS-508R"
+      ],
+      "inner_tube_length_mm": 276.5,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YEA002514",
+      "torch_models": [
+        "YMXA-250RA",
+        "YMSA-250RA",
+        "YMENS-250RA"
+      ],
+      "inner_tube_length_mm": 158.7,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YEW005013",
+      "torch_models": [
+        "YMSA-500W"
+      ],
+      "inner_tube_length_mm": 184.5,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YEW005813",
+      "torch_models": [
+        "YMSA-508W"
+      ],
+      "inner_tube_length_mm": 261.6,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YEW005046",
+      "torch_models": [
+        "YMSA-500AW"
+      ],
+      "inner_tube_length_mm": 200.5,
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YM1408275-A-S12",
+      "torch_models": [
+        "YMSA-300R (With Wire Clamp)"
+      ],
+      "inner_tube_length_mm": 314,
+      "variant": "wire_clamp",
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YM1408275-D-S12",
+      "torch_models": [
+        "YMSA-308R (With Wire Clamp)"
+      ],
+      "inner_tube_length_mm": 402,
+      "variant": "wire_clamp",
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YM1408275-HA-S12",
+      "torch_models": [
+        "YMSA-300R (With Wire Clamp) (ACC)"
+      ],
+      "inner_tube_length_mm": 258,
+      "variant": "wire_clamp",
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YM1408275-HD-S12",
+      "torch_models": [
+        "YMSA-308R (With Wire Clamp) (ACC)"
+      ],
+      "inner_tube_length_mm": 339,
+      "variant": "wire_clamp",
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YM1408275-500R-S12",
+      "torch_models": [
+        "YMSA-500R (With Wire Clamp)"
+      ],
+      "inner_tube_length_mm": 328,
+      "variant": "wire_clamp",
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YM1408275-508R-S12",
+      "torch_models": [
+        "YMSA-508R (With Wire Clamp)"
+      ],
+      "inner_tube_length_mm": 416,
+      "variant": "wire_clamp",
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YM1408275-500W-S12",
+      "torch_models": [
+        "YMSA-500W (With Wire Clamp)"
+      ],
+      "inner_tube_length_mm": 324,
+      "variant": "wire_clamp",
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "YM1408275-508W-S12",
+      "torch_models": [
+        "YMSA-508W (With Wire Clamp)"
+      ],
+      "inner_tube_length_mm": 402,
+      "variant": "wire_clamp",
+      "source": "Cat05_p5"
+    },
+    {
+      "part_id": "023531",
+      "torch_models": [
+        "DSRC-3531"
+      ],
+      "inner_tube_length_mm": null,
+      "wire_size_mm": "0.8-1.2",
+      "cable_length_m": 1.1,
+      "note": "DSRC Liner 1.1m. Available in 1.1/1.2/1.3/1.4/1.5/1.6/1.8/2.1/2.5m lengths (Cat03 p.13).",
+      "source": "Cat03_p13_Cat05_p24"
+    }
+  ],
+  "liner_length_table": [
+    {
+      "part_id": "016076",
+      "torch_models": [
+        "TK-308RR",
+        "TK-309R1",
+        "YMXA-300R",
+        "YMXA-308R",
+        "YMSA-300R",
+        "YMSA-308R",
+        "YMSA-500W",
+        "YMSA-508W"
+      ],
+      "liner_length_mm": 1300,
+      "wire_size_mm": "1.0-1.2",
+      "robot_model": "MA1440",
+      "cable_length_m": 0.85,
+      "oring": "036035",
+      "source": "Cat05_p17"
+    },
+    {
+      "part_id": "016077",
+      "torch_models": [
+        "TK-308RR",
+        "TK-309R1",
+        "YMXA-300R",
+        "YMXA-308R",
+        "YMSA-300R",
+        "YMSA-308R"
+      ],
+      "liner_length_mm": 1600,
+      "wire_size_mm": "1.0-1.2",
+      "robot_model": "MA2010",
+      "oring": "036035",
+      "source": "Cat05_p17"
+    },
+    {
+      "part_id": "016126",
+      "torch_models": [
+        "TK-308RR",
+        "TK-309R1",
+        "YMXA-500R",
+        "YMXA-508R",
+        "YMSA-500R",
+        "YMSA-508R"
+      ],
+      "liner_length_mm": 1300,
+      "wire_size_mm": "1.4-1.6",
+      "robot_model": "MA1440",
+      "oring": "036035",
+      "source": "Cat05_p17"
+    },
+    {
+      "part_id": "016127",
+      "torch_models": [
+        "TK-308RR",
+        "TK-309R1",
+        "YMXA-500R",
+        "YMXA-508R",
+        "YMSA-500R",
+        "YMSA-508R"
+      ],
+      "liner_length_mm": 1600,
+      "wire_size_mm": "1.4-1.6",
+      "robot_model": "MA2010",
+      "oring": "036035",
+      "source": "Cat05_p17"
+    },
+    {
+      "part_id": "0443013",
+      "torch_models": [
+        "YMSA-500AW"
+      ],
+      "liner_length_mm": 1300,
+      "wire_size_mm": "1.0-1.2",
+      "robot_model": "MA1440",
+      "liner_material": "plastic",
+      "note": "For aluminum welding",
+      "source": "Cat05_p17"
+    },
+    {
+      "part_id": "0443016",
+      "torch_models": [
+        "YMSA-500AW"
+      ],
+      "liner_length_mm": 1600,
+      "wire_size_mm": "1.0-1.2",
+      "robot_model": "MA2010",
+      "liner_material": "plastic",
+      "note": "For aluminum welding",
+      "source": "Cat05_p17"
+    }
+  ],
+  "liner_protrusion_table": [
+    {
+      "torch_model": "YMXA-300R",
+      "protrusion_L_mm": 205,
+      "note": "Standard",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMXA-300R-ACC",
+      "protrusion_L_mm": 147.8,
+      "note": "ACC hardened type",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMXA-300R(ACC)"
+    },
+    {
+      "torch_model": "YMXA-308R",
+      "protrusion_L_mm": 292.5,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMXA-308R-ACC",
+      "protrusion_L_mm": 230.4,
+      "note": "ACC hardened type",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMXA-308R(ACC)"
+    },
+    {
+      "torch_model": "YMXA-500R",
+      "protrusion_L_mm": 218,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMXA-508R",
+      "protrusion_L_mm": 306,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMXA-250RA",
+      "protrusion_L_mm": 189.2,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMSA-300R",
+      "protrusion_L_mm": 294,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMSA-300R-ACC",
+      "protrusion_L_mm": 237,
+      "note": "ACC hardened type",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-300R(ACC)"
+    },
+    {
+      "torch_model": "YMSA-308R",
+      "protrusion_L_mm": 382,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMSA-308R-ACC",
+      "protrusion_L_mm": 319.5,
+      "note": "ACC hardened type",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-308R(ACC)"
+    },
+    {
+      "torch_model": "YMSA-500R",
+      "protrusion_L_mm": 308,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMSA-508R",
+      "protrusion_L_mm": 396,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMSA-250RA",
+      "protrusion_L_mm": 278.2,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMSA-500W",
+      "protrusion_L_mm": 304,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMSA-508W",
+      "protrusion_L_mm": 382,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMSA-500W-WaterCooledNozzle",
+      "protrusion_L_mm": 304,
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-500W(Water-Cooled Nozzle)"
+    },
+    {
+      "torch_model": "YMSA-508W-WaterCooledNozzle",
+      "protrusion_L_mm": 382,
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-508W(Water-Cooled Nozzle)"
+    },
+    {
+      "torch_model": "YMSA-500AW",
+      "protrusion_L_mm": 320,
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "ACC-308RR",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "ACC-308RX",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "TK-308RR",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "TK-308RX",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "TK-308RS",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "TK-508RR",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "TK-508RX",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "TK-508RS",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "TK-309R1",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "SRCT-308R",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "SRCT-307R",
+      "protrusion_L_mm": 0,
+      "note": "No protrusion",
+      "source": "Cat05_p6"
+    },
+    {
+      "torch_model": "YMSA-300R-WireClamp",
+      "protrusion_L_mm": 7.5,
+      "note": "Wire clamp spec",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-300R(With Wire Clamp)"
+    },
+    {
+      "torch_model": "YMSA-308R-WireClamp",
+      "protrusion_L_mm": 7.5,
+      "note": "Wire clamp spec",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-308R(With Wire Clamp)"
+    },
+    {
+      "torch_model": "YMSA-500R-WireClamp",
+      "protrusion_L_mm": 7.5,
+      "note": "Wire clamp spec",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-500R(With Wire Clamp)"
+    },
+    {
+      "torch_model": "YMSA-508R-WireClamp",
+      "protrusion_L_mm": 7.5,
+      "note": "Wire clamp spec",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-508R(With Wire Clamp)"
+    },
+    {
+      "torch_model": "YMSA-500W-WireClamp",
+      "protrusion_L_mm": 7.5,
+      "note": "Wire clamp spec",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-500W(With Wire Clamp)"
+    },
+    {
+      "torch_model": "YMSA-508W-WireClamp",
+      "protrusion_L_mm": 7.5,
+      "note": "Wire clamp spec",
+      "source": "Cat05_p6",
+      "catalog_alias": "YMSA-508W(With Wire Clamp)"
+    },
+    {
+      "torch_model": "TK-308RW",
+      "protrusion_L_mm": 335,
+      "note": "Inherits from TK-308RR — Water-cooled variant of TK-308RR (Cat05 p.13). Same inner tube + teaching.",
+      "inherits_from": "TK-308RR",
+      "source": "Cat05_inheritance"
+    },
+    {
+      "torch_model": "TK-308ALW",
+      "protrusion_L_mm": 335,
+      "note": "Inherits from TK-308RR — Water-cooled aluminum variant (Cat05 p.14). Same MH mounting as TK-308RR.",
+      "inherits_from": "TK-308RR",
+      "source": "Cat05_inheritance"
+    },
+    {
+      "torch_model": "TR-300R",
+      "protrusion_L_mm": 174.5,
+      "note": "Inherits from YMXA-300R — TR-sensor variant — same body as YMXA-300R but with TR shock sensor (Cat05 p.4).",
+      "inherits_from": "YMXA-300R",
+      "source": "Cat05_inheritance"
+    },
+    {
+      "torch_model": "TR-308R",
+      "protrusion_L_mm": 262.5,
+      "note": "Inherits from YMXA-308R — TR-sensor variant — same body as YMXA-308R but with TR shock sensor (Cat05 p.4).",
+      "inherits_from": "YMXA-308R",
+      "source": "Cat05_inheritance"
+    },
+    {
+      "torch_model": "YMENS-300R",
+      "protrusion_L_mm": 174.5,
+      "note": "Inherits from YMSA-300R — MOTOMAN-EA variant of YMSA-300R (Cat03 p.10, Cat05 p.23). For AR700/AR900/AR1440E.",
+      "inherits_from": "YMSA-300R",
+      "source": "Cat05_inheritance"
+    },
+    {
+      "torch_model": "YMENS-308R",
+      "protrusion_L_mm": 262.5,
+      "note": "Inherits from YMSA-308R — MOTOMAN-EA variant of YMSA-308R (Cat03 p.10, Cat05 p.23).",
+      "inherits_from": "YMSA-308R",
+      "source": "Cat05_inheritance"
+    },
+    {
+      "torch_model": "YMENS-500R",
+      "protrusion_L_mm": 188.5,
+      "note": "Inherits from YMSA-500R — MOTOMAN-EA variant of YMSA-500R (Cat03 p.10, Cat05 p.24).",
+      "inherits_from": "YMSA-500R",
+      "source": "Cat05_inheritance"
+    },
+    {
+      "torch_model": "YMENS-508R",
+      "protrusion_L_mm": 276.5,
+      "note": "Inherits from YMSA-508R — MOTOMAN-EA variant of YMSA-508R (Cat03 p.10, Cat05 p.24).",
+      "inherits_from": "YMSA-508R",
+      "source": "Cat05_inheritance"
+    },
+    {
+      "torch_model": "YMENS-250RA",
+      "protrusion_L_mm": 158.7,
+      "note": "Inherits from YMSA-250RA — MOTOMAN-EA variant of YMSA-250RA for aluminum (Cat03 p.10, Cat05 p.25).",
+      "inherits_from": "YMSA-250RA",
+      "source": "Cat05_inheritance"
+    }
+  ],
+  "liner_protrusion_inner_tube_offset": [
+    {
+      "family": "YMXA",
+      "additional_length_mm": 35,
+      "applies_to": [
+        "YMXA-300R",
+        "YMXA-300R(ACC)",
+        "YMXA-308R",
+        "YMXA-308R(ACC)",
+        "YMXA-500R",
+        "YMXA-508R",
+        "YMXA-250RA"
+      ],
+      "note": "Cat05 p.6: YMXA series ships 'Inner Tube less' as standard. If user installs the optional inner tube, ADD 35 mm to the protrusion length L listed in liner_protrusion_table.",
+      "source": "Cat05_p6_table_footer"
+    },
+    {
+      "family": "YMSA",
+      "additional_length_mm": 125,
+      "applies_to": [
+        "YMSA-300R",
+        "YMSA-300R(ACC)",
+        "YMSA-308R",
+        "YMSA-308R(ACC)",
+        "YMSA-500R",
+        "YMSA-508R",
+        "YMSA-250RA",
+        "YMSA-500W",
+        "YMSA-508W",
+        "YMSA-500W(Water-Cooled Nozzle)",
+        "YMSA-508W(Water-Cooled Nozzle)",
+        "YMSA-500AW"
+      ],
+      "note": "Cat05 p.6: YMSA standard models ship 'Inner Tube less' as standard. If user installs the optional inner tube, ADD 125 mm to the protrusion length L listed in liner_protrusion_table. Wire-Clamp variants and TK/ACC/SRCT families are NOT affected.",
+      "source": "Cat05_p6_table_footer"
+    }
+  ],
+  "assembly_sequences": [
+    {
+      "id": "asm_wx_air_cooled_nozzle",
+      "name": "NEWβ/WX Air-Cooled Nozzle assembly",
+      "torch_context": [
+        "YMSA-500W",
+        "YMSA-508W",
+        "WX500S",
+        "WX500R",
+        "WX451S",
+        "WX451R",
+        "WX452S",
+        "WX452R"
+      ],
+      "ecosystem": "WX",
+      "ecosystem_label": "NEWβ/WX (also marketed as α-500W)",
+      "steps": [
+        {
+          "order": 1,
+          "action": "Set end parts into the tip adapter and tighten the tip",
+          "part_role": "Tip",
+          "note": "Confirm tip inner bore matches the wire diameter"
+        },
+        {
+          "order": 2,
+          "action": "Insert the orifice into the tip adapter",
+          "part_role": "Orifice",
+          "part_id": "034120"
+        },
+        {
+          "order": 3,
+          "action": "Screw the nozzle in until it does not loosen",
+          "part_role": "Nozzle",
+          "part_id": "034115"
+        },
+        {
+          "order": 4,
+          "action": "Place a wrench on the milled face of the nozzle spacer and tighten firmly",
+          "part_role": "WXNozzleSpacer",
+          "part_id": "061449"
+        }
+      ],
+      "warning": "If the tip body is over-tightened, the center ceramic will be damaged.",
+      "source": "Cat05_p9"
+    },
+    {
+      "id": "asm_wx_water_cooled_nozzle",
+      "name": "WX Water-Cooled Nozzle assembly",
+      "torch_context": [
+        "YMSA-500W",
+        "YMSA-508W",
+        "YMSA-500AW",
+        "WX451S",
+        "WX451R",
+        "WX452S",
+        "WX452R"
+      ],
+      "ecosystem": "WX",
+      "steps": [
+        {
+          "order": 1,
+          "action": "Insert the WX water-cooled nozzle orifice into the tip adapter",
+          "part_role": "Orifice",
+          "part_id": "034121"
+        },
+        {
+          "order": 2,
+          "action": "For YMSA-500AW: insert the water-cooled nozzle sleeve",
+          "part_role": "WXNozzleSleeve",
+          "condition": "YMSA-500AW only"
+        },
+        {
+          "order": 3,
+          "action": "Insert the water-cooled nozzle firmly into the milled face of the nozzle spacer",
+          "part_role": "Nozzle",
+          "part_id": "061450"
+        },
+        {
+          "order": 4,
+          "action": "Tighten the nozzle set nut using a wrench on both milled faces",
+          "part_role": "WXNozzleNut",
+          "part_id": "061448"
+        }
+      ],
+      "warning": "Do not damage the water-cooled nozzle side when rotating the wrenches. Cooling water flows through the nozzle end, reducing spatter buildup and improving contact tip durability.",
+      "source": "Cat05_p10"
+    },
+    {
+      "id": "asm_wx_nozzle_spacer",
+      "name": "WX Nozzle Spacer / Center Ceramic positioning",
+      "torch_context": [
+        "YMSA-500W",
+        "YMSA-508W",
+        "WX451S",
+        "WX451R",
+        "WX452S",
+        "WX452R"
+      ],
+      "ecosystem": "WX",
+      "steps": [
+        {
+          "order": 1,
+          "action": "Insert the nozzle spacer firmly and completely into the milled face of the torch body",
+          "part_role": "WXNozzleSpacer",
+          "part_id": "061449"
+        },
+        {
+          "order": 2,
+          "action": "Tighten the WX center ceramic and nozzle spacer together",
+          "part_role": "WXCenterCeramic",
+          "part_id": "061445"
+        }
+      ],
+      "warning": "Be careful not to damage the center ceramic while fastening. Over-tightening the tip body damages the center ceramic.",
+      "oring_note": "Torch body uses O-rings in two places — JASO 1009 and JASO 1015. Nozzle spacer uses JASO 1015 and JASO 1016. Coating O-rings with molybdenum reduces damage risk when attaching/detaching.",
+      "source": "Cat05_p10_p11"
+    },
+    {
+      "id": "asm_torch_connection",
+      "name": "Torch-to-wire-feeder connection",
+      "torch_context": [
+        "YMXA series",
+        "YMSA series"
+      ],
+      "ecosystem": "N",
+      "steps": [
+        {
+          "order": 1,
+          "action": "Connect power cable to wire feeder (YWE-WFR42DX2)",
+          "part_role": "PowerCable"
+        },
+        {
+          "order": 2,
+          "action": "Attach gas hose with 9/16-18UNF fitting",
+          "part_role": "GasHose"
+        },
+        {
+          "order": 3,
+          "action": "Secure adapter φ20 connection"
+        }
+      ],
+      "warning": "Welding cable should be connected as close as possible to the base metal and secured tightly. Loose connection causes heat-related fire risk.",
+      "source": "Cat05_p5",
+      "wire_feeder": {
+        "model": "YWE-WFR42DX2",
+        "manufacturer": "Yaskawa Electric",
+        "mounting_distance_mm": {
+          "offset_56_5": 56.5,
+          "offset_137": 137,
+          "offset_45": 45,
+          "offset_8": 8
+        },
+        "torch_connection": {
+          "outer_dia_mm": 20,
+          "gas_hose_fitting": "9/16-18UNF",
+          "gas_hose_dia_mm": 6
+        },
+        "note": "Standard wire feeder for YMXA/YMSA torch series. See Cat05 p.5 [3] for full dimensions.",
+        "source": "Cat05_p5"
+      }
+    }
+  ],
+  "replacement_procedures": [
+    {
+      "id": "rep_tip_body",
+      "name": "Replace Tip Body",
+      "trigger": "Tip body damaged by heat, or screw jammed",
+      "torch_context": [
+        "all robotic torch models"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Remove the damaged tip body"
+        },
+        {
+          "order": 2,
+          "action": "Clean off any spatter adhered to threads"
+        },
+        {
+          "order": 3,
+          "action": "Install new tip body and tighten to 8 N·m"
+        }
+      ],
+      "tools": [
+        "torque wrench"
+      ],
+      "cautions": [
+        "Tighten carefully — over-tightening damages threads"
+      ],
+      "torque_ref": "torque_tip_body",
+      "source": "Cat05_p5"
+    },
+    {
+      "id": "rep_inner_tube",
+      "name": "Replace Inner Tube",
+      "trigger": "Inner tube is worn, wire feeding becomes unstable",
+      "torch_context": [
+        "TK-308RR",
+        "TK-308RX",
+        "TK-308RS",
+        "TK-508RR",
+        "TK-309R1",
+        "YMXA series",
+        "YMSA series",
+        "ACC-308RR",
+        "SRCT-308R"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Identify the correct inner tube part number for the torch model (see inner_tube_length_table)"
+        },
+        {
+          "order": 2,
+          "action": "Remove the worn inner tube"
+        },
+        {
+          "order": 3,
+          "action": "Insert the new inner tube of matching length"
+        }
+      ],
+      "tools": [],
+      "cautions": [
+        "Inner tube length is model-specific — using wrong length affects wire feeding"
+      ],
+      "source": "Cat05_p5_p21"
+    },
+    {
+      "id": "rep_liner",
+      "name": "Replace Liner",
+      "trigger": "Wire feeding is not smooth; liner clogged with wire shavings, rust, or dirt",
+      "torch_context": [
+        "all robotic torch models with power cable"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Remove power cable from wire feeder"
+        },
+        {
+          "order": 2,
+          "action": "Unscrew the bolt and pull out the old liner"
+        },
+        {
+          "order": 3,
+          "action": "Insert the new liner fully into the power cable"
+        },
+        {
+          "order": 4,
+          "action": "Measure the length 'L' protruding from the end"
+        },
+        {
+          "order": 5,
+          "action": "Pull liner out, cut off length 'L' at the front, remove burr"
+        },
+        {
+          "order": 6,
+          "action": "Insert the adjusted liner into power cable, screw the bolt"
+        }
+      ],
+      "tools": [
+        "wrench/hex key",
+        "cutter",
+        "ruler"
+      ],
+      "cautions": [
+        "O-ring at the end of the liner prevents gas leaks — do not omit",
+        "Cut length 'L' is model-specific — see liner_protrusion_table",
+        "Remove burr after cutting to avoid wire feeding obstruction"
+      ],
+      "source": "Cat05_p6"
+    },
+    {
+      "id": "rep_ymsa500w_tip_adapter",
+      "name": "Replace YMSA-500W/508W Torch Body Tip Adapter",
+      "trigger": "Tip adapter worn or damaged on water-cooled torch",
+      "torch_context": [
+        "YMSA-500W",
+        "YMSA-508W"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Remove the nozzle"
+        },
+        {
+          "order": 2,
+          "action": "Remove the orifice"
+        },
+        {
+          "order": 3,
+          "action": "Remove the tip using a 12mm wrench (do not loosen the tip adapter)"
+        },
+        {
+          "order": 4,
+          "action": "Remove the tip adapter using a 12mm wrench"
+        },
+        {
+          "order": 5,
+          "action": "Clean off any spatter adhered to the threads"
+        },
+        {
+          "order": 6,
+          "action": "Tighten new tip adapter to 8 N·m using a torque wrench"
+        },
+        {
+          "order": 7,
+          "action": "Tighten the tip to 3 N·m"
+        },
+        {
+          "order": 8,
+          "action": "Attach the orifice (remove spatter from threads first)"
+        },
+        {
+          "order": 9,
+          "action": "Attach the nozzle (remove spatter from threads first)"
+        }
+      ],
+      "tools": [
+        "12mm wrench",
+        "torque wrench",
+        "Handy Tip Changer 046703 + TG3"
+      ],
+      "cautions": [
+        "Over-tightening the tip adapter damages the torch body",
+        "Over-tightening the tip damages the tip and tip adapter",
+        "Apply silicone coating on the insulation spacer during reassembly — see warning insulation_spacer_silicone"
+      ],
+      "source": "Cat05_p7_p8"
+    },
+    {
+      "id": "rep_adjust_liner_length",
+      "name": "Adjust Liner Length of Power Cable",
+      "trigger": "After liner replacement, length must be tuned to torch model",
+      "torch_context": [
+        "all"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Look up target liner length 'L' for the specific torch model (see liner_protrusion_table)"
+        },
+        {
+          "order": 2,
+          "action": "Adjust liner so protrusion matches table value"
+        }
+      ],
+      "tools": [
+        "ruler",
+        "cutter"
+      ],
+      "cautions": [
+        "TK/ACC/SRCT series use L=0 (no protrusion). YMXA/YMSA series have model-specific L values"
+      ],
+      "source": "Cat05_p6"
+    },
+    {
+      "id": "rep_tip",
+      "name": "Replace Contact Tip (Béc Hàn)",
+      "trigger": "Contact tip worn, hole enlarged beyond 1.5x wire diameter, or arc unstable",
+      "torch_context": [
+        "all robotic torch models"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Allow torch to cool completely before handling",
+          "warning": "Tip is very hot after welding — risk of burns"
+        },
+        {
+          "order": 2,
+          "action": "Remove the nozzle by pulling straight out or unscrewing",
+          "part_role": "Nozzle"
+        },
+        {
+          "order": 3,
+          "action": "Unscrew the worn contact tip using Handy Tip Changer 046703 or wrench",
+          "part_role": "Tip",
+          "torque_spec": "2-3 Nm to loosen"
+        },
+        {
+          "order": 4,
+          "action": "Inspect orifice and insulator for spatter buildup — clean if needed",
+          "part_role": "Orifice"
+        },
+        {
+          "order": 5,
+          "action": "Install new contact tip matching wire diameter. Tighten to 3 N·m",
+          "part_role": "Tip",
+          "torque_spec": "3 Nm"
+        },
+        {
+          "order": 6,
+          "action": "Reinstall nozzle",
+          "part_role": "Nozzle"
+        }
+      ],
+      "tools": [
+        "Handy Tip Changer 046703 + TG3 torque grip",
+        "wrench"
+      ],
+      "cautions": [
+        "Match tip hole size to wire diameter: hole = wire + 0.1-0.2mm",
+        "Over-tightening damages tip and tip adapter — use torque tool",
+        "Use CuCrZr tips (002001-002017) for CO2/MAG; Cu tips (002019) for aluminum MIG"
+      ],
+      "related_parts": [
+        "002001",
+        "002002",
+        "002003",
+        "002005",
+        "002017",
+        "002004",
+        "002016",
+        "002020"
+      ],
+      "torque_ref": "torque_tip",
+      "source": "Cat05_p8 + Cat02_p17"
+    },
+    {
+      "id": "rep_nozzle",
+      "name": "Replace Nozzle / Chụp Khí",
+      "trigger": "Nozzle spatter buildup excessive, nozzle deformed, or gas coverage poor",
+      "torch_context": [
+        "all robotic torch models"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Allow torch to cool before handling"
+        },
+        {
+          "order": 2,
+          "action": "Pull nozzle straight off torch (press-fit type N) or unscrew (threaded type)",
+          "part_role": "Nozzle"
+        },
+        {
+          "order": 3,
+          "action": "Clean spatter from orifice and insulator threads",
+          "part_role": "Orifice"
+        },
+        {
+          "order": 4,
+          "action": "Install new nozzle — press firmly for press-fit, or screw until snug",
+          "part_role": "Nozzle"
+        },
+        {
+          "order": 5,
+          "action": "Verify nozzle inner diameter clears tip — no contact between nozzle and tip"
+        }
+      ],
+      "tools": [
+        "anti-spatter spray",
+        "pliers (for removal if stuck)"
+      ],
+      "cautions": [
+        "N-type nozzles are press-fit (33203, 001002 series) — do not overtighten",
+        "Check orifice is seated correctly after nozzle change",
+        "Rocket tip requires nozzle 001016 only; Long tip requires 001004 or 038042"
+      ],
+      "related_parts": [
+        "001002",
+        "033203",
+        "001001",
+        "001010",
+        "001005",
+        "001008",
+        "001003",
+        "001013"
+      ],
+      "source": "Cat01_assembly + Cat05_p8"
+    },
+    {
+      "id": "rep_insulator",
+      "name": "Replace Insulator / Cách Điện",
+      "trigger": "Insulator cracked, burned, or causing electrical shorts to nozzle",
+      "torch_context": [
+        "all N and D robotic torch models"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Power OFF welding system completely before proceeding",
+          "warning": "Tip body is electrically charged when system is ON"
+        },
+        {
+          "order": 2,
+          "action": "Remove nozzle",
+          "part_role": "Nozzle"
+        },
+        {
+          "order": 3,
+          "action": "Remove tip",
+          "part_role": "Tip"
+        },
+        {
+          "order": 4,
+          "action": "Remove orifice",
+          "part_role": "Orifice"
+        },
+        {
+          "order": 5,
+          "action": "Slide out old insulator",
+          "part_role": "Insulator"
+        },
+        {
+          "order": 6,
+          "action": "Install new insulator — ensure correct size (S=350A: 004002, L=500A: 004001)",
+          "part_role": "Insulator"
+        },
+        {
+          "order": 7,
+          "action": "Reinstall orifice, tip (3 N·m), nozzle in reverse order",
+          "torque_spec": "Tip: 3 Nm"
+        }
+      ],
+      "tools": [
+        "wrench",
+        "Handy Tip Changer 046703"
+      ],
+      "cautions": [
+        "N S insulator (004002, 39mm) for 350A torches; N L insulator (004001, 38mm) for 500A torches",
+        "D insulator (023015) different from N insulator — not interchangeable",
+        "Incorrect insulator size causes gas flow obstruction or arc instability"
+      ],
+      "related_parts": [
+        "004002",
+        "004001",
+        "023015",
+        "003002",
+        "003001"
+      ],
+      "source": "Cat01_assembly + domain_knowledge"
+    },
+    {
+      "id": "rep_orifice",
+      "name": "Replace Orifice / Sứ Chia Khí",
+      "trigger": "Orifice cracked, spatter-blocked, or gas flow uneven",
+      "torch_context": [
+        "all N and D robotic torch models"
+      ],
+      "steps": [
+        {
+          "order": 1,
+          "action": "Remove nozzle",
+          "part_role": "Nozzle"
+        },
+        {
+          "order": 2,
+          "action": "Remove tip",
+          "part_role": "Tip"
+        },
+        {
+          "order": 3,
+          "action": "Lift out old orifice — it sits between tip body and insulator",
+          "part_role": "Orifice"
+        },
+        {
+          "order": 4,
+          "action": "Install new orifice matching torch series (003002 for N 350A, 003001 for N 500A)",
+          "part_role": "Orifice"
+        },
+        {
+          "order": 5,
+          "action": "Reinstall tip and nozzle"
+        }
+      ],
+      "tools": [
+        "wrench"
+      ],
+      "cautions": [
+        "N Orifice S (003002, 21mm) for 350A; N Orifice L (003001, 26mm) for 500A — NOT interchangeable",
+        "D Orifice (023014) for Daihen/OTC — different from N orifice",
+        "WX orifice (034120/034121) unique to WX water-cooled torch"
+      ],
+      "related_parts": [
+        "003002",
+        "003001",
+        "023014",
+        "034120",
+        "034121"
+      ],
+      "source": "Cat01_assembly + domain_knowledge"
+    }
+  ],
+  "power_cable_variants": [
+    {
+      "model_code": "308RR-N-□.□ P/C",
+      "feeder_type": "YASKAWA MOTOPAC type / PANASONIC type",
+      "fitting": "9/16-18UNF",
+      "outer_dia_mm": 20,
+      "shock_sensor_wire": false,
+      "source": "Cat05_p25"
+    },
+    {
+      "model_code": "308RR-N-□.□ P/C SC",
+      "feeder_type": "YASKAWA MOTOPAC type / PANASONIC type",
+      "fitting": "9/16-18UNF",
+      "outer_dia_mm": 20,
+      "shock_sensor_wire": true,
+      "source": "Cat05_p25"
+    },
+    {
+      "model_code": "308RR-□.□ P/C",
+      "feeder_type": "Former standard type",
+      "fitting": "PS 1/4",
+      "outer_dia_mm": 15,
+      "shock_sensor_wire": false,
+      "source": "Cat05_p25"
+    },
+    {
+      "model_code": "308RR-□.□ P/C SC",
+      "feeder_type": "Former standard type",
+      "fitting": "PS 1/4",
+      "outer_dia_mm": 15,
+      "shock_sensor_wire": true,
+      "source": "Cat05_p25"
+    },
+    {
+      "model_code": "308RR-D-□.□ P/C",
+      "feeder_type": "DAIHEN direct connection type",
+      "fitting": "9/16-18UNF",
+      "outer_dia_mm": 12,
+      "shock_sensor_wire": false,
+      "source": "Cat05_p25"
+    },
+    {
+      "model_code": "308RR-DD-□.□ P/C",
+      "feeder_type": "DAIHEN CMRE-741/742 type",
+      "fitting": "9/16-18UNF",
+      "outer_dia_mm": 14,
+      "voltage_detection_line": true,
+      "shock_sensor_wire": false,
+      "source": "Cat05_p25"
+    },
+    {
+      "model_code": "308RR-AD-□.□ P/C",
+      "feeder_type": "TOKIN adapter type",
+      "source": "Cat05_p25"
+    },
+    {
+      "model_code": "308RR-BZ-□.□ P/C",
+      "feeder_type": "BINZEL adapter type",
+      "source": "Cat05_p25"
+    },
+    {
+      "model_code": "308RR-LE-□.□ P/C",
+      "feeder_type": "LINCOLN direct connection type",
+      "source": "Cat05_p25"
+    },
+    {
+      "model_code": "308RR-MIL-□.□ P/C",
+      "feeder_type": "MILLER direct connection type",
+      "source": "Cat05_p25"
+    }
+  ],
+  "power_cable_length_spec": {
+    "min_m": 0.8,
+    "max_m": 5.0,
+    "increment_m": 0.1,
+    "note": "Please specify cable length (m) according to robot model. Available in 0.1m increments.",
+    "source": "Cat05_p25"
+  },
+  "adapters": [
+    {
+      "tokin_part_no": "016080",
+      "name": "308RR-T Adapter",
+      "note": "For former standard type. Includes T adapter fitting + wire guide pin.",
+      "source": "Cat05_p26",
+      "sub_parts": [
+        "016085",
+        "016180"
+      ]
+    },
+    {
+      "tokin_part_no": "016081",
+      "name": "308RR-N Adapter",
+      "fitting": "9/16-18UNF, PS 1/4",
+      "note": "N adapter fitting + N/B/H guide pin + N adapter gas hose.",
+      "source": "Cat05_p26",
+      "sub_parts": [
+        "016086",
+        "016181",
+        "016184"
+      ]
+    },
+    {
+      "tokin_part_no": "016082",
+      "name": "308RR-D Adapter",
+      "fitting": "9/16-18UNF, PS 1/4",
+      "note": "For DAIHEN type. D adapter fitting.",
+      "source": "Cat05_p26",
+      "sub_parts": [
+        "016087",
+        "023022",
+        "023023"
+      ]
+    },
+    {
+      "tokin_part_no": "016083",
+      "name": "308RR-B Adapter",
+      "fitting": "9/16-18UNF, PS 1/4",
+      "note": "B adapter fitting + B adapter gas hose.",
+      "source": "Cat05_p26",
+      "sub_parts": [
+        "016181",
+        "016088",
+        "016185"
+      ]
+    },
+    {
+      "tokin_part_no": "016084",
+      "name": "308RR-H Adapter",
+      "fitting": "M12×1.75, PS 1/4",
+      "note": "H adapter fitting + H adapter gas hose.",
+      "source": "Cat05_p26",
+      "sub_parts": [
+        "016181",
+        "016089",
+        "016186"
+      ]
+    },
+    {
+      "tokin_part_no": "021008",
+      "name": "308RR-N-D Adapter",
+      "note": "N→D converter adapter. Includes N-D Adapter Fitting (021013) + DSRC-3531 P/C Attachment (22202A).",
+      "source": "Cat05_p26",
+      "sub_parts": [
+        "021013"
+      ]
+    },
+    {
+      "tokin_part_no": "021010",
+      "name": "308RR-N-DD Adapter",
+      "note": "N→DD (DAIHEN CMRE-741) converter adapter. Includes N-D Adapter Fitting (021013) + DSRC-3531 P/C Attachment (22202A) + CMRE741 Guide Adapter (023024).",
+      "source": "Cat05_p26",
+      "sub_parts": [
+        "023024"
+      ]
+    }
+  ],
+  "torch_mounting_brackets": [
+    {
+      "tokin_part_no": "YJ1305273",
+      "name": "YMXA Bracket Assembly",
+      "mounting_type": "MA",
+      "robot_compatibility": [
+        "MA1440",
+        "MA2010"
+      ],
+      "note": "Type MA — with internally mounted power cable. Requires YMA Flange (YJ1305277).",
+      "compatible_torches": [
+        "YMXA-300R",
+        "YMXA-308R",
+        "YMSA-300R",
+        "YMSA-308R",
+        "YMXA-500R",
+        "YMXA-508R",
+        "YMSA-500R",
+        "YMSA-508R"
+      ],
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "YJ1305277",
+      "name": "YMA Flange",
+      "mounting_type": "MA",
+      "robot_compatibility": [
+        "MA1440",
+        "MA2010"
+      ],
+      "note": "Type MA flange. Use with YMXA Bracket Assembly.",
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "YJ1307081",
+      "name": "YMH Bracket Assembly",
+      "mounting_type": "MH",
+      "robot_compatibility": [
+        "MA1440",
+        "MA2010"
+      ],
+      "note": "Type MH — with externally mounted power cable. Requires YMH Flange (YJ1307086). For TK-308RR.",
+      "compatible_torches": [
+        "TK-308RR",
+        "TK-508RR",
+        "TK-309R1"
+      ],
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "YJ1307091",
+      "name": "YMSH Bracket Assembly",
+      "mounting_type": "MH",
+      "robot_compatibility": [
+        "MA1440",
+        "MA2010"
+      ],
+      "note": "Type MH bracket for SRCT-308R with shock sensor. Requires YMH Flange (YJ1307086).",
+      "compatible_torches": [
+        "SRCT-308R",
+        "SRCT-307R"
+      ],
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "YJ1307086",
+      "name": "YMH Flange",
+      "mounting_type": "MH",
+      "robot_compatibility": [
+        "MA1440",
+        "MA2010"
+      ],
+      "note": "Type MH flange. Use with YMH or YMSH Bracket Assembly.",
+      "source": "Cat05_p26"
+    }
+  ],
+  "coverage_inheritance": {
+    "purpose": "Maps torches that inherit assembly procedures from a parent model",
+    "mappings": {
+      "TK-308RW": {
+        "inherits_from": "TK-308RR",
+        "inner_tube": "016053",
+        "L_mm": 335,
+        "note": "Water-cooled variant of TK-308RR (Cat05 p.13). Same inner tube + teaching."
+      },
+      "TK-308ALW": {
+        "inherits_from": "TK-308RR",
+        "inner_tube": "016053",
+        "L_mm": 335,
+        "note": "Water-cooled aluminum variant (Cat05 p.14). Same MH mounting as TK-308RR."
+      },
+      "DSRC-3531": {
+        "inherits_from": null,
+        "inner_tube": "DSRC-special",
+        "L_mm": null,
+        "note": "DSRC-3531 D-type with built-in sensor — see Cat05 p.24 parts drawing. Liner: 023531 (1.1m) or 023539 (2.5m)."
+      },
+      "TR-300R": {
+        "inherits_from": "YMXA-300R",
+        "inner_tube": "YEA003013",
+        "L_mm": 174.5,
+        "note": "TR-sensor variant — same body as YMXA-300R but with TR shock sensor (Cat05 p.4)."
+      },
+      "TR-308R": {
+        "inherits_from": "YMXA-308R",
+        "inner_tube": "YEA003812",
+        "L_mm": 262.5,
+        "note": "TR-sensor variant — same body as YMXA-308R but with TR shock sensor (Cat05 p.4)."
+      },
+      "YMENS-300R": {
+        "inherits_from": "YMSA-300R",
+        "inner_tube": "YEA003013",
+        "L_mm": 174.5,
+        "note": "MOTOMAN-EA variant of YMSA-300R (Cat03 p.10, Cat05 p.23). For AR700/AR900/AR1440E."
+      },
+      "YMENS-308R": {
+        "inherits_from": "YMSA-308R",
+        "inner_tube": "YEA003812",
+        "L_mm": 262.5,
+        "note": "MOTOMAN-EA variant of YMSA-308R (Cat03 p.10, Cat05 p.23)."
+      },
+      "YMENS-500R": {
+        "inherits_from": "YMSA-500R",
+        "inner_tube": "YEA005013",
+        "L_mm": 188.5,
+        "note": "MOTOMAN-EA variant of YMSA-500R (Cat03 p.10, Cat05 p.24)."
+      },
+      "YMENS-508R": {
+        "inherits_from": "YMSA-508R",
+        "inner_tube": "YEA005812",
+        "L_mm": 276.5,
+        "note": "MOTOMAN-EA variant of YMSA-508R (Cat03 p.10, Cat05 p.24)."
+      },
+      "YMENS-250RA": {
+        "inherits_from": "YMSA-250RA",
+        "inner_tube": "YEA002514",
+        "L_mm": 158.7,
+        "note": "MOTOMAN-EA variant of YMSA-250RA for aluminum (Cat03 p.10, Cat05 p.25)."
+      }
+    },
+    "note": "Several robotic torches share identical assembly procedures with their parent model (e.g. TK-308RW inherits from TK-308RR, YMENS-300R from YMSA-300R). This table lets the bot answer 'replace inner tube on YMENS-300R' by routing to YMSA-300R procedures.",
+    "source": "Cat03_p10 + Cat05_inheritance_pattern"
+  },
+  "adapter_fittings": [
+    {
+      "tokin_part_no": "016085",
+      "name": "308RR-T Adapter Fitting",
+      "parent_adapter": [
+        "016080"
+      ],
+      "reference_no": 1,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "016180",
+      "name": "308RR-T Wire Guide Pin",
+      "parent_adapter": [
+        "016080"
+      ],
+      "reference_no": 2,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "016086",
+      "name": "308RR-N Adapter Fitting",
+      "parent_adapter": [
+        "016081"
+      ],
+      "reference_no": 3,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "016181",
+      "name": "308RR-N/B/H Guide Pin",
+      "parent_adapter": [
+        "016081",
+        "016083",
+        "016084"
+      ],
+      "reference_no": 4,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "016184",
+      "name": "308RR-N Adapter Gas Hose",
+      "parent_adapter": [
+        "016081"
+      ],
+      "reference_no": 5,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "016087",
+      "name": "308RR-D Adapter Fitting",
+      "parent_adapter": [
+        "016082"
+      ],
+      "reference_no": 6,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "023022",
+      "name": "WT-64 Outlet Guide",
+      "parent_adapter": [
+        "016082"
+      ],
+      "reference_no": 7,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "023023",
+      "name": "WT-64 Guide Adapter",
+      "parent_adapter": [
+        "016082"
+      ],
+      "reference_no": 8,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "016088",
+      "name": "308RR-B Adapter Fitting",
+      "parent_adapter": [
+        "016083"
+      ],
+      "reference_no": 9,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "016185",
+      "name": "308RR-B Adapter Gas Hose",
+      "parent_adapter": [
+        "016083"
+      ],
+      "reference_no": 10,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "016089",
+      "name": "308RR-H Adapter Fitting",
+      "parent_adapter": [
+        "016084"
+      ],
+      "reference_no": 11,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "016186",
+      "name": "308RR-H Adapter Gas Hose",
+      "parent_adapter": [
+        "016084"
+      ],
+      "reference_no": 12,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "021013",
+      "name": "N-D Adapter Fitting",
+      "parent_adapter": [
+        "021008"
+      ],
+      "reference_no": 13,
+      "source": "Cat05_p26"
+    },
+    {
+      "tokin_part_no": "22202A",
+      "name": "DSRC-3531 P/C Attachment",
+      "parent_adapter": [],
+      "special_torch": "DSRC-3531",
+      "reference_no": 14,
+      "source": "Cat05_p26",
+      "note": "Special — không thuộc adapter chính. Dùng riêng cho DSRC-3531."
+    },
+    {
+      "tokin_part_no": "023024",
+      "name": "CMRE741 Guide Adapter",
+      "parent_adapter": [
+        "021010"
+      ],
+      "reference_no": 15,
+      "source": "Cat05_p26"
+    }
+  ]
+}

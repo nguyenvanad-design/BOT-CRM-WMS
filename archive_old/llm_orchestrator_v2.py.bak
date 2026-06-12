@@ -1,0 +1,667 @@
+# core/llm_orchestrator_v2.py
+# TOKINARC LLM Orchestrator v2 — 2-LLM Architecture
+# ====================================================
+# LLM 1 (Planner)  : google.genai — function calling, chọn tool, gọi tool
+# LLM 2 (Responder): google.genai — nhận history + tool_results → tổng hợp
+# + History buffer: inject N turns gần nhất từ SessionContext
+# + OUT_OF_SCOPE: detect trước khi gọi Planner → trả lời trực tiếp
+#
+# Migration: google.generativeai (deprecated) → google.genai
+# UTF-8 NO BOM
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import re
+import time
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+
+log = logging.getLogger("tokinarc.orchestrator_v2")
+
+GEMINI_MODEL         = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_API_KEY       = os.environ.get("GEMINI_API_KEY", "")
+MAX_TOOL_CALLS       = int(os.environ.get("TOKINARC_MAX_TOOL_CALLS", "4"))
+PLANNER_TEMP         = 0.1
+RESPONDER_TEMP       = 0.3
+MAX_OUTPUT_TOKENS    = 1500
+HISTORY_INJECT_TURNS = int(os.environ.get("TOKINARC_HISTORY_TURNS", "6"))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# OUT_OF_SCOPE fast-path
+# ══════════════════════════════════════════════════════════════════════════════
+
+_OOS_PAT = re.compile(
+    r'\b(xin\s*ch[aà]o|hello|hi\b|h[eê]y\b|ch[aà]o\s*(b[aạ]n|anh|ch[iị]|em)'
+    r'|gi[aá]\s*(m[aá]y\s*h[aà]n|thi[eế]t\s*b[iị]|robot\s*h[aà]n|b[iì]nh\s*kh[ií])'
+    r'|m[aá]y\s*h[aà]n\s*(gi[aá]|bao\s*nhi[eê]u)'
+    r'|giao\s*h[aà]ng|ship\b|v[aậ]n\s*chuy[eể]n'
+    r'|thanh\s*to[aá]n|chuy[eể]n\s*kho[aả]n'
+    r'|b[aả]o\s*h[aà]nh|warranty'
+    r'|t[oồ]n\s*kho|h[aà]ng\s*c[oó]\s*s[aẵ]n'
+    r'|th[oờ]i\s*ti[eế]t|b[oó]ng\s*[dđ][aá])\b',
+    re.I | re.UNICODE,
+)
+
+def _detect_oos(query: str) -> Optional[str]:
+    q = query.lower().strip()
+    if not q or len(q) < 3:
+        return "Dạ chào anh/chị! Em là trợ lý tư vấn kỹ thuật linh kiện súng hàn Tokinarc của Autoss. Anh/chị cần tư vấn gì ạ?"
+    if re.match(r'^(hi|hello|hey|ch[aà]o|xin\s*ch[aà]o|alo)\s*[!.]*\s*$', q, re.I | re.UNICODE):
+        return "Dạ chào anh/chị! Em là trợ lý tư vấn kỹ thuật linh kiện súng hàn Tokinarc của Autoss. Anh/chị cần tư vấn gì ạ?"
+    m = _OOS_PAT.search(q)
+    if not m:
+        return None
+    t = m.group(0).lower()
+    if any(k in t for k in ('máy hàn','robot hàn','bình khí','thiết bị')):
+        return "Dạ giá máy hàn/thiết bị anh/chị vui lòng liên hệ trực tiếp Autoss ạ. Em chỉ tư vấn linh kiện và vật tư tiêu hao súng hàn Tokinarc."
+    if any(k in t for k in ('giao hàng','ship','vận chuyển')):
+        return "Dạ thông tin giao hàng anh/chị vui lòng liên hệ trực tiếp bộ phận kinh doanh Autoss ạ."
+    if any(k in t for k in ('thanh toán','chuyển khoản')):
+        return "Dạ thông tin thanh toán anh/chị vui lòng liên hệ trực tiếp Autoss ạ."
+    if any(k in t for k in ('bảo hành','warranty')):
+        return "Dạ thông tin bảo hành anh/chị vui lòng liên hệ trực tiếp Autoss ạ."
+    if any(k in t for k in ('tồn kho','có sẵn')):
+        return "Dạ tình trạng tồn kho anh/chị vui lòng liên hệ trực tiếp Autoss để kiểm tra ạ."
+    if any(k in t for k in ('xin chào','hello','hi','hey','chào')):
+        return "Dạ chào anh/chị! Anh/chị cần tư vấn linh kiện súng hàn Tokinarc gì ạ?"
+    return "Dạ câu hỏi này nằm ngoài phạm vi tư vấn kỹ thuật của em. Anh/chị cần tư vấn về linh kiện súng hàn Tokinarc không ạ?"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sanitizer
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _to_python(obj: Any) -> Any:
+    if obj is None: return None
+    if isinstance(obj, bool): return obj
+    if isinstance(obj, (int, float)): return obj
+    if isinstance(obj, str): return obj
+    if isinstance(obj, dict): return {str(k): _to_python(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)): return [_to_python(i) for i in obj]
+    nm = getattr(type(obj), "__module__", "")
+    tn = type(obj).__name__
+    if "proto" in nm or "protobuf" in nm or tn in (
+        "MapComposite","RepeatedComposite","MessageMapContainer",
+        "ScalarMapContainer","RepeatedScalarFieldContainer","RepeatedCompositeFieldContainer",
+    ):
+        try: return {str(k): _to_python(v) for k, v in dict(obj).items()}
+        except Exception: pass
+        try: return [_to_python(i) for i in list(obj)]
+        except Exception: pass
+    if hasattr(obj,"__iter__") and not isinstance(obj,(str,bytes)):
+        try: return [_to_python(i) for i in obj]
+        except Exception: pass
+    try: return str(obj)
+    except Exception: return ""
+
+
+def _sanitize(obj: Any, _d: int = 0) -> Any:
+    obj = _to_python(obj)
+    if _d > 6: return str(obj)[:200]
+    if obj is None: return ""
+    if isinstance(obj, bool): return obj
+    if isinstance(obj, (int, float)): return obj
+    if isinstance(obj, str): return obj[:2000]
+    if isinstance(obj, list):
+        lim = 50 if _d <= 3 else max(10, 30 - _d * 3)
+        return [_sanitize(i, _d+1) for i in obj[:lim]]
+    if isinstance(obj, dict):
+        return {str(k): _sanitize(v, _d+1) for k, v in obj.items()
+                if v is not None
+                and not (isinstance(v,(list,dict)) and len(v)==0)
+                and not str(k).startswith("_")}
+    try: return str(obj)[:500]
+    except Exception: return ""
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Response dataclass
+# ══════════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class OrchestratorResponse:
+    text:           str
+    tools_called:   List[str]  = field(default_factory=list)
+    tool_results:   List[dict] = field(default_factory=list)
+    intent:         str        = ""
+    entities:       dict       = field(default_factory=dict)
+    success:        bool       = True
+    error:          str        = ""
+    latency_ms:     int        = 0
+    model:          str        = ""
+
+    @property
+    def response_text(self) -> str:
+        return self.text
+
+    def to_dict(self) -> dict:
+        return {"text": self.text, "tools_called": self.tools_called,
+                "intent": self.intent, "success": self.success,
+                "error": self.error, "latency_ms": self.latency_ms}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Error helpers
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _classify_error(exc: Exception) -> Tuple[str, str]:
+    s = str(exc).lower()
+    if any(k in s for k in ("429","rate_limit","resource_exhausted","quota")):
+        return "RATE_LIMIT","Dạ hệ thống đang nhận quá nhiều yêu cầu. Anh/chị vui lòng chờ 30 giây rồi thử lại ạ."
+    if any(k in s for k in ("timeout","timed out","deadline")):
+        return "TIMEOUT","Dạ phản hồi từ AI mất quá lâu. Anh/chị vui lòng thử lại với câu hỏi ngắn gọn hơn ạ."
+    if any(k in s for k in ("503","502","504","unavailable")):
+        return "UNAVAILABLE","Dạ dịch vụ AI tạm thời gián đoạn. Anh/chị vui lòng thử lại sau vài phút ạ."
+    return "UNKNOWN","Dạ em xin lỗi, hệ thống đang gặp sự cố kỹ thuật. Anh/chị vui lòng thử lại sau ít phút ạ."
+
+
+def _error_response(exc, tools_called, tool_results, t0, model, prefix="Orch"):
+    err_type, vi_msg = _classify_error(exc)
+    latency_ms = int((time.time()-t0)*1000)
+    log.error(f"[{prefix}] {err_type}: {exc} ({latency_ms}ms)")
+    return OrchestratorResponse(
+        text=vi_msg, tools_called=tools_called, tool_results=tool_results,
+        intent="error", success=False, error=f"{err_type}:{exc}",
+        latency_ms=latency_ms, model=model,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# History builder
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _build_history(ctx, client_history: Optional[List[dict]]) -> List[dict]:
+    if client_history:
+        return list(client_history)
+    if ctx is None:
+        return []
+    if hasattr(ctx, "get_history_for_llm"):
+        msgs = ctx.get_history_for_llm(max_turns=HISTORY_INJECT_TURNS)
+        if msgs:
+            log.debug(f"[Orch] history {len(msgs)//2} turns (cycle={getattr(ctx,'history_cycle',0)})")
+            return msgs
+    last_q = getattr(ctx,"last_query","") or ""
+    last_r = getattr(ctx,"last_text","") or ""
+    if last_q and last_r:
+        return [{"role":"user","parts":[{"text":last_q}]},
+                {"role":"model","parts":[{"text":last_r}]}]
+    return []
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Responder prompt
+# ══════════════════════════════════════════════════════════════════════════════
+
+_RESPONDER_SYSTEM = """\
+Bạn là trợ lý tư vấn kỹ thuật Autoss — nhà phân phối Tokinarc tại Việt Nam.
+Nhiệm vụ: tổng hợp kết quả tool calls thành câu trả lời tiếng Việt tự nhiên, chính xác.
+
+QUY TẮC:
+1. CHỈ dùng data từ tool_results — KHÔNG tự bịa mã part, giá, spec.
+2. Mọi part PHẢI có mã: "Mã 002001 — Béc hàn N 0.9mm — 18.000đ/cái".
+3. Xưng "em", gọi "anh/chị".
+4. tool_results rỗng hoặc success=false → thông báo không tìm thấy, gợi ý hỏi lại.
+5. CONSUMABLE_SET: liệt kê ĐỦ 6 nhóm TipBody→Tip→Nozzle→Insulator→Orifice→Liner.
+6. Cuối response hỏi 1 câu qualify (trừ khi đã đủ info).
+"""
+
+_SYNTHESIS_RULES = (
+    "\n\n=== SYNTHESIS RULES ===\n"
+    "1. Chỉ dùng data từ tool results bên dưới.\n"
+    "2. Nếu có warnings → nêu rõ.\n"
+    "3. CONSUMABLE_SET: in ĐỦ 6 nhóm trước khi hỏi thêm.\n"
+    "4. Liệt kê đầy đủ, không bỏ sót part.\n"
+    "5. Giá format: XX.XXXđ/cái.\n"
+    "========================\n"
+)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Session extract helper (dùng chung)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _extract_session_data(tools_called, tool_results, query):
+    INTENT_MAP = {
+        "lookup_part":"LOOKUP","search_parts":"SEARCH_BY_DESC",
+        "get_consumable_set":"CONSUMABLE_SET","find_upsell_companions":"UPSELL",
+        "find_replacement":"REPLACEMENT","check_compatibility":"COMPATIBILITY_CHECK",
+        "compare_parts":"COMPARISON","get_torches":"AGGREGATE",
+        "get_troubleshoot":"REPAIR","get_replacement_steps":"INSTALLATION",
+        "get_liner_length":"INSTALLATION",
+    }
+    intent = next((INTENT_MAP[t] for t in tools_called if t in INTENT_MAP), "OUT_OF_SCOPE")
+    entities: dict = {}
+    returned: list = []
+
+    for tr in tool_results:
+        args   = tr.get("args", {})
+        result = tr.get("result", {})
+        if "part_no" in args:
+            entities.setdefault("part_nos",[])
+            if args["part_no"] not in entities["part_nos"]:
+                entities["part_nos"].append(args["part_no"])
+        if args.get("ecosystem"):     entities["ecosystem"]     = args["ecosystem"]
+        if args.get("current_class"): entities["current_class"] = args["current_class"]
+        if args.get("torch_model"):
+            entities.setdefault("torch_models",[])
+            if args["torch_model"] not in entities["torch_models"]:
+                entities["torch_models"].append(args["torch_model"])
+
+        _raw  = result.get("result", result)
+        _ok   = _raw.get("success", result.get("success", False))
+        _data = _raw.get("data", result.get("data"))
+        if _ok and isinstance(_data, dict):
+            if _data.get("tokin_part_no"):
+                returned.append({"tokin_part_no": _data["tokin_part_no"]})
+            for key in ("companions","parts","items","related_parts"):
+                for p in (_data.get(key) or [])[:8]:
+                    if isinstance(p,dict):
+                        pno = p.get("tokin_part_no") or p.get("part_id") or p.get("part_no","")
+                        if pno: returned.append({"tokin_part_no":pno})
+            for cs in (_data.get("sets") or []):
+                for p in (cs.get("parts") or [])[:5]:
+                    if isinstance(p,dict) and p.get("tokin_part_no"):
+                        returned.append({"tokin_part_no":p["tokin_part_no"]})
+            if _data.get("model_code") and not _data.get("tokin_part_no"):
+                returned.append({"tokin_part_no":_data["model_code"]})
+        elif _ok and isinstance(_data, list):
+            for p in _data[:8]:
+                if isinstance(p,dict):
+                    pno = p.get("tokin_part_no") or p.get("part_id","")
+                    if pno: returned.append({"tokin_part_no":pno})
+
+    seen: set = set()
+    deduped = []
+    for p in returned:
+        pno = p.get("tokin_part_no","")
+        if pno and pno not in seen:
+            seen.add(pno); deduped.append(p)
+    return intent, entities, deduped[:10]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# OrchestratorV2 — SDK (google.genai)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class OrchestratorV2:
+
+    def __init__(self, api_key: str = GEMINI_API_KEY, model: str = GEMINI_MODEL):
+        self.api_key = api_key or os.environ.get("GEMINI_API_KEY","")
+        self.model   = model
+        self._client = None
+        from core.system_prompts import ASSISTANT_PROMPT, TOOL_SCHEMA
+        self._planner_system = ASSISTANT_PROMPT
+        self._tool_schema    = TOOL_SCHEMA
+        self._gemini_tools   = None
+        from core.session_store import get_session_store
+        self._ss = get_session_store()
+        from core.tool_wrappers import dispatch as _dispatch
+        self._dispatch = _dispatch
+        log.info(f"[OrchestratorV2] init model={self.model} (google.genai)")
+
+    def _get_client(self):
+        if self._client is None:
+            import google.genai as genai
+            self._client = genai.Client(api_key=self.api_key)
+            log.info("[OrchestratorV2] google.genai client initialized")
+        return self._client
+
+    def _get_tools(self):
+        if self._gemini_tools is None:
+            import google.genai.types as gt
+            decls = [
+                gt.FunctionDeclaration(
+                    name=t["name"], description=t["description"],
+                    parameters=t.get("parameters",{}),
+                )
+                for t in self._tool_schema
+            ]
+            self._gemini_tools = [gt.Tool(function_declarations=decls)]
+        return self._gemini_tools
+
+    def run(self, query: str, session_id=None, history=None,
+            image_data=None, image_mime="image/jpeg") -> OrchestratorResponse:
+        t0 = time.time()
+
+        if not query and not image_data:
+            return OrchestratorResponse(text="Dạ anh/chị cần tư vấn gì ạ?",
+                                        success=True, latency_ms=0, model=self.model)
+
+        # OUT_OF_SCOPE fast-path
+        if not image_data:
+            oos = _detect_oos(query)
+            if oos:
+                log.info(f"[OrchestratorV2] OOS: {query[:50]!r}")
+                ctx = self._ss.get_or_create(session_id)
+                if ctx:
+                    self._ss.update(ctx,"OUT_OF_SCOPE",{},[],query=query,response_text=oos)
+                return OrchestratorResponse(text=oos, intent="OUT_OF_SCOPE",
+                    success=True, latency_ms=int((time.time()-t0)*1000), model="oos_fast_path")
+
+        ctx = self._ss.get_or_create(session_id)
+        base_history = _build_history(ctx, history)
+
+        import google.genai.types as gt
+
+        user_parts = []
+        if image_data:
+            user_parts.append(gt.Part.from_bytes(data=image_data, mime_type=image_mime))
+        user_parts.append(gt.Part.from_text(text=query))
+
+        # Convert history dicts → Content objects
+        def _to_content(m):
+            if hasattr(m,"role"): return m
+            role  = m.get("role","user")
+            parts_raw = m.get("parts",[])
+            parts_obj = []
+            for p in parts_raw:
+                if isinstance(p, str): parts_obj.append(gt.Part.from_text(text=p))
+                elif isinstance(p, dict) and "text" in p: parts_obj.append(gt.Part.from_text(text=p["text"]))
+                else: parts_obj.append(p)
+            return gt.Content(role=role, parts=parts_obj)
+
+        current = [_to_content(m) for m in base_history]
+        current.append(gt.Content(role="user", parts=user_parts))
+
+        tools_called: List[str]  = []
+        tool_results: List[dict] = []
+        tool_call_count = 0
+
+        try:
+            client = self._get_client()
+            planner_cfg = gt.GenerateContentConfig(
+                system_instruction = self._planner_system,
+                tools              = self._get_tools(),
+                temperature        = PLANNER_TEMP,
+                max_output_tokens  = MAX_OUTPUT_TOKENS,
+            )
+
+            # ── LLM 1: Planner ────────────────────────────────────────────────
+            while tool_call_count <= MAX_TOOL_CALLS:
+                log.info(f"[Planner] call #{tool_call_count+1} msgs={len(current)}")
+                resp = client.models.generate_content(
+                    model=self.model, contents=current, config=planner_cfg,
+                )
+                cand = resp.candidates[0] if resp.candidates else None
+                if not cand or not cand.content:
+                    break
+
+                parts    = cand.content.parts or []
+                fc_parts = [p for p in parts if p.function_call and p.function_call.name]
+
+                if not fc_parts:
+                    current.append(cand.content)
+                    break
+                if tool_call_count >= MAX_TOOL_CALLS:
+                    log.warning(f"[Planner] MAX_TOOL_CALLS reached")
+                    current.append(cand.content)
+                    break
+
+                current.append(cand.content)
+
+                fn_resps = []
+                for fc in fc_parts:
+                    fn_name = fc.function_call.name
+                    fn_args = _to_python(dict(fc.function_call.args or {}))
+                    log.info(f"[Planner] tool: {fn_name}({list(fn_args.keys())})")
+                    tools_called.append(fn_name)
+                    t_tool = time.time()
+                    try:
+                        result = self._dispatch(fn_name, fn_args)
+                    except Exception as e:
+                        log.error(f"[Planner] {fn_name} error: {e}")
+                        result = {"success":False,"reason":str(e)}
+                    safe = _sanitize(result)
+                    tool_results.append({"tool":fn_name,"args":fn_args,"result":safe})
+                    log.info(f"[Planner] {fn_name} done {int((time.time()-t_tool)*1000)}ms")
+                    fn_resps.append(gt.Part.from_function_response(name=fn_name, response=safe))
+
+                current.append(gt.Content(role="user", parts=fn_resps))
+                tool_call_count += 1
+
+            # ── LLM 2: Responder ──────────────────────────────────────────────
+            final_text = ""
+            if tool_results:
+                tool_summary = json.dumps(
+                    [{"tool":r["tool"],"result":r["result"]} for r in tool_results],
+                    ensure_ascii=False,
+                )[:6000]
+                responder_prompt = (
+                    f"Câu hỏi của khách: {query}\n\n"
+                    f"Kết quả từ tools:\n{tool_summary}"
+                    f"{_SYNTHESIS_RULES}"
+                )
+                resp_msgs = [_to_content(m) for m in base_history[:-1] if base_history]
+                resp_msgs.append(gt.Content(role="user",
+                    parts=[gt.Part.from_text(text=responder_prompt)]))
+
+                log.info(f"[Responder] synthesizing {len(tool_results)} results")
+                resp2 = client.models.generate_content(
+                    model   = self.model,
+                    contents= resp_msgs,
+                    config  = gt.GenerateContentConfig(
+                        system_instruction = _RESPONDER_SYSTEM,
+                        temperature        = RESPONDER_TEMP,
+                        max_output_tokens  = MAX_OUTPUT_TOKENS,
+                    ),
+                )
+                if resp2.candidates and resp2.candidates[0].content:
+                    final_text = "\n".join(
+                        p.text for p in (resp2.candidates[0].content.parts or [])
+                        if hasattr(p,"text") and p.text
+                    ).strip()
+            else:
+                last_model = next(
+                    (m for m in reversed(current)
+                     if hasattr(m,"role") and m.role=="model"), None,
+                )
+                if last_model and last_model.parts:
+                    final_text = "\n".join(
+                        p.text for p in last_model.parts
+                        if hasattr(p,"text") and p.text
+                    ).strip()
+
+            if not final_text:
+                final_text = "Dạ em xin lỗi, có lỗi xảy ra. Anh/chị vui lòng thử lại ạ."
+
+        except Exception as e:
+            return _error_response(exc=e, tools_called=tools_called,
+                tool_results=tool_results, t0=t0, model=self.model,
+                prefix="OrchestratorV2")
+
+        intent, entities, returned = _extract_session_data(tools_called, tool_results, query)
+        safe_ent = _sanitize(entities)
+        if ctx:
+            self._ss.update(ctx, intent, safe_ent, returned,
+                            query=query, response_text=final_text[:200])
+        latency_ms = int((time.time()-t0)*1000)
+        log.info(f"[OrchestratorV2] done {latency_ms}ms tools={tools_called} intent={intent}")
+        return OrchestratorResponse(
+            text=final_text, tools_called=tools_called, tool_results=tool_results,
+            intent=intent, entities=safe_ent, success=True,
+            latency_ms=latency_ms, model=self.model,
+        )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# OrchestratorV2REST — urllib fallback
+# ══════════════════════════════════════════════════════════════════════════════
+
+class OrchestratorV2REST:
+    URL = ("https://generativelanguage.googleapis.com/v1beta/models/"
+           "{model}:generateContent?key={api_key}")
+
+    def __init__(self, api_key: str = GEMINI_API_KEY, model: str = GEMINI_MODEL):
+        self.api_key = api_key or os.environ.get("GEMINI_API_KEY","")
+        self.model   = model
+        from core.system_prompts import ASSISTANT_PROMPT, TOOL_SCHEMA
+        self._planner_system = ASSISTANT_PROMPT
+        self._tool_schema    = TOOL_SCHEMA
+        from core.session_store import get_session_store
+        self._ss = get_session_store()
+        from core.tool_wrappers import dispatch as _d
+        self._dispatch = _d
+        log.info(f"[OrchestratorV2REST] init model={self.model}")
+
+    def _post(self, payload: dict) -> dict:
+        import urllib.request
+        url  = self.URL.format(model=self.model, api_key=self.api_key)
+        body = json.dumps(payload).encode("utf-8")
+        req  = urllib.request.Request(url, data=body,
+               headers={"Content-Type":"application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode("utf-8"))
+
+    def _tools(self) -> list:
+        return [{"functionDeclarations": [
+            {"name":t["name"],"description":t["description"],
+             "parameters":t.get("parameters",{})}
+            for t in self._tool_schema
+        ]}]
+
+    def run(self, query: str, session_id=None, history=None,
+            image_data=None, image_mime="image/jpeg") -> OrchestratorResponse:
+        import base64
+        t0 = time.time()
+
+        if not image_data:
+            oos = _detect_oos(query)
+            if oos:
+                ctx = self._ss.get_or_create(session_id)
+                if ctx:
+                    self._ss.update(ctx,"OUT_OF_SCOPE",{},[],query=query,response_text=oos)
+                return OrchestratorResponse(text=oos, intent="OUT_OF_SCOPE",
+                    success=True, latency_ms=int((time.time()-t0)*1000), model="oos_fast_path")
+
+        ctx      = self._ss.get_or_create(session_id)
+        contents = _build_history(ctx, history)
+
+        user_parts: list = []
+        if image_data:
+            user_parts.append({"inlineData":{"mimeType":image_mime,
+                "data":base64.b64encode(image_data).decode()}})
+        user_parts.append({"text": query})
+        contents.append({"role":"user","parts":user_parts})
+
+        tools_called: List[str]  = []
+        tool_results: List[dict] = []
+        tool_call_count = 0
+
+        planner_payload = {
+            "systemInstruction": {"parts":[{"text":self._planner_system}]},
+            "tools":             self._tools(),
+            "generationConfig":  {"temperature":PLANNER_TEMP,"maxOutputTokens":MAX_OUTPUT_TOKENS},
+            "contents":          contents,
+        }
+
+        try:
+            current = list(contents)
+            while tool_call_count <= MAX_TOOL_CALLS:
+                planner_payload["contents"] = current
+                data  = self._post(planner_payload)
+                parts = (data.get("candidates",[{}])[0]
+                         .get("content",{}).get("parts",[]))
+                fc_parts = [p for p in parts if "functionCall" in p]
+
+                if not fc_parts:
+                    current.append({"role":"model","parts":parts})
+                    break
+                if tool_call_count >= MAX_TOOL_CALLS:
+                    current.append({"role":"model","parts":parts})
+                    break
+
+                current.append({"role":"model","parts":parts})
+                fn_resps = []
+                for fc in fc_parts:
+                    fn      = fc["functionCall"]
+                    fn_name = fn["name"]
+                    fn_args = _to_python(fn.get("args",{}))
+                    tools_called.append(fn_name)
+                    try:
+                        result = self._dispatch(fn_name, fn_args)
+                    except Exception as e:
+                        result = {"success":False,"reason":str(e)}
+                    safe = _sanitize(result)
+                    tool_results.append({"tool":fn_name,"args":fn_args,"result":safe})
+                    fn_resps.append({"functionResponse":{"name":fn_name,"response":safe}})
+
+                current.append({"role":"user","parts":fn_resps})
+                tool_call_count += 1
+
+            final_text = ""
+            if tool_results:
+                tool_summary = json.dumps(
+                    [{"tool":r["tool"],"result":r["result"]} for r in tool_results],
+                    ensure_ascii=False,
+                )[:6000]
+                resp2 = self._post({
+                    "systemInstruction":{"parts":[{"text":_RESPONDER_SYSTEM}]},
+                    "generationConfig": {"temperature":RESPONDER_TEMP,"maxOutputTokens":MAX_OUTPUT_TOKENS},
+                    "contents": [
+                        *[m for m in contents[:-1]],
+                        {"role":"user","parts":[{"text":
+                            f"Câu hỏi của khách: {query}\n\n"
+                            f"Kết quả từ tools:\n{tool_summary}"
+                            f"{_SYNTHESIS_RULES}"
+                        }]},
+                    ],
+                })
+                final_text = "\n".join(
+                    p.get("text","") for p in
+                    resp2.get("candidates",[{}])[0].get("content",{}).get("parts",[])
+                    if "text" in p
+                ).strip()
+            else:
+                last = next((m for m in reversed(current) if m.get("role")=="model"), None)
+                if last:
+                    final_text = "\n".join(
+                        p.get("text","") for p in last.get("parts",[]) if "text" in p
+                    ).strip()
+
+            if not final_text:
+                final_text = "Dạ em xin lỗi, có lỗi xảy ra. Anh/chị vui lòng thử lại ạ."
+
+        except Exception as e:
+            return _error_response(exc=e, tools_called=tools_called,
+                tool_results=tool_results, t0=t0, model=self.model,
+                prefix="OrchestratorV2REST")
+
+        intent, entities, returned = _extract_session_data(tools_called, tool_results, query)
+        safe_ent = _sanitize(entities)
+        if ctx:
+            self._ss.update(ctx, intent, safe_ent, returned,
+                            query=query, response_text=final_text[:200])
+        latency_ms = int((time.time()-t0)*1000)
+        return OrchestratorResponse(
+            text=final_text, tools_called=tools_called, tool_results=tool_results,
+            intent=intent, entities=safe_ent, success=True,
+            latency_ms=latency_ms, model=self.model,
+        )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Factory + Singleton
+# ══════════════════════════════════════════════════════════════════════════════
+
+def get_orchestrator(api_key: str = GEMINI_API_KEY, model: str = GEMINI_MODEL,
+                     force_rest: bool = False):
+    if not force_rest:
+        try:
+            import google.genai  # noqa
+            return OrchestratorV2(api_key=api_key, model=model)
+        except ImportError:
+            log.info("[get_orchestrator] google.genai not found → REST fallback")
+    return OrchestratorV2REST(api_key=api_key, model=model)
+
+
+_orch_instance = None
+
+def get_orchestrator_singleton(api_key: str = GEMINI_API_KEY, model: str = GEMINI_MODEL):
+    global _orch_instance
+    if _orch_instance is None:
+        _orch_instance = get_orchestrator(api_key=api_key, model=model)
+    return _orch_instance

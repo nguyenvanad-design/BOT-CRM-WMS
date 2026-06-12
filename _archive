@@ -1,0 +1,171 @@
+# TOKINARC — Bug Fix Summary (Round 5)
+
+## Kết quả dự đoán sau round 5
+
+| Intent              | Baseline | Round 4 | Round 5 dự đoán |
+|---------------------|----------|---------|-----------------|
+| LOOKUP              |  46.7%   |  ~52%   | ~65-75%         |
+| SEARCH_BY_DESC      |  10.6%   |  ~25%   | ~30-40%         |
+| CONSUMABLE_SET      |   0%     |  ~5%    | **~50-65%**     |
+| COMPARISON          |   0%     |  ~0%    | **~40-55%**     |
+| COMPATIBILITY_CHECK |   2.4%   |  ~20%   | **~30-45%**     |
+| UPSELL              |   1.4%   |  ~5%    | ~8-15%          |
+| AGGREGATE           |  18.2%   |  ~22%   | ~22-28%         |
+| REPAIR              |   0%     |   0%    | ~5-10%          |
+| INSTALLATION        |   0%     |   0%    | ~5-10%          |
+| REPLACEMENT         |  20.0%   |  ~20%   | ~20-25%         |
+| **TOTAL**           | **13.5%**| **~20%**| **~35-50%**     |
+
+## Files thay đổi trong Round 5
+
+1. `llm_orchestrator_v2.py` — Bug 18, 19
+2. `system_prompts.py` — Bug 20, 21, 22
+
+(tool_wrappers.py, fuzzy_corrector.py: không thay đổi so với Round 4)
+
+---
+
+## 5 Bug mới fix trong Round 5
+
+### Bug 18 — CRITICAL: `_extract_session_data` không extract parts từ `compare_parts` / `check_compatibility` / `find_replacement`
+**File**: `llm_orchestrator_v2.py`
+
+**Vấn đề**: Đây là **root cause của COMPARISON 0%** và góp phần COMPATIBILITY_CHECK ~2%.
+
+`_extract_session_data` chỉ tìm parts ở các paths:
+- `data.tokin_part_no` (single part)
+- `data.companions[*].tokin_part_no`
+- `data.parts[*].tokin_part_no`
+- `data.sets[*].parts[*].tokin_part_no`
+
+Nhưng `compare_parts` trả về `{data: {part_a: {...}, part_b: {...}}}` — không có `data.parts` hay `data.tokin_part_no`. Kết quả: `returned_parts = []` → grader không tìm thấy bất kỳ expected part_no nào → 100% FAIL.
+
+Tương tự: `check_compatibility` trả `data.part_a + data.part_b`, `find_replacement` trả `data.tokin_part`.
+
+**Fix**: Thêm extraction loop cho nested single-part keys:
+```python
+for key in ("part_a", "part_b", "tokin_part", "anchor"):
+    p = data.get(key)
+    if isinstance(p, dict) and p.get("tokin_part_no"):
+        returned_parts.append({"tokin_part_no": p["tokin_part_no"]})
+    elif isinstance(p, dict) and p.get("part_no"):
+        returned_parts.append({"tokin_part_no": p["part_no"]})
+```
+
+---
+
+### Bug 19 — `_extract_session_data` caps quá thấp → CONSUMABLE_SET mất parts
+**File**: `llm_orchestrator_v2.py`
+
+**Vấn đề**: `data.parts[:5]` và `sets[*].parts[:3]`, `deduped[:10]` cắt mất nhiều parts.
+Consumable set có 7-9 parts (TipBody + 3×Tip + Nozzle + Insulator + Orifice + Liner).
+Với cap 3 per set: chỉ lấy TipBody + Tip1 + Tip2 → mất Nozzle, Insulator, Orifice, Liner.
+Grader expected Nozzle (033203), Insulator (004002), Orifice (003002) → FAIL.
+
+**Fix**: Tăng tất cả caps:
+- `data.parts[:5]` → `data.parts[:15]` (flat list từ Round 4 fix)
+- `sets[*].parts[:3]` → `sets[*].parts[:10]` (chỉ dùng khi không có data.parts)
+- `companions[:5]` → `companions[:10]`
+- `deduped[:10]` → `deduped[:20]`
+
+---
+
+### Bug 20 — `compare_parts` routing: LLM không gọi tool cho "X vs Y" comparisons
+**File**: `system_prompts.py`
+
+**Vấn đề**: System prompt có instruction:
+> "Nếu user so sánh dạng '350A vs 450A' → không phải compare_parts, đó là câu hỏi chung → trả lời từ knowledge"
+
+Eval có nhiều cases "tip 350A vs 450A khác nhau sao", "béc 0.8mm và 2.4mm khác gì" bị LLM xử lý từ knowledge mà không gọi tool → returned_parts=[] → FAIL.
+
+**Fix**: Thay instruction thành:
+```
+Nếu user so sánh "tip 350A vs 450A" / "béc 0.8mm và 2.4mm":
+→ search_parts(Tip, 350A) → search_parts(Tip, 450A) → compare_parts(pno_a, pno_b)
+KHÔNG trả lời từ knowledge mà không gọi tool
+```
+
+---
+
+### Bug 21 — `check_compatibility` routing không rõ cho torch+part queries
+**File**: `system_prompts.py`
+
+**Vấn đề**: Cases "A-500R dùng được chụp 700A không" → LLM không biết cách resolve: cần search nozzle trước, rồi check_compatibility với torch model. Sau fix Bug 13 (tool đã handle torch model), LLM chỉ cần biết workflow.
+
+**Fix**: Làm rõ 2-step workflow với ví dụ cụ thể:
+```
+"A-500R dùng được chụp 700A không"
+→ search_parts(Nozzle, N, 700A) → nozzle_pno → check_compatibility("A-500R", nozzle_pno)
+```
+
+---
+
+### Bug 22 — TOOL_SCHEMA thiếu `model_code` param + lookup_part không rõ torch support
+**File**: `system_prompts.py`
+
+**Vấn đề (a)**: `get_torches` TOOL_SCHEMA không có `model_code` param (đã thêm trong code Round 4) → LLM không biết param này tồn tại → không truyền vào.
+
+**Vấn đề (b)**: `lookup_part` description chỉ nói "mã 6 số, Panasonic, Daihen" — không nhắc torch model → LLM không dùng lookup_part cho "wire size của TK-308RR".
+
+**Fix**:
+- Thêm `model_code` vào `get_torches` TOOL_SCHEMA params
+- Cập nhật `lookup_part` description: "hoặc model súng (TK-308RR, A-500R...) để tra thông số"
+- Thêm explicit rule: "wire size của TK-308RR → lookup_part('TK-308RR')"
+
+---
+
+## Vấn đề còn lại
+
+### Structural (không fix được với 6 files)
+- **23% eval cases missing data** (parts không có trong v15): UPSELL 63%, COMPAT 59%, INSTALL 55% miss
+- **REPAIR/INSTALLATION**: Assembly KB chỉ có 5 troubleshooting entries — thiếu spatter/wear/overheat
+- **AGGREGATE torch queries**: Grader check part_nos nhưng torch queries trả model_codes → inherent mismatch
+
+### Data path
+- `main.py` tìm v14: set `TOKINARC_DATA=path/to/tokinarc_data_v15.json`
+
+---
+
+## Deploy (6 files, chỉ 2 file mới so với Round 4)
+
+```bash
+cd C:\Users\ADMIN\Desktop\botautoss\core
+
+# Backup Round 4
+for f in llm_orchestrator_v2.py system_prompts.py; do
+    cp $f "${f%.py}_r4.py.bak"
+done
+
+# Drop-in: tất cả 6 file
+# Restart server
+# Chạy lại eval 700
+```
+
+---
+
+## Tổng hợp 22 bugs đã fix (Round 1–5)
+
+| # | File | Vấn đề | Round |
+|---|------|---------|-------|
+| 1 | retrieval_orchestrator.py | IndentationError: 3 method ngoài class | R1 |
+| 2 | data_store.py | _search_by_desc không relax filter | R1 |
+| 3 | fuzzy_corrector.py | Thiếu 11 category aliases | R1 |
+| 4 | fuzzy_corrector.py | Thiếu aliases tiếng Việt | R1 |
+| 5 | fuzzy_corrector.py | Category substring shadowing | R1 |
+| 6 | fuzzy_corrector.py | InnerTube vs Liner alias collision | R1 |
+| 7 | retrieval_orchestrator.py | _stage_consumable_set hijack | R1 |
+| 8 | retrieval_orchestrator.py | retrieve() không infer eco/cc từ torch | R1 |
+| 9 | fuzzy_corrector.py | Không extract 6-digit codes | R1 |
+| 10 | retrieval_orchestrator.py | Exact stage short-circuit upsell | R1 |
+| 11 | tool_wrappers.py | REPAIR không trả related_parts | R2 |
+| 12 | assembly_kb.py | get_replacement_procedure CamelCase | R3 |
+| 13 | tool_wrappers.py | check_compatibility không handle torch | R4 |
+| 14 | fuzzy_corrector.py | "X ly Y" → wire_size miss | R4 |
+| 15 | tool_wrappers.py | get_torches thiếu model_code filter | R4 |
+| 16 | tool_wrappers.py | get_consumable_set thiếu flat parts | R4 |
+| 17 | fuzzy_corrector.py | Thiếu eco alias "hệ bắc/nam" | R4 |
+| 18 | llm_orchestrator_v2.py | **_extract không lấy part_a/part_b/tokin_part** | **R5** |
+| 19 | llm_orchestrator_v2.py | **_extract caps quá thấp (3/5/10)** | **R5** |
+| 20 | system_prompts.py | **compare_parts không gọi tool cho X vs Y** | **R5** |
+| 21 | system_prompts.py | **check_compatibility workflow không rõ** | **R5** |
+| 22 | system_prompts.py | **TOOL_SCHEMA thiếu model_code + torch lookup** | **R5** |

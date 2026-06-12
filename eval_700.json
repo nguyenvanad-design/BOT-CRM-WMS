@@ -1,0 +1,8164 @@
+[
+  {
+    "id": "E0001",
+    "query": "002001 thông số kỹ thuật",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "002001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0002",
+    "query": "002003 giá bao nhiêu",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "002003"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0003",
+    "query": "cho em hỏi 002005",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "002005"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0004",
+    "query": "tra mã 002007",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "002007"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0005",
+    "query": "tra mã 002009",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "002009"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0006",
+    "query": "002011 là cái gì",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "002011"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0007",
+    "query": "003001 thông số kỹ thuật",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "003001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0008",
+    "query": "xem thông tin 003003",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0009",
+    "query": "005001 thông số kỹ thuật",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0010",
+    "query": "mã 005003 có không",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0011",
+    "query": "007001 dùng cho súng nào",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0012",
+    "query": "007003 giá bao nhiêu",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0013",
+    "query": "010001 giá bao nhiêu",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0014",
+    "query": "010003 thông số kỹ thuật",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0015",
+    "query": "tra mã 012001",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0016",
+    "query": "tra mã 015001",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0017",
+    "query": "xem thông tin 015003",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0018",
+    "query": "mã 020001 có không",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0019",
+    "query": "023421 giá bao nhiêu",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0020",
+    "query": "xem thông tin 036001",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "036001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0021",
+    "query": "tra mã 036003",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "036003"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0022",
+    "query": "xem thông tin 040001",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0023",
+    "query": "045001 dùng cho súng nào",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0024",
+    "query": "tra mã 050001",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[part_not_in_db]"
+  },
+  {
+    "id": "E0025",
+    "query": "thông số TET00003",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "pana_alias"
+  },
+  {
+    "id": "E0026",
+    "query": "TET00006 bên tokin có không",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "pana_alias"
+  },
+  {
+    "id": "E0027",
+    "query": "TGN00012 là gì",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "pana_alias"
+  },
+  {
+    "id": "E0028",
+    "query": "mã TFZ00003",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "pana_alias"
+  },
+  {
+    "id": "E0029",
+    "query": "thông số U4167G00",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "pana_alias"
+  },
+  {
+    "id": "E0030",
+    "query": "U2773B00 bên tokin có không",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "pana_alias"
+  },
+  {
+    "id": "E0031",
+    "query": "U4185G00 bên tokin có không",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "pana_alias"
+  },
+  {
+    "id": "E0032",
+    "query": "mã K1050B00 giá?",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "daihen_alias"
+  },
+  {
+    "id": "E0033",
+    "query": "mã K2052B00 giá?",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "daihen_alias"
+  },
+  {
+    "id": "E0034",
+    "query": "tra L1050A00",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "daihen_alias"
+  },
+  {
+    "id": "E0035",
+    "query": "DAH00012",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "daihen_alias"
+  },
+  {
+    "id": "E0036",
+    "query": "U4167G01",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "daihen_alias"
+  },
+  {
+    "id": "E0037",
+    "query": "K3053B00 tương đương gì",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "daihen_alias"
+  },
+  {
+    "id": "E0038",
+    "query": "mã 060-02305",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "otc_alias"
+  },
+  {
+    "id": "E0039",
+    "query": "mã 050-01206",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "otc_alias"
+  },
+  {
+    "id": "E0040",
+    "query": "mã 060-03212",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "otc_alias"
+  },
+  {
+    "id": "E0041",
+    "query": "cup 1 ly 450A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0042",
+    "query": "cần đầu tiếp điện cho robot YMSA-500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002004",
+      "002020",
+      "002506",
+      "002501",
+      "002019"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0043",
+    "query": "ceramic nozzle 1 ly 450A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=CeramicNozzle"
+  },
+  {
+    "id": "E0044",
+    "query": "mua chụp khí 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0045",
+    "query": "thân giữ béc 2.0 ly",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0046",
+    "query": "insulator hệ N 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "004002",
+      "004004"
+    ],
+    "tier": 2,
+    "note": "cat=Insulator"
+  },
+  {
+    "id": "E0047",
+    "query": "BackCap 350A hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05"
+    ],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0048",
+    "query": "tìm mua ống trong",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "YEW005013",
+      "YEW005813",
+      "YEW005046"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0049",
+    "query": "linh kiện thân giữ béc N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0050",
+    "query": "tìm mua chụp",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0051",
+    "query": "cần ống lót trong cho robot YMXA-308R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "020210",
+      "020212",
+      "036014"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0052",
+    "query": "thân béc cho A-500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002004",
+      "002020",
+      "002506",
+      "002501",
+      "002019"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0053",
+    "query": "Liner 700A hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023443",
+      "023471",
+      "023445",
+      "023446",
+      "023472"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0054",
+    "query": "mua chụp 300A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0055",
+    "query": "ống trong dây 2.4mm hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "YEW005013",
+      "YEW005813",
+      "YEW005046"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0056",
+    "query": "mua chụp sứ 250A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=CeramicNozzle"
+  },
+  {
+    "id": "E0057",
+    "query": "TungstenElectrode dây 1.6mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018341",
+      "018343",
+      "018344"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0058",
+    "query": "collet cho WX500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "10N25HD",
+      "54N20HD"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0059",
+    "query": "chụp sứ 1 ly 400A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=CeramicNozzle"
+  },
+  {
+    "id": "E0060",
+    "query": "linh kiện insulator N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "004002",
+      "004004",
+      "004001",
+      "004008"
+    ],
+    "tier": 2,
+    "note": "cat=Insulator"
+  },
+  {
+    "id": "E0061",
+    "query": "cần back cap cho robot A-350R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05"
+    ],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0062",
+    "query": "Orifice hệ N 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0063",
+    "query": "nozzle 1 ly 250A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0064",
+    "query": "vỏ cách điện 300A loại ngắn",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "004002",
+      "004004",
+      "004001",
+      "004008",
+      "023015"
+    ],
+    "tier": 2,
+    "note": "cat=Insulator"
+  },
+  {
+    "id": "E0065",
+    "query": "tip body cho A-350R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0066",
+    "query": "cần collet TIG cho robot TL-20",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0067",
+    "query": "Nozzle hệ N 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0068",
+    "query": "béc cho YMSA-500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002004",
+      "002020",
+      "002506",
+      "002501",
+      "002019"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0069",
+    "query": "Tip dây 1.2mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0070",
+    "query": "tip body cho TCC-350R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002102",
+      "002101",
+      "002100",
+      "002108",
+      "002107"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0071",
+    "query": "InnerTube dây 1.6mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "YEW005013",
+      "YEW005813",
+      "YEW005046"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0072",
+    "query": "cần ống trong cho robot TK-508RR",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "YEA003013",
+      "YEA003812",
+      "YEA005013",
+      "YEA005812",
+      "YEA002514"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0073",
+    "query": "ống lót trong hệ N 250A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "YEA003013",
+      "YEA003812",
+      "YEA005013"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0074",
+    "query": "TipBody 500A hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023463",
+      "023467",
+      "024015"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0075",
+    "query": "collet 1 ly 250A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0076",
+    "query": "đầu tiếp điện 200A loại ngắn",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0077",
+    "query": "cần vỏ cách điện cho robot A-500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "004001",
+      "004008"
+    ],
+    "tier": 2,
+    "note": "cat=Insulator"
+  },
+  {
+    "id": "E0078",
+    "query": "bec 1.6 ly",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0079",
+    "query": "kẹp điện cực 0.9 ly",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018320",
+      "018321",
+      "018322",
+      "018323",
+      "018324"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0080",
+    "query": "Orifice hệ N 200A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002",
+      "003001"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0081",
+    "query": "cần béc hàn cho robot YMSA-500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002004",
+      "002020",
+      "002506",
+      "002501",
+      "002019"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0082",
+    "query": "cách điện dây 1.0mm hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023015"
+    ],
+    "tier": 2,
+    "note": "cat=Insulator"
+  },
+  {
+    "id": "E0083",
+    "query": "tìm Nozzle cho súng YMSA-500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001001",
+      "001010",
+      "001005",
+      "001012",
+      "001015"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0084",
+    "query": "ống lót trong dây 1.2mm hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "YEW005013",
+      "YEW005813",
+      "YEW005046"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0085",
+    "query": "tìm TungstenElectrode cho súng YMXA-308R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018341",
+      "018343"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0086",
+    "query": "cần tungsten cho robot TK-308RR",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018341",
+      "018343"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0087",
+    "query": "collet TIG dây 0.8mm hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0088",
+    "query": "CeramicNozzle 450A hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023012",
+      "023013",
+      "023501"
+    ],
+    "tier": 2,
+    "note": "cat=CeramicNozzle"
+  },
+  {
+    "id": "E0089",
+    "query": "Liner 700A hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023443",
+      "023471",
+      "023445",
+      "023446",
+      "023472"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0090",
+    "query": "nắp hậu 200A loại ngắn",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0091",
+    "query": "tìm mua điện cực tungsten",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018341",
+      "018343",
+      "018344"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0092",
+    "query": "Nozzle 400A hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023012",
+      "023013",
+      "023501"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0093",
+    "query": "mua ruột cáp 400A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0094",
+    "query": "Orifice dây 1.2mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002",
+      "003001",
+      "023014",
+      "034120",
+      "034121"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0095",
+    "query": "linh kiện đầu hàn N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0096",
+    "query": "collet TIG cho TK-308RR",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0097",
+    "query": "tìm mua chụp khí",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0098",
+    "query": "liner dây 300A loại ngắn",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0099",
+    "query": "đầu hàn hệ N 200A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0100",
+    "query": "mua điện cực vonfram 250A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018341",
+      "018343",
+      "018344"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0101",
+    "query": "BackCap 350A hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05"
+    ],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0102",
+    "query": "InnerTube 450A hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "YEW005013",
+      "YEW005813",
+      "YEW005046"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0103",
+    "query": "linh kiện orifice N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002",
+      "003001"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0104",
+    "query": "tìm Collet cho súng TLA-20",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0105",
+    "query": "TipBody hệ N 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016503",
+      "016051"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0106",
+    "query": "linh kiện sứ chia khí N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002",
+      "003001"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0107",
+    "query": "TungstenElectrode hệ N 250A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018320",
+      "018321",
+      "018322",
+      "018323",
+      "018324"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0108",
+    "query": "BackCap hệ N 250A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05"
+    ],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0109",
+    "query": "lót dây 1.6 ly",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0110",
+    "query": "sứ chia khí cho WX702R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "034120",
+      "034121"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0111",
+    "query": "Liner dây 3.2mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0112",
+    "query": "điện cực tungsten cho TLA-20",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018341",
+      "018343",
+      "018344"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0113",
+    "query": "vonfram hệ N 500A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018324",
+      "018325",
+      "018345",
+      "018334",
+      "018335"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0114",
+    "query": "mua đầu giữ béc 500A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0115",
+    "query": "ống lót trong 1 ly 200A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "YEW005013",
+      "YEW005813",
+      "YEW005046"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0116",
+    "query": "linh kiện đầu giữ béc N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0117",
+    "query": "tìm Collet cho súng YMSA-500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "10N25HD",
+      "54N20HD"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0118",
+    "query": "Orifice dây 1.2mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002",
+      "003001",
+      "023014",
+      "034120",
+      "034121"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0119",
+    "query": "TipBody hệ N 200A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016503",
+      "016051",
+      "016403",
+      "036003"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0120",
+    "query": "cần nắp đuôi cho robot WX702R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05"
+    ],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0121",
+    "query": "ống trong 0.9 ly",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "YEW005013",
+      "YEW005813",
+      "YEW005046"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0122",
+    "query": "tìm Nozzle cho súng ACC-308RR",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0123",
+    "query": "tìm Tip cho súng YMXA-308R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0124",
+    "query": "collet TIG 450A loại ngắn",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0125",
+    "query": "tìm mua ceramic nozzle",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=CeramicNozzle"
+  },
+  {
+    "id": "E0126",
+    "query": "orifice 1 ly 400A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002",
+      "003001",
+      "023014",
+      "034120",
+      "034121"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0127",
+    "query": "TungstenElectrode N 0.8mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018341",
+      "018343",
+      "018344"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0128",
+    "query": "thân béc hệ N 450A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0129",
+    "query": "tìm Insulator cho súng WX702R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "004002",
+      "004004",
+      "004001",
+      "004008",
+      "023015"
+    ],
+    "tier": 2,
+    "note": "cat=Insulator"
+  },
+  {
+    "id": "E0130",
+    "query": "nozzle 2.4 ly",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0131",
+    "query": "tìm InnerTube cho súng TK-308RR",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "020210",
+      "020212",
+      "036014"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0132",
+    "query": "cần back cap cho robot TLA-20",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05"
+    ],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0133",
+    "query": "ống trong 350A loại ngắn",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016053",
+      "016505",
+      "YEW005013",
+      "YEW005813",
+      "YEW005046"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0134",
+    "query": "cần sứ khuếch tán cho robot CSL-35",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0135",
+    "query": "vonfram cho YMXA-308R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018341",
+      "018343"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0136",
+    "query": "BackCap hệ N 500A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05"
+    ],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0137",
+    "query": "Nozzle 700A hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023012",
+      "023013",
+      "023501"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0138",
+    "query": "sứ khuếch tán hệ N 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0139",
+    "query": "Liner N 1.2mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0140",
+    "query": "collet cho TL-20",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0141",
+    "query": "linh kiện điện cực tungsten N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "018320",
+      "018321",
+      "018322",
+      "018323",
+      "018324"
+    ],
+    "tier": 2,
+    "note": "cat=TungstenElectrode"
+  },
+  {
+    "id": "E0142",
+    "query": "thân giữ béc dây 1.0mm hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023009",
+      "023324",
+      "023054",
+      "023404",
+      "023403"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0143",
+    "query": "Collet dây 2.0mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0144",
+    "query": "ruột cáp dây 0.9mm hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023443",
+      "023471",
+      "023445",
+      "023446",
+      "023472"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0145",
+    "query": "Nozzle hệ N 400A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0146",
+    "query": "tìm InnerTube cho súng TL-20",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "038053",
+      "038072",
+      "038061",
+      "022061"
+    ],
+    "tier": 2,
+    "note": "cat=InnerTube"
+  },
+  {
+    "id": "E0147",
+    "query": "cup 1 ly 250A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=Nozzle"
+  },
+  {
+    "id": "E0148",
+    "query": "liner dây 0.8 ly",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0149",
+    "query": "tip 1 ly 700A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0150",
+    "query": "ống lót dây cho WX500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0151",
+    "query": "CeramicNozzle N 2.0mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=CeramicNozzle"
+  },
+  {
+    "id": "E0152",
+    "query": "back cap hệ N 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05"
+    ],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0153",
+    "query": "linh kiện collet N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "cat=Collet"
+  },
+  {
+    "id": "E0154",
+    "query": "cần liner cho robot TCC-350R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "cat=Liner"
+  },
+  {
+    "id": "E0155",
+    "query": "linh kiện thân béc N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=TipBody"
+  },
+  {
+    "id": "E0156",
+    "query": "tìm mua nắp hậu",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": "cat=BackCap"
+  },
+  {
+    "id": "E0157",
+    "query": "CeramicNozzle dây 1.6mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=CeramicNozzle"
+  },
+  {
+    "id": "E0158",
+    "query": "chụp sứ cho ACC-308RR",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "cat=CeramicNozzle"
+  },
+  {
+    "id": "E0159",
+    "query": "Tip N 1.6mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "cat=Tip"
+  },
+  {
+    "id": "E0160",
+    "query": "cần diffuser cho robot CSL-35",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "003002"
+    ],
+    "tier": 2,
+    "note": "cat=Orifice"
+  },
+  {
+    "id": "E0161",
+    "query": "consumable set ACC-308RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=ACC-308RR"
+  },
+  {
+    "id": "E0162",
+    "query": "bộ vật tư hệ N 500A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=TL-35"
+  },
+  {
+    "id": "E0163",
+    "query": "vật tư tiêu hao WX702R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "034135",
+      "061445",
+      "034115",
+      "034116",
+      "034120",
+      "034121",
+      "002017",
+      "002004"
+    ],
+    "tier": 1,
+    "note": "torch=WX702R"
+  },
+  {
+    "id": "E0164",
+    "query": "vật tư tiêu hao WX500R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "034135",
+      "034115",
+      "034120",
+      "061445",
+      "034116",
+      "061450",
+      "034121",
+      "061447",
+      "061449"
+    ],
+    "tier": 1,
+    "note": "torch=WX500R"
+  },
+  {
+    "id": "E0165",
+    "query": "bộ linh kiện cho TCC-350R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002100",
+      "023120",
+      "004002",
+      "003002",
+      "023121",
+      "002101"
+    ],
+    "tier": 1,
+    "note": "torch=TCC-350R"
+  },
+  {
+    "id": "E0166",
+    "query": "set linh kiện TLA-20",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=TLA-20"
+  },
+  {
+    "id": "E0167",
+    "query": "bộ linh kiện cho TLA-20",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=TLA-20"
+  },
+  {
+    "id": "E0168",
+    "query": "consumable set WX500R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "034135",
+      "034115",
+      "034120",
+      "061445",
+      "034116",
+      "061450",
+      "034121",
+      "061447",
+      "061449"
+    ],
+    "tier": 1,
+    "note": "torch=WX500R"
+  },
+  {
+    "id": "E0169",
+    "query": "bộ tiêu hao cho YMXA-308R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=YMXA-308R"
+  },
+  {
+    "id": "E0170",
+    "query": "bộ tiêu hao cho TK-508RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=TK-508RR"
+  },
+  {
+    "id": "E0171",
+    "query": "set linh kiện YMXA-308R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=YMXA-308R"
+  },
+  {
+    "id": "E0172",
+    "query": "vật tư tiêu hao TK-308RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TK-308RR"
+  },
+  {
+    "id": "E0173",
+    "query": "bộ đồ cho súng 300A hệ N",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TCC-350R"
+  },
+  {
+    "id": "E0174",
+    "query": "consumable set WX500R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "034135",
+      "034115",
+      "034120",
+      "061445",
+      "034116",
+      "061450",
+      "034121",
+      "061447",
+      "061449"
+    ],
+    "tier": 1,
+    "note": "torch=WX500R"
+  },
+  {
+    "id": "E0175",
+    "query": "bộ vật tư hệ N 350A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TCC-350R"
+  },
+  {
+    "id": "E0176",
+    "query": "vật tư tiêu hao A-500R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=A-500R"
+  },
+  {
+    "id": "E0177",
+    "query": "vật tư tiêu hao TK-508RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=TK-508RR"
+  },
+  {
+    "id": "E0178",
+    "query": "cần những gì cho súng TLA-20",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=TLA-20"
+  },
+  {
+    "id": "E0179",
+    "query": "bộ linh kiện cho YMSA-308R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=YMSA-308R"
+  },
+  {
+    "id": "E0180",
+    "query": "vật tư cho hệ D 300A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TL-20"
+  },
+  {
+    "id": "E0181",
+    "query": "bộ đồ cho súng 200A hệ N",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=ACC-308RR"
+  },
+  {
+    "id": "E0182",
+    "query": "vật tư cho hệ D 200A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TR-308R"
+  },
+  {
+    "id": "E0183",
+    "query": "vật tư cho hệ D 350A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "023461",
+      "023009",
+      "023013",
+      "023014",
+      "023015"
+    ],
+    "tier": 1,
+    "note": "torch=TK-508RR"
+  },
+  {
+    "id": "E0184",
+    "query": "bộ linh kiện cho WX702R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "034135",
+      "061445",
+      "034115",
+      "034116",
+      "034120",
+      "034121",
+      "002017",
+      "002004"
+    ],
+    "tier": 1,
+    "note": "torch=WX702R"
+  },
+  {
+    "id": "E0185",
+    "query": "bộ tiêu hao 500A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=YMSA-500R"
+  },
+  {
+    "id": "E0186",
+    "query": "bộ linh kiện cho WX500R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "034135",
+      "034115",
+      "034120",
+      "061445",
+      "034116",
+      "061450",
+      "034121",
+      "061447",
+      "061449"
+    ],
+    "tier": 1,
+    "note": "torch=WX500R"
+  },
+  {
+    "id": "E0187",
+    "query": "cần những gì cho súng TK-308RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TK-308RR"
+  },
+  {
+    "id": "E0188",
+    "query": "bộ đồ cho súng 200A hệ N",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=TCC-350R"
+  },
+  {
+    "id": "E0189",
+    "query": "bộ tiêu hao cho TL-20",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=TL-20"
+  },
+  {
+    "id": "E0190",
+    "query": "set linh kiện TLA-20",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=TLA-20"
+  },
+  {
+    "id": "E0191",
+    "query": "vật tư tiêu hao TL-20",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=TL-20"
+  },
+  {
+    "id": "E0192",
+    "query": "bộ tiêu hao 300A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=WX702R"
+  },
+  {
+    "id": "E0193",
+    "query": "vật tư tiêu hao TL-20",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=TL-20"
+  },
+  {
+    "id": "E0194",
+    "query": "bộ vật tư hệ N 350A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=YMXA-308R"
+  },
+  {
+    "id": "E0195",
+    "query": "bộ tiêu hao cho WX500R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "034135",
+      "034115",
+      "034120",
+      "061445",
+      "034116",
+      "061450",
+      "034121",
+      "061447",
+      "061449"
+    ],
+    "tier": 1,
+    "note": "torch=WX500R"
+  },
+  {
+    "id": "E0196",
+    "query": "vật tư cho hệ D 300A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TLA-20"
+  },
+  {
+    "id": "E0197",
+    "query": "vật tư tiêu hao ACC-308RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=ACC-308RR"
+  },
+  {
+    "id": "E0198",
+    "query": "set linh kiện A-500R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=A-500R"
+  },
+  {
+    "id": "E0199",
+    "query": "cần mua gì cho TCC-350R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002100",
+      "023120",
+      "004002",
+      "003002",
+      "023121",
+      "002101"
+    ],
+    "tier": 1,
+    "note": "torch=TCC-350R"
+  },
+  {
+    "id": "E0200",
+    "query": "vật tư tiêu hao TK-508RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=TK-508RR"
+  },
+  {
+    "id": "E0201",
+    "query": "set linh kiện CSL-35",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=CSL-35"
+  },
+  {
+    "id": "E0202",
+    "query": "bộ tiêu hao cho YMSA-500R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=YMSA-500R"
+  },
+  {
+    "id": "E0203",
+    "query": "bộ tiêu hao 200A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=TK-308RR"
+  },
+  {
+    "id": "E0204",
+    "query": "vật tư cho hệ D 500A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "023463",
+      "023011"
+    ],
+    "tier": 1,
+    "note": "torch=TK-508RR"
+  },
+  {
+    "id": "E0205",
+    "query": "bộ đồ cho súng 200A hệ N",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=ACC-308RR"
+  },
+  {
+    "id": "E0206",
+    "query": "cần những gì cho súng TR-308R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TR-308R"
+  },
+  {
+    "id": "E0207",
+    "query": "vật tư tiêu hao TCC-350R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002100",
+      "023120",
+      "004002",
+      "003002",
+      "023121",
+      "002101"
+    ],
+    "tier": 1,
+    "note": "torch=TCC-350R"
+  },
+  {
+    "id": "E0208",
+    "query": "linh kiện đầy đủ cho CSL-35",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=CSL-35"
+  },
+  {
+    "id": "E0209",
+    "query": "bộ tiêu hao 500A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=YMSA-308R"
+  },
+  {
+    "id": "E0210",
+    "query": "consumable set TR-308R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TR-308R"
+  },
+  {
+    "id": "E0211",
+    "query": "bộ vật tư hệ N 350A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=A-500R"
+  },
+  {
+    "id": "E0212",
+    "query": "bộ đồ cho súng 200A hệ N",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "038041",
+      "002001",
+      "037002",
+      "038040",
+      "038042",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "torch=YMSA-500R"
+  },
+  {
+    "id": "E0213",
+    "query": "bộ vật tư hệ N 350A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=CSL-35"
+  },
+  {
+    "id": "E0214",
+    "query": "linh kiện đầy đủ cho TK-308RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TK-308RR"
+  },
+  {
+    "id": "E0215",
+    "query": "linh kiện đầy đủ cho TK-508RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "torch=TK-508RR"
+  },
+  {
+    "id": "E0216",
+    "query": "cần mua gì cho A-350R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=A-350R"
+  },
+  {
+    "id": "E0217",
+    "query": "bộ tiêu hao 350A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=ACC-308RR"
+  },
+  {
+    "id": "E0218",
+    "query": "bộ linh kiện cho TL-35",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TL-35"
+  },
+  {
+    "id": "E0219",
+    "query": "bộ vật tư hệ N 300A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=ACC-308RR"
+  },
+  {
+    "id": "E0220",
+    "query": "vật tư tiêu hao TK-308RR",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "torch=TK-308RR"
+  },
+  {
+    "id": "E0221",
+    "query": "007001 dùng chung với liner nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001007"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0222",
+    "query": "U4167G01 cần thêm gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0223",
+    "query": "U4167G01 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0224",
+    "query": "tôi có 002011 cần thêm cách điện",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0225",
+    "query": "đang xài 003003 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023014",
+      "023015",
+      "023040"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0226",
+    "query": "có 003003 cần gì nữa không",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023014",
+      "023015",
+      "023040"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0227",
+    "query": "đang xài 005003 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023012",
+      "023014",
+      "023015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0228",
+    "query": "023421 đi với thân giữ béc nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0229",
+    "query": "020001 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002005",
+      "002001",
+      "002002"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0230",
+    "query": "đang xài U4185G00 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0231",
+    "query": "đang xài 015001 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0232",
+    "query": "dùng U4167G01 thì cần chụp gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0233",
+    "query": "tôi có TET00003 cần thêm cách điện",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0234",
+    "query": "K2052B00 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023010",
+      "023007"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0235",
+    "query": "005001 đi kèm với gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001005"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0236",
+    "query": "020001 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002005",
+      "002001",
+      "002002"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0237",
+    "query": "040001 đi với thân giữ béc nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "036001",
+      "036003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0238",
+    "query": "020001 cần thêm gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002005",
+      "002001",
+      "002002"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0239",
+    "query": "023421 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0240",
+    "query": "036001 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0241",
+    "query": "dùng K1050B00 thì cần chụp gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023012",
+      "023013"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0242",
+    "query": "U4167G00 đi với thân giữ béc nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0243",
+    "query": "vừa mua U4185G00 cần mua gì thêm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0244",
+    "query": "040001 đi với thân giữ béc nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "036001",
+      "036003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0245",
+    "query": "DAH00012 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023014",
+      "023015",
+      "023040"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0246",
+    "query": "vừa mua U2773B00 cần mua gì thêm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0247",
+    "query": "010001 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001010"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0248",
+    "query": "015001 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0249",
+    "query": "tôi có TET00003 cần thêm cách điện",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0250",
+    "query": "TGN00012 cần thêm gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0251",
+    "query": "036003 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0252",
+    "query": "U4185G00 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0253",
+    "query": "TET00003 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0254",
+    "query": "đang xài 005003 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023012",
+      "023014",
+      "023015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0255",
+    "query": "dùng 002005 thì cần chụp gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014",
+      "002006"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0256",
+    "query": "K2052B00 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023010",
+      "023007"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0257",
+    "query": "040001 đi kèm với gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "036001",
+      "036003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0258",
+    "query": "U4167G00 đi kèm với gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0259",
+    "query": "đang xài L1050A00 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0260",
+    "query": "002001 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0261",
+    "query": "005003 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023012",
+      "023014",
+      "023015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0262",
+    "query": "005003 đi kèm với gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023012",
+      "023014",
+      "023015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0263",
+    "query": "U4185G00 dùng chung với liner nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0264",
+    "query": "040001 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "036001",
+      "036003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0265",
+    "query": "có TET00006 cần gì nữa không",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002003",
+      "002001"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0266",
+    "query": "vừa mua 002011 cần mua gì thêm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0267",
+    "query": "DAH00012 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023014",
+      "023015",
+      "023040"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0268",
+    "query": "có 036003 cần gì nữa không",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0269",
+    "query": "K1050B00 đi với thân giữ béc nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023012",
+      "023013"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0270",
+    "query": "002005 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014",
+      "002006"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0271",
+    "query": "tôi có 002009 cần thêm cách điện",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001004",
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0272",
+    "query": "tôi có 023421 cần thêm cách điện",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0273",
+    "query": "002011 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0274",
+    "query": "có 003001 cần gì nữa không",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "001005",
+      "001010",
+      "001012",
+      "001015",
+      "002003",
+      "002004",
+      "002017"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0275",
+    "query": "đang xài 003001 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "001005",
+      "001010",
+      "001012",
+      "001015",
+      "002003",
+      "002004",
+      "002017"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0276",
+    "query": "007001 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001007"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0277",
+    "query": "036001 cần thêm gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0278",
+    "query": "vừa mua 002005 cần mua gì thêm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014",
+      "002006"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0279",
+    "query": "002007 dùng chung với liner nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001004",
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0280",
+    "query": "vừa mua 045001 cần mua gì thêm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "004002",
+      "004001"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0281",
+    "query": "dùng TFZ00003 thì cần chụp gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "004002",
+      "004001"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0282",
+    "query": "015001 đi với thân giữ béc nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0283",
+    "query": "TGN00012 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0284",
+    "query": "dùng 007003 thì cần chụp gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001007",
+      "001009"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0285",
+    "query": "007003 đi kèm với gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001007",
+      "001009"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0286",
+    "query": "TET00003 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0287",
+    "query": "đang xài 015001 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0288",
+    "query": "tôi có 005003 cần thêm cách điện",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023012",
+      "023014",
+      "023015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0289",
+    "query": "có U2773B00 cần gì nữa không",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0290",
+    "query": "đang xài 015003 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023012",
+      "023014",
+      "023015"
+    ],
+    "tier": 1,
+    "note": "upsell [fixed_fake_pno]"
+  },
+  {
+    "id": "E0291",
+    "query": "mã tokin cho K2052B00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0292",
+    "query": "thay TET00003 dùng mã gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0293",
+    "query": "mã tokin cho L1050A00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0294",
+    "query": "tìm hàng thay U2773B00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "replacement"
+  },
+  {
+    "id": "E0295",
+    "query": "tương đương 050-01206",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0296",
+    "query": "mã tokin cho L1050A00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0297",
+    "query": "060-02305 — có bán không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0298",
+    "query": "thay K2052B00 dùng mã gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0299",
+    "query": "có mã tokin thay L1050A00 không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0300",
+    "query": "thay K3053B00 dùng mã gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0301",
+    "query": "có mã tokin thay TFZ00003 không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0302",
+    "query": "K3053B00 substitute",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0303",
+    "query": "U4167G01 substitute",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "replacement"
+  },
+  {
+    "id": "E0304",
+    "query": "L1050A00 — có bán không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0305",
+    "query": "L1050A00 thay thế bằng gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0306",
+    "query": "K3053B00 hàng thay thế",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0307",
+    "query": "TET00003 substitute",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0308",
+    "query": "TET00006 substitute",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0309",
+    "query": "060-03212 hàng thay thế",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0310",
+    "query": "K1050B00 substitute",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0311",
+    "query": "có mã tokin thay U4167G01 không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "replacement"
+  },
+  {
+    "id": "E0312",
+    "query": "U4185G00 substitute",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0313",
+    "query": "mã tokin cho K2052B00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0314",
+    "query": "mã tokin cho U4167G00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0315",
+    "query": "mã tokin cho TFZ00003",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0316",
+    "query": "TET00006 hàng thay thế",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0317",
+    "query": "050-01206 thay thế bằng gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0318",
+    "query": "U4167G01 — có bán không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "replacement"
+  },
+  {
+    "id": "E0319",
+    "query": "tìm hàng thay U4167G00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0320",
+    "query": "tương đương L1050A00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0321",
+    "query": "060-02305 tokin tương đương gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0322",
+    "query": "U4185G00 tokin tương đương gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0323",
+    "query": "hàng tương đương U4167G01",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "replacement"
+  },
+  {
+    "id": "E0324",
+    "query": "K2052B00 tokin tương đương gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0325",
+    "query": "thay K2052B00 dùng mã gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0326",
+    "query": "L1050A00 — có bán không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0327",
+    "query": "tìm hàng thay DAH00012",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0328",
+    "query": "tìm hàng thay 050-01206",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0329",
+    "query": "có mã tokin thay U4167G00 không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0330",
+    "query": "hàng tương đương K3053B00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0331",
+    "query": "tìm hàng thay U4167G01",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "replacement"
+  },
+  {
+    "id": "E0332",
+    "query": "K3053B00 thay thế bằng gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0333",
+    "query": "hàng tương đương K2052B00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0334",
+    "query": "thay TFZ00003 dùng mã gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0335",
+    "query": "mã tokin cho U4167G01",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "replacement"
+  },
+  {
+    "id": "E0336",
+    "query": "K2052B00 substitute",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0337",
+    "query": "mã tokin cho K3053B00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0338",
+    "query": "tìm hàng thay U4167G01",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "001002"
+    ],
+    "tier": 1,
+    "note": "replacement"
+  },
+  {
+    "id": "E0339",
+    "query": "thay K1050B00 dùng mã gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0340",
+    "query": "TET00003 substitute",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0341",
+    "query": "DAH00012 substitute",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0342",
+    "query": "mã tokin cho K1050B00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0343",
+    "query": "mã tokin cho TGN00012",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0344",
+    "query": "050-01206 — có bán không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0345",
+    "query": "mã tokin cho L1050A00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0346",
+    "query": "tìm hàng thay 060-02305",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0347",
+    "query": "U4167G00 thay thế bằng gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0348",
+    "query": "TET00006 hàng thay thế",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0349",
+    "query": "tìm hàng thay 060-03212",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0350",
+    "query": "có mã tokin thay TFZ00003 không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0351",
+    "query": "A-500R dùng được chụp 700A không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "A-500R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0352",
+    "query": "YMXA-308R dùng được chụp 500A không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "YMXA-308R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0353",
+    "query": "béc 2.0mm có lắp vào A-350R không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "A-350R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0354",
+    "query": "chụp 450A dùng với súng N 200A được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "001007",
+      "001009",
+      "002007"
+    ],
+    "tier": 2,
+    "note": "compat [fixed_fake_pno]"
+  },
+  {
+    "id": "E0355",
+    "query": "003001 với 002007 dùng chung được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "003001",
+      "002007"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0356",
+    "query": "béc 0.8mm có lắp vào TL-20 không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "TL-20"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0357",
+    "query": "023421 với 003001 dùng chung được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "023421",
+      "003001"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0358",
+    "query": "005001 với 002009 dùng chung được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002009"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0359",
+    "query": "002009 tương thích với 002001 không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002009",
+      "002001"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0360",
+    "query": "005001 có fit vào 002003 không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002003"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0361",
+    "query": "012001 với 007003 dùng chung được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "001012",
+      "001007",
+      "001009"
+    ],
+    "tier": 2,
+    "note": "compat [fixed_fake_pno]"
+  },
+  {
+    "id": "E0362",
+    "query": "050001 có fit vào 040001 không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "036001",
+      "036003"
+    ],
+    "tier": 2,
+    "note": "compat [fixed_fake_pno]"
+  },
+  {
+    "id": "E0363",
+    "query": "010001 lắp được vào YMSA-308R không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "YMSA-308R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0364",
+    "query": "007001 và 036001 có đi với nhau không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "036001"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0365",
+    "query": "010001 lắp được vào TLA-20 không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "TLA-20"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0366",
+    "query": "WX702R dùng được chụp 500A không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "WX702R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0367",
+    "query": "A-500R dùng được chụp 500A không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "A-500R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0368",
+    "query": "007001 lắp được vào TL-35 không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "TL-35"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0369",
+    "query": "002005 tương thích với 002005 không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002005"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0370",
+    "query": "CSL-35 dùng được chụp 250A không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "CSL-35"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0371",
+    "query": "béc 0.8mm có lắp vào TLA-20 không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "TLA-20"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0372",
+    "query": "002009 và 040001 có đi với nhau không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002009"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0373",
+    "query": "chụp 500A dùng với súng N 200A được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002007",
+      "001005"
+    ],
+    "tier": 2,
+    "note": "compat [fixed_fake_pno]"
+  },
+  {
+    "id": "E0374",
+    "query": "002001 với 002011 dùng chung được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002001",
+      "002011"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0375",
+    "query": "002011 lắp được vào A-500R không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002011",
+      "A-500R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0376",
+    "query": "050001 và 015003 có đi với nhau không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002017",
+      "023041"
+    ],
+    "tier": 2,
+    "note": "compat [fixed_fake_pno]"
+  },
+  {
+    "id": "E0377",
+    "query": "002011 tương thích với 007003 không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002011"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0378",
+    "query": "TK-508RR dùng được chụp 250A không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "TK-508RR"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0379",
+    "query": "015001 lắp được vào ACC-308RR không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "ACC-308RR"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0380",
+    "query": "chụp 400A dùng với súng N 700A được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "001007",
+      "001009",
+      "001010",
+      "001005"
+    ],
+    "tier": 2,
+    "note": "compat [fixed_fake_pno]"
+  },
+  {
+    "id": "E0381",
+    "query": "chụp 200A dùng với súng N 200A được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "002003",
+      "003002",
+      "003001"
+    ],
+    "tier": 2,
+    "note": "compat [fixed_fake_pno]"
+  },
+  {
+    "id": "E0382",
+    "query": "003001 với 002009 dùng chung được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "003001",
+      "002009"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0383",
+    "query": "béc 1.6mm có lắp vào TR-308R không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "TR-308R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0384",
+    "query": "A-350R dùng được chụp 250A không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "A-350R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0385",
+    "query": "YMSA-500R dùng được chụp 450A không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "YMSA-500R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0386",
+    "query": "045001 với 036003 dùng chung được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "036003"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0387",
+    "query": "007001 lắp được vào ACC-308RR không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "ACC-308RR"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0388",
+    "query": "003003 và 010003 có đi với nhau không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "003002",
+      "003001",
+      "001010",
+      "001005"
+    ],
+    "tier": 2,
+    "note": "compat [fixed_fake_pno]"
+  },
+  {
+    "id": "E0389",
+    "query": "béc 2.4mm có lắp vào WX500R không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "WX500R"
+    ],
+    "tier": 2,
+    "note": "compat"
+  },
+  {
+    "id": "E0390",
+    "query": "chụp 350A dùng với súng N 250A được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "001007",
+      "001009"
+    ],
+    "tier": 2,
+    "note": "compat [fixed_fake_pno]"
+  },
+  {
+    "id": "E0391",
+    "query": "phân biệt 003001 và 002011",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "003001",
+      "002011"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0392",
+    "query": "023421 và 012001 khác gì nhau",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0393",
+    "query": "015001 hay 012001 tốt hơn",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "001015",
+      "001012"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0394",
+    "query": "015003 hay 002005 tốt hơn",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002005"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0395",
+    "query": "đầu tiếp điện 250A vs 500A khác nhau sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "001005",
+      "001010",
+      "002005"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0396",
+    "query": "tip 350A vs 450A khác nhau sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002017"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0397",
+    "query": "béc 0.8mm và 2.4mm khác gì",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002009",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0398",
+    "query": "bec 700A vs 700A khác nhau sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002011",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0399",
+    "query": "béc 1.6mm và 1.4mm khác gì",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002011",
+      "001007",
+      "001009"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0400",
+    "query": "đầu tiếp điện 450A vs 250A khác nhau sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "036001",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0401",
+    "query": "đầu hàn 400A vs 300A khác nhau sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "001010"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0402",
+    "query": "béc 0.9mm và 3.2mm khác gì",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "002009"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0403",
+    "query": "002005 và 005003 khác gì nhau",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002005"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0404",
+    "query": "so sánh 036003 với 040001",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "036003"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0405",
+    "query": "003001 và 007001 khác gì nhau",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "003001"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0406",
+    "query": "béc hàn 200A vs 450A khác nhau sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "001005",
+      "001010",
+      "002007"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0407",
+    "query": "phân biệt 010001 và 002009",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002009"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0408",
+    "query": "007003 với 040001 cái nào bền hơn",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "001007",
+      "001009",
+      "036001",
+      "036003"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0409",
+    "query": "050001 hay 012001 tốt hơn",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002017",
+      "001002"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0410",
+    "query": "tip 700A vs 400A khác nhau sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "023421"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0411",
+    "query": "010003 với 002011 cái nào bền hơn",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002011"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0412",
+    "query": "007003 hay 020001 tốt hơn",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "001007",
+      "001009",
+      "001008"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0413",
+    "query": "012001 hay 015003 tốt hơn",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "001012",
+      "001015"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0414",
+    "query": "002001 và 010003 khác gì nhau",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002001"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0415",
+    "query": "so sánh 007003 với 003003",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "001007",
+      "001009",
+      "003002",
+      "003001"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0416",
+    "query": "002003 và 005003 khác gì nhau",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002003"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0417",
+    "query": "đầu hàn 350A vs 300A khác nhau sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002005",
+      "002001"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0418",
+    "query": "so sánh 010003 với 002007",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002007"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0419",
+    "query": "béc hàn 700A vs 250A khác nhau sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "001010",
+      "001005",
+      "036003"
+    ],
+    "tier": 2,
+    "note": "comparison [fixed_fake_pno]"
+  },
+  {
+    "id": "E0420",
+    "query": "020001 và 002001 khác gì nhau",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "002001"
+    ],
+    "tier": 2,
+    "note": "comparison"
+  },
+  {
+    "id": "E0421",
+    "query": "liệt kê các béc hàn bên bạn đang bán",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003",
+      "002017",
+      "002004",
+      "002020"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0422",
+    "query": "bên bạn có những loại chụp khí nào",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014",
+      "001007",
+      "001013",
+      "033203"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0423",
+    "query": "danh sách súng hàn tokin có bán",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "ACC-308RR",
+      "ACC-308RX",
+      "TK-308RR",
+      "TK-308RS",
+      "TK-308RX",
+      "TK-308RW",
+      "TK-308ALW",
+      "SRCT-308R"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0424",
+    "query": "có bao nhiêu loại liner",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013",
+      "0443016",
+      "037001",
+      "037002"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0425",
+    "query": "liệt kê liner cho robot OTC",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "023443",
+      "023471",
+      "023445",
+      "023446",
+      "023472",
+      "023448",
+      "023435",
+      "023436"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0426",
+    "query": "danh sách linh kiện hệ N 350A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0427",
+    "query": "có bao nhiêu loại béc 1.2mm",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003",
+      "002017",
+      "002004",
+      "002020"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0428",
+    "query": "tất cả béc hệ D 500A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "023011",
+      "023409",
+      "023408"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0429",
+    "query": "model súng tokin có gì",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "ACC-308RR",
+      "ACC-308RX",
+      "TK-308RR",
+      "TK-308RS",
+      "TK-308RX",
+      "TK-308RW",
+      "TK-308ALW",
+      "SRCT-308R"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0430",
+    "query": "liệt kê consumable set hiện có",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0431",
+    "query": "danh mục sản phẩm TIG",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0432",
+    "query": "bên bạn có những hệ súng nào",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "ACC-308RR",
+      "ACC-308RX",
+      "TK-308RR",
+      "TK-308RS",
+      "TK-308RX",
+      "TK-308RW",
+      "TK-308ALW",
+      "SRCT-308R"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0433",
+    "query": "béc hàn có cỡ dây nào",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003",
+      "002017",
+      "002004",
+      "002020"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0434",
+    "query": "liệt kê chụp khí 500A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "001001",
+      "001010",
+      "001005",
+      "001012",
+      "001015",
+      "034115",
+      "034116",
+      "061450"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0435",
+    "query": "tất cả insulator hệ N",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "004002",
+      "004004",
+      "004001",
+      "004008"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0436",
+    "query": "có mấy loại liner cho TK-308RR",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013",
+      "0443016",
+      "037001",
+      "037002"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0437",
+    "query": "danh sách tip body N 350A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003",
+      "002017",
+      "023040",
+      "023007"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0438",
+    "query": "các mã orifice đang có",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "003002",
+      "003001",
+      "023014",
+      "034120",
+      "034121"
+    ],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0439",
+    "query": "bên bạn bán những gì",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0440",
+    "query": "có bao nhiêu mã sản phẩm hệ WX",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": "aggregate"
+  },
+  {
+    "id": "E0441",
+    "query": "có bao nhiêu loại back cap 350A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05",
+      "57Y02"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0442",
+    "query": "tất cả cách điện 450A hệ N",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0443",
+    "query": "có bao nhiêu loại chụp gốm 200A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "038040",
+      "038041",
+      "038042"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0444",
+    "query": "có bao nhiêu loại đầu tiếp điện 500A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "002004",
+      "002020",
+      "023011",
+      "002506",
+      "002501",
+      "023409",
+      "023408",
+      "002019"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0445",
+    "query": "liệt kê đầu hàn hệ D",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "023040",
+      "023007",
+      "023008",
+      "023009",
+      "023010",
+      "023041",
+      "023011",
+      "023323"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0446",
+    "query": "liệt kê điện cực tungsten hệ N",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "018320",
+      "018321",
+      "018322",
+      "018323",
+      "018324",
+      "018325",
+      "018340",
+      "018342"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0447",
+    "query": "liệt kê liner dây hệ WX",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0448",
+    "query": "liệt kê vonfram hệ WX",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0449",
+    "query": "có bao nhiêu loại cách điện 700A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0450",
+    "query": "có bao nhiêu loại thân giữ béc 350A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003",
+      "002017",
+      "023040",
+      "023007"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0451",
+    "query": "liệt kê sứ khuếch tán hệ D",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "023014"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0452",
+    "query": "liệt kê điện cực vonfram hệ D",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0453",
+    "query": "có bao nhiêu loại tungsten 400A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0454",
+    "query": "có bao nhiêu loại ống trong 700A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0455",
+    "query": "tất cả vỏ cách điện 700A hệ D",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0456",
+    "query": "có bao nhiêu loại sứ chia khí 500A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "003001",
+      "034120",
+      "034121"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0457",
+    "query": "liệt kê nắp đuôi hệ D",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0458",
+    "query": "có bao nhiêu loại cup 400A",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0459",
+    "query": "tất cả nắp hậu 500A hệ N",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "002004",
+      "002020",
+      "023011",
+      "001001",
+      "001010",
+      "001005"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0460",
+    "query": "tất cả kẹp điện cực 700A hệ N",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0461",
+    "query": "cách thay béc A-350R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "A-350R"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0462",
+    "query": "cách thay béc",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002002",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0463",
+    "query": "quy trình thay liner TK-508RR",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "TK-508RR"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0464",
+    "query": "quy trình thay liner TCC-350R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0465",
+    "query": "thay insulator như thế nào",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "004001",
+      "004002"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0466",
+    "query": "thay insulator như thế nào TK-308RR",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "TK-308RR"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0467",
+    "query": "torque vặn béc bao nhiêu",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002002",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0468",
+    "query": "torque vặn béc bao nhiêu",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002002",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0469",
+    "query": "lực siết tip",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002002",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0470",
+    "query": "lực siết tip WX500R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "WX500R"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0471",
+    "query": "cách lắp liner đúng YMXA-308R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "YMXA-308R"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0472",
+    "query": "cách lắp liner đúng",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0473",
+    "query": "thay nozzle bước nào",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "001010"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0474",
+    "query": "thay nozzle bước nào",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "001010"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0475",
+    "query": "thay chụp khí",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "001010"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0476",
+    "query": "thay chụp khí",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "001010"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0477",
+    "query": "hướng dẫn lắp tip body YMSA-308R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "YMSA-308R"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0478",
+    "query": "hướng dẫn lắp tip body TK-308RR",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "TK-308RR"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0479",
+    "query": "thứ tự tháo lắp béc A-500R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "A-500R"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0480",
+    "query": "thứ tự tháo lắp béc",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002002",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0481",
+    "query": "vặn béc bao nhiêu Nm TL-35",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "TL-35"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0482",
+    "query": "vặn béc bao nhiêu Nm A-350R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "A-350R"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0483",
+    "query": "cách lắp inner tube TLA-20",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "TLA-20"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0484",
+    "query": "cách lắp inner tube A-350R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "A-350R"
+    ],
+    "tier": 1,
+    "note": "installation"
+  },
+  {
+    "id": "E0485",
+    "query": "lực siết thân giữ béc bao nhiêu Nm",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002002",
+      "002005"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0486",
+    "query": "cách lắp bộ đầu súng TK-508RR",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "TK-508RR"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0487",
+    "query": "quy trình thay inner tube WX500R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "WX500R"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0488",
+    "query": "hướng dẫn thay collet TIG",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0489",
+    "query": "thay back cap như thế nào",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0490",
+    "query": "bước thay liner YMSA-500R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "YMSA-500R"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0491",
+    "query": "torque chuẩn cho tip body",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "036001",
+      "016051",
+      "016503"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0492",
+    "query": "lắp liner mới cần cắt ngắn không",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0493",
+    "query": "cách kiểm tra liner sau khi lắp",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0494",
+    "query": "sơ đồ lắp ráp đầu súng N 350A",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0495",
+    "query": "bắn tóe nhiều quá",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "002003",
+      "003001"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0496",
+    "query": "súng YMSA-308R bị bắn tóe nhiều quá",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "002003",
+      "003001"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0497",
+    "query": "bắn bi",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "002003",
+      "003001"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0498",
+    "query": "súng YMXA-308R bị bắn bi",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "002003",
+      "003001"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0499",
+    "query": "hồ quang không ổn định",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "003001",
+      "004001"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0500",
+    "query": "súng YMSA-500R bị hồ quang không ổn định",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "003001",
+      "004001"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0501",
+    "query": "súng bị rò khí",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "003001",
+      "003002",
+      "004001",
+      "004002"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0502",
+    "query": "súng ACC-308RR bị súng bị rò khí",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "003001",
+      "003002",
+      "004001",
+      "004002"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0503",
+    "query": "dây hàn bị kẹt không chạy",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0504",
+    "query": "súng WX500R bị dây hàn bị kẹt không chạy",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0505",
+    "query": "mối hàn xấu",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "003001",
+      "004001",
+      "036001"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0506",
+    "query": "súng ACC-308RR bị mối hàn xấu",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "003001",
+      "004001",
+      "036001"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0507",
+    "query": "khói nhiều bất thường",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0508",
+    "query": "súng YMSA-500R bị khói nhiều bất thường",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0509",
+    "query": "đầu béc bị cháy nhanh",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0510",
+    "query": "súng CSL-35 bị đầu béc bị cháy nhanh",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0511",
+    "query": "chụp khí bị nám đen",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0512",
+    "query": "súng A-350R bị chụp khí bị nám đen",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0513",
+    "query": "liner bị kẹt dây",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0514",
+    "query": "súng YMSA-500R bị liner bị kẹt dây",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0515",
+    "query": "hồ quang nhảy loạn",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "003001",
+      "004001"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0516",
+    "query": "súng TLA-20 bị hồ quang nhảy loạn",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "003001",
+      "004001"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0517",
+    "query": "spatter nhiều",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "002003",
+      "003001"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0518",
+    "query": "súng TLA-20 bị spatter nhiều",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "002003",
+      "003001"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0519",
+    "query": "dây ra không đều",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0520",
+    "query": "súng WX500R bị dây ra không đều",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0521",
+    "query": "khí không ra",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "003001",
+      "003002",
+      "004001",
+      "004002"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0522",
+    "query": "súng WX500R bị khí không ra",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "003001",
+      "003002",
+      "004001",
+      "004002"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0523",
+    "query": "béc bị oxy hóa nhanh",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0524",
+    "query": "súng A-350R bị béc bị oxy hóa nhanh",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "002001",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0525",
+    "query": "tiếng nổ khi hàn",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0526",
+    "query": "súng TL-20 bị tiếng nổ khi hàn",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0527",
+    "query": "dây cuộn trong liner",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "repair"
+  },
+  {
+    "id": "E0528",
+    "query": "súng YMSA-308R bị dây cuộn trong liner",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "repair+torch"
+  },
+  {
+    "id": "E0529",
+    "query": "dây không chạy đều TK-308RR",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0530",
+    "query": "hồ quang hay tắt giữa chừng",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0531",
+    "query": "mối hàn bị rỗ khí",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "002003",
+      "003001",
+      "004001",
+      "036001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0532",
+    "query": "chụp khí bị nóng quá nhanh",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001001",
+      "001002",
+      "001010"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0533",
+    "query": "béc hay bị dính chặt không tháo được",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0534",
+    "query": "liner bị kẹt dây ở đoạn giữa",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0535",
+    "query": "gas flow không đủ dù van mở",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "003001",
+      "003002",
+      "004001",
+      "004002"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0536",
+    "query": "béc bị bám spatter nhiều bất thường",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "002003",
+      "003001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0537",
+    "query": "hàn bị lệch hồ quang sang một bên",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0538",
+    "query": "súng YMSA-500R bắn tóe rất nhiều",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "002003",
+      "003001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0539",
+    "query": "xin chào",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0540",
+    "query": "bạn tên gì",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0541",
+    "query": "cho hỏi giá máy hàn Panasonic",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0542",
+    "query": "giao hàng mất mấy ngày",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0543",
+    "query": "bảo hành bao lâu",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0544",
+    "query": "địa chỉ kho hàng",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0545",
+    "query": "cho hỏi giá dây hàn 1.2mm",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0546",
+    "query": "có bán máy hàn không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0547",
+    "query": "mua máy hàn ở đâu",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0548",
+    "query": "thời gian làm việc",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0549",
+    "query": "liên hệ kỹ thuật",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0550",
+    "query": "có xuất hóa đơn VAT không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0551",
+    "query": "bạn có thể giúp tôi lập trình robot không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0552",
+    "query": "cảm ơn bạn",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0553",
+    "query": "ok nhé",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0554",
+    "query": "giá khí CO2 bao nhiêu",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0555",
+    "query": "máy hàn inverter có không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0556",
+    "query": "bán phụ tùng máy hàn cắt không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0557",
+    "query": "dây hàn lõi thuốc giá bao nhiêu",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0558",
+    "query": "có bán mặt nạ hàn không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0559",
+    "query": "béc hàn 1 ly 6",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 1,
+    "note": "[CTX] wire_size=1.6"
+  },
+  {
+    "id": "E0560",
+    "query": "béc này đi với cách điện và chụp khí nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[CTX] ctx: previous béc 1.6"
+  },
+  {
+    "id": "E0561",
+    "query": "cho tôi mua 10 cái chụp khí 500A bên bạn có không",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 1,
+    "note": "[CTX] qty+availability"
+  },
+  {
+    "id": "E0562",
+    "query": "U2773B00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "[CTX] pana_code_text"
+  },
+  {
+    "id": "E0563",
+    "query": "có mã tokin thay thế không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[CTX] ctx: previous U2773B00"
+  },
+  {
+    "id": "E0564",
+    "query": "giá bao nhiêu",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[CTX] ctx: resolved tokin code"
+  },
+  {
+    "id": "E0565",
+    "query": "dây không chạy đều TK-308RR",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "[CTX] symptom"
+  },
+  {
+    "id": "E0566",
+    "query": "cần thay linh kiện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[CTX] ctx: repair → part rec"
+  },
+  {
+    "id": "E0567",
+    "query": "mua 5 cái",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[CTX] ctx: qty order"
+  },
+  {
+    "id": "E0568",
+    "query": "wire size của TK-308RR",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "TK-308RR"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0569",
+    "query": "wire size của TK-508RR",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "TK-508RR"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0570",
+    "query": "thông tin súng YMSA-500R",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "YMSA-500R"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0571",
+    "query": "YMSA-308R dùng được dây mấy mm",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "YMSA-308R"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0572",
+    "query": "thông tin súng YMXA-308R",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "YMXA-308R"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0573",
+    "query": "thông tin súng WX500R",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "WX500R"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0574",
+    "query": "thông tin súng WX702R",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "WX702R"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0575",
+    "query": "thông tin súng TL-20",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "TL-20"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0576",
+    "query": "súng TL-35 thông số gì",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "TL-35"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0577",
+    "query": "TLA-20 rated ampere bao nhiêu",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "TLA-20"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0578",
+    "query": "wire size của CSL-35",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "CSL-35"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0579",
+    "query": "A-350R dùng được dây mấy mm",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "A-350R"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0580",
+    "query": "A-500R dùng được dây mấy mm",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "A-500R"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0581",
+    "query": "súng TR-308R thông số gì",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "TR-308R"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0582",
+    "query": "ACC-308RR dùng được dây mấy mm",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "ACC-308RR"
+    ],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0583",
+    "query": "wire size của TCC-350R",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "torch_lookup"
+  },
+  {
+    "id": "E0584",
+    "query": "béc 1 ly 2 hệ bắc",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002003",
+      "002325",
+      "002014",
+      "002009",
+      "002055"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0585",
+    "query": "chụp ngắn cho N 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0586",
+    "query": "cách điện súng nam 500A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "004002",
+      "004004",
+      "004001",
+      "004008",
+      "023015"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0587",
+    "query": "liner robot 1.2",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0588",
+    "query": "tip 0.9 N type",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002001",
+      "002323",
+      "002007",
+      "016005"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0589",
+    "query": "nozzle 500A WX water cool",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "034115",
+      "034116",
+      "061450",
+      "034200",
+      "034201"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0590",
+    "query": "bec 1 ly 6 hệ D",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "023011",
+      "023409",
+      "023408",
+      "023044"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0591",
+    "query": "chụp cách điện cho TIG",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "DX-0211251",
+      "DX-0211291"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0592",
+    "query": "collet 2.4mm TIG",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0593",
+    "query": "ceramic nozzle TIG 3.2",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "DX-0211251",
+      "DX-0211291"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0594",
+    "query": "back cap TIG ngắn",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0595",
+    "query": "liner 1.2mm cho robot Fanuc",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0596",
+    "query": "inner tube WX500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "YEW005013",
+      "YEW005813",
+      "YEW005046",
+      "YEW005045"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0597",
+    "query": "wave washer N 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "255406",
+      "255407",
+      "023502"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0598",
+    "query": "tip adapter N 500A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0599",
+    "query": "liner oring hệ N",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0600",
+    "query": "insulator collar WX",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "004002",
+      "004004",
+      "004001",
+      "004008",
+      "023015"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0601",
+    "query": "WX center ceramic 500A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0602",
+    "query": "nozzle sleeve WX700A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0603",
+    "query": "cover rubber WX500R",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": "slang"
+  },
+  {
+    "id": "E0604",
+    "query": "robot hàn bị nhảy quỹ đạo do spatter",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001002",
+      "001001",
+      "002003",
+      "003001"
+    ],
+    "tier": 1,
+    "note": "robot_repair"
+  },
+  {
+    "id": "E0605",
+    "query": "liner robot bị kẹt giữa cáp",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": "robot_repair"
+  },
+  {
+    "id": "E0606",
+    "query": "torch robot bị lệch vị trí sau va chạm",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "robot_repair"
+  },
+  {
+    "id": "E0607",
+    "query": "dây hàn bị rối trong cáp robot",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "037001"
+    ],
+    "tier": 1,
+    "note": "robot_repair"
+  },
+  {
+    "id": "E0608",
+    "query": "robot hàn OTC FD-V6 dây không ra đều",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "robot_repair"
+  },
+  {
+    "id": "E0609",
+    "query": "súng robot bị tóe bắn liên tục",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "robot_repair"
+  },
+  {
+    "id": "E0610",
+    "query": "hệ WX nước làm mát không đủ áp",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203"
+    ],
+    "tier": 1,
+    "note": "robot_repair"
+  },
+  {
+    "id": "E0611",
+    "query": "torch WX bị quá nhiệt",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001001",
+      "001002",
+      "001010"
+    ],
+    "tier": 1,
+    "note": "robot_repair"
+  },
+  {
+    "id": "E0612",
+    "query": "cách điều chỉnh liner protrusion",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0613",
+    "query": "chiều dài liner TK-308RR cần cắt bao nhiêu",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "TK-308RR"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0614",
+    "query": "liner TK-508RR dài bao nhiêu",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "TK-508RR"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0615",
+    "query": "ống lót trong WX500R cắt mấy mm",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "WX500R"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0616",
+    "query": "torque thân giữ béc YMSA-500R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "YMSA-500R"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0617",
+    "query": "lắp inner tube WX702R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "WX702R"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0618",
+    "query": "thay liner robot bao lâu làm 1 lần",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "036001",
+      "036003",
+      "037002",
+      "037003"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0619",
+    "query": "hướng dẫn bảo dưỡng đầu súng định kỳ",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0620",
+    "query": "TCC-350R cần vật tư gì",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002100",
+      "023120",
+      "004002",
+      "003002",
+      "023121",
+      "002101"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0621",
+    "query": "WX500R bộ tiêu hao",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "034135",
+      "034115",
+      "034120",
+      "061445",
+      "034116",
+      "061450",
+      "034121",
+      "061447",
+      "061449"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0622",
+    "query": "bộ đầy đủ cho WX702R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "034135",
+      "061445",
+      "034115",
+      "034116",
+      "034120",
+      "034121",
+      "002017",
+      "002004"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0623",
+    "query": "súng TIG cần linh kiện gì",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "018343",
+      "10N48",
+      "10N24",
+      "10N32",
+      "57Y04",
+      "018341",
+      "13N10",
+      "13N22",
+      "13N27",
+      "41V33"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0624",
+    "query": "set vật tư cho TIG family 1726",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "018343",
+      "10N48",
+      "10N24",
+      "10N32",
+      "57Y04",
+      "018341",
+      "13N10",
+      "13N22",
+      "13N27",
+      "41V33"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0625",
+    "query": "D500A cần gì",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0626",
+    "query": "bộ hàn TK-508RR gồm những gì",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0627",
+    "query": "vật tư cho YMXA-308R",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0628",
+    "query": "linh kiện cho CSL-35",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0629",
+    "query": "chào buổi sáng",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0630",
+    "query": "ok cảm ơn",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0631",
+    "query": "vâng được rồi",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0632",
+    "query": "tạm biệt",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0633",
+    "query": "có bán máy cắt plasma không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0634",
+    "query": "giá dây hàn MIG 1.2mm",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0635",
+    "query": "máy hàn Miller bao nhiêu",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0636",
+    "query": "bán khí argon không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0637",
+    "query": "đại lý gần nhất ở đâu",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0638",
+    "query": "thứ 7 có làm việc không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0639",
+    "query": "cho hỏi chính sách đổi trả",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0640",
+    "query": "có ship COD không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": "oos"
+  },
+  {
+    "id": "E0641",
+    "query": "liệt kê các béc hàn dây 0.9mm",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "002016",
+      "002005",
+      "002001",
+      "002002",
+      "002003",
+      "002017",
+      "002004",
+      "002020"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0642",
+    "query": "tất cả liner hệ D",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "023443",
+      "023471",
+      "023445",
+      "023446",
+      "023472",
+      "023448",
+      "023435",
+      "023436"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0643",
+    "query": "có bao nhiêu model súng hệ WX",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "YMSA-500AW",
+      "CSH-50WX",
+      "WX500S",
+      "WX500R",
+      "WX450S",
+      "WX450R",
+      "WX451S",
+      "WX451R"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0644",
+    "query": "danh sách consumable set có sẵn",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0645",
+    "query": "liệt kê TIG collet đang bán",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "22N20A",
+      "22N21A",
+      "22N22A",
+      "22N23A",
+      "22N24A",
+      "22N20AL",
+      "22N21AL",
+      "22N22AL"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0646",
+    "query": "có mấy loại back cap TIG",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "41V33",
+      "41V35",
+      "41V24",
+      "57Y04",
+      "57Y05",
+      "57Y02",
+      "56Y45",
+      "56Y44"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0647",
+    "query": "béc CuCrZr vs Cu khác gì nhau",
+    "intent": "COMPARISON",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0648",
+    "query": "nozzle ngắn vs dài ưu nhược điểm",
+    "intent": "COMPARISON",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0649",
+    "query": "liner thép vs liner nhựa khác sao",
+    "intent": "COMPARISON",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0650",
+    "query": "hệ N và hệ D khác nhau gì",
+    "intent": "COMPARISON",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0651",
+    "query": "WX cool water vs air cool ưu nhược",
+    "intent": "COMPARISON",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0652",
+    "query": "béc 1.0 và 1.2 dùng trường hợp nào",
+    "intent": "COMPARISON",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0653",
+    "query": "tôi đang dùng béc 002001 cần thêm chụp gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0654",
+    "query": "vừa mua liner 036001 cần thêm gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0655",
+    "query": "có 015001 rồi cần orifice nào đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0656",
+    "query": "đã mua tip body 010001 cần béc loại nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0657",
+    "query": "U4167G01 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0658",
+    "query": "chụp U4167G01 cho mình linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0659",
+    "query": "đang xài K1050B00 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0660",
+    "query": "có 007001 rồi muốn thêm nozzle",
+    "intent": "UPSELL",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0661",
+    "query": "chụp hình mã U2773B00 hỏi thay thế",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "photo_case"
+  },
+  {
+    "id": "E0662",
+    "query": "U4185G00 có bán không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0663",
+    "query": "K2052B00 tương đương mã tokin nào",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0664",
+    "query": "TFZ00003 thay bằng gì",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0665",
+    "query": "060-02305 tokin có loại này không",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0666",
+    "query": "mã pana TET00006 thay thế",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0667",
+    "query": "DAH00012 bên tokin có gì tương đương",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "replacement [no_tokin_equivalent]"
+  },
+  {
+    "id": "E0668",
+    "query": "béc 1.2mm có dùng cho súng hệ D không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0669",
+    "query": "nozzle N 350A lắp vào súng D được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0670",
+    "query": "tip body N lắp D torch được không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0671",
+    "query": "insulator WX có fit N 500A không",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0672",
+    "query": "023421 tương thích súng nào",
+    "intent": "COMPATIBILITY_CHECK",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0673",
+    "query": "002001",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "002001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0674",
+    "query": "036001",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "036001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0675",
+    "query": "023421",
+    "intent": "LOOKUP",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0676",
+    "query": "tet00003",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0677",
+    "query": "k1050b00",
+    "intent": "LOOKUP",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0678",
+    "query": "cần mua 50 cái béc 1.2mm hệ N 350A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002003",
+      "002325",
+      "002014",
+      "002009",
+      "002055"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0679",
+    "query": "đặt 100 chụp khí 500A",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001008",
+      "001009",
+      "001014"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0680",
+    "query": "mua sỉ liner robot 1.2mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "016076",
+      "016077",
+      "016126",
+      "016127",
+      "0443013"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0681",
+    "query": "WX500R bị quá nhiệt đầu súng",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "001001",
+      "001002",
+      "001010"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0682",
+    "query": "hệ WX rò nước làm mát",
+    "intent": "REPAIR",
+    "expected_part_nos": [
+      "034115",
+      "034116",
+      "061450"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0683",
+    "query": "cách thay WX center ceramic WX500R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "WX500R"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0684",
+    "query": "lắp insulator collar WX702R",
+    "intent": "INSTALLATION",
+    "expected_part_nos": [
+      "WX702R"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0685",
+    "query": "bộ vật tư TIG 300A",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "036001",
+      "002003",
+      "002002",
+      "033203",
+      "004002",
+      "003002",
+      "002001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0686",
+    "query": "consumable set TIG robotic 300",
+    "intent": "CONSUMABLE_SET",
+    "expected_part_nos": [
+      "018343",
+      "10N48",
+      "10N24",
+      "10N32",
+      "57Y04",
+      "018341",
+      "13N10",
+      "13N22",
+      "13N27",
+      "41V33"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0687",
+    "query": "mua béc xong cần gì nữa không",
+    "intent": "UPSELL",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0688",
+    "query": "đã có chụp 500A cần thêm gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0689",
+    "query": "060-02305",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[no_tokin_equivalent]"
+  },
+  {
+    "id": "E0690",
+    "query": "L1050A00",
+    "intent": "REPLACEMENT",
+    "expected_part_nos": [],
+    "tier": 1,
+    "note": "[no_tokin_equivalent]"
+  },
+  {
+    "id": "E0691",
+    "query": "TK-308RR và TK-508RR khác gì",
+    "intent": "COMPARISON",
+    "expected_part_nos": [
+      "TK-308RR",
+      "TK-508RR"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0692",
+    "query": "súng air cool vs water cool ưu nhược",
+    "intent": "COMPARISON",
+    "expected_part_nos": [],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0693",
+    "query": "liệt kê súng hàn robot tokin",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "ACC-308RR",
+      "ACC-308RX",
+      "TK-308RR",
+      "TK-308RS",
+      "TK-308RX",
+      "TK-308RW",
+      "TK-308ALW",
+      "SRCT-308R"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0694",
+    "query": "có mấy loại súng WX",
+    "intent": "AGGREGATE",
+    "expected_part_nos": [
+      "YMSA-500AW",
+      "CSH-50WX",
+      "WX500S",
+      "WX500R",
+      "WX450S",
+      "WX450R",
+      "WX451S",
+      "WX451R"
+    ],
+    "tier": 2,
+    "note": ""
+  },
+  {
+    "id": "E0695",
+    "query": "giá máy hàn Lincoln",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": ""
+  },
+  {
+    "id": "E0696",
+    "query": "mua thuốc hàn ở đâu",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": ""
+  },
+  {
+    "id": "E0697",
+    "query": "bán kính hàn không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": ""
+  },
+  {
+    "id": "E0698",
+    "query": "cho hỏi giá khí argon 40L",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": ""
+  },
+  {
+    "id": "E0699",
+    "query": "có bán găng tay hàn không",
+    "intent": "OUT_OF_SCOPE",
+    "expected_part_nos": [],
+    "tier": 0,
+    "note": ""
+  },
+  {
+    "id": "E0700",
+    "query": "béc hàn TK-308RR dây 1.2mm",
+    "intent": "SEARCH_BY_DESC",
+    "expected_part_nos": [
+      "002003",
+      "002325",
+      "002014",
+      "002009",
+      "002055"
+    ],
+    "tier": 1,
+    "note": "final"
+  }
+]

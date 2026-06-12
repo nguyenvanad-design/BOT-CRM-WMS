@@ -1,0 +1,35 @@
+{
+  "pass": 288,
+  "fail": 239,
+  "accuracy_pct": 54.6,
+  "oos_pass": 37,
+  "skip": 136,
+  "error": 0,
+  "fails_by_intent": {
+    "SEARCH_BY_DESC": 102,
+    "CONSUMABLE_SET": 22,
+    "UPSELL": 25,
+    "COMPATIBILITY_CHECK": 9,
+    "COMPARISON": 15,
+    "AGGREGATE": 16,
+    "INSTALLATION": 17,
+    "REPAIR": 33
+  },
+  "total_by_intent": {
+    "LOOKUP": 30,
+    "SEARCH_BY_DESC": 142,
+    "CONSUMABLE_SET": 71,
+    "UPSELL": 74,
+    "REPLACEMENT": 10,
+    "COMPATIBILITY_CHECK": 41,
+    "COMPARISON": 31,
+    "AGGREGATE": 33,
+    "INSTALLATION": 40,
+    "REPAIR": 55
+  },
+  "fails_by_cause": {
+    "no_tool_called": 129,
+    "wrong_data_returned": 68,
+    "code_not_mentioned": 42
+  }
+}

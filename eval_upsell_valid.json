@@ -1,0 +1,384 @@
+[
+  {
+    "id": "E0222",
+    "query": "U4167G01 cần thêm gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0223",
+    "query": "U4167G01 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0224",
+    "query": "tôi có 002011 cần thêm cách điện",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0228",
+    "query": "023421 đi với thân giữ béc nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0232",
+    "query": "dùng U4167G01 thì cần chụp gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0239",
+    "query": "023421 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0240",
+    "query": "036001 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "002001",
+      "002002",
+      "002003",
+      "002004",
+      "003001",
+      "003002",
+      "004001"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0251",
+    "query": "036003 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0255",
+    "query": "dùng 002005 thì cần chụp gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014",
+      "002006"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0260",
+    "query": "002001 và linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0266",
+    "query": "vừa mua 002011 cần mua gì thêm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0268",
+    "query": "có 036003 cần gì nữa không",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "036001",
+      "002004",
+      "001001",
+      "004001",
+      "003001",
+      "016403"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0270",
+    "query": "002005 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014",
+      "002006"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0271",
+    "query": "tôi có 002009 cần thêm cách điện",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001004",
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0272",
+    "query": "tôi có 023421 cần thêm cách điện",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "023421"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0273",
+    "query": "002011 cần béc gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0274",
+    "query": "có 003001 cần gì nữa không",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "001005",
+      "001010",
+      "001012",
+      "001015",
+      "002003",
+      "002004",
+      "002017"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0275",
+    "query": "đang xài 003001 lấy thêm đồ đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "001005",
+      "001010",
+      "001012",
+      "001015",
+      "002003",
+      "002004",
+      "002017"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0277",
+    "query": "036001 cần thêm gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "002001",
+      "002002",
+      "002003",
+      "002004",
+      "003001",
+      "003002",
+      "004001"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0278",
+    "query": "vừa mua 002005 cần mua gì thêm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014",
+      "002006"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0279",
+    "query": "002007 dùng chung với liner nào",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001004",
+      "002001",
+      "002002",
+      "002003",
+      "002005"
+    ],
+    "tier": 1,
+    "note": "upsell"
+  },
+  {
+    "id": "E0653",
+    "query": "tôi đang dùng béc 002001 cần thêm chụp gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "001002",
+      "001003",
+      "001007",
+      "001008",
+      "001009",
+      "001013",
+      "001014"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0654",
+    "query": "vừa mua liner 036001 cần thêm gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "001001",
+      "002001",
+      "002002",
+      "002003",
+      "002004",
+      "003001",
+      "003002",
+      "004001"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0657",
+    "query": "U4167G01 cần béc thân cách điện gì",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": ""
+  },
+  {
+    "id": "E0658",
+    "query": "chụp U4167G01 cho mình linh kiện đi kèm",
+    "intent": "UPSELL",
+    "expected_part_nos": [
+      "002001",
+      "002002",
+      "002003",
+      "002005",
+      "002014",
+      "002016",
+      "002020",
+      "003002"
+    ],
+    "tier": 1,
+    "note": ""
+  }
+]

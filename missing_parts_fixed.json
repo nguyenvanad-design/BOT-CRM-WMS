@@ -1,0 +1,314 @@
+[
+  {
+    "tokin_part_no": "046256",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Wire Cutter TKC-B1",
+    "display_name_vi": "Máy cắt dây TKC-B1 (khí nén, lưỡi cắt 40,000+ lần/cạnh)",
+    "note": "Air-driven. Cutting blade by leverage principle, high durable material. Both sides usable. Compatible: TK-308RR/ACC-308RR/ACC-352/RT352/RR308Y/DT-RA/MAN-308RR",
+    "source": "Cat01_p16",
+    "confidence": 1.0,
+    "compatible_with": [],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "cái",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046260",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Anti-Spatter Solution Sprayer TKP-A1",
+    "display_name_vi": "Máy phun dung dịch chống bắn tóe TKP-A1",
+    "note": "Sprays fine mist of anti-spatter solution. Supports nozzles OD 16-26mm. Use with Nozzle Coat (046113/046114).",
+    "source": "Cat01_p16",
+    "confidence": 1.0,
+    "compatible_with": [
+      "046113",
+      "046114"
+    ],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "cái",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046113",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Nozzle Coat Anti-Spatter Solution 18L",
+    "display_name_vi": "Dung dịch chống bắn tóe Nozzle Coat 18L (046113)",
+    "note": "Dedicated anti-spatter solution for TKP-A1 sprayer. Forms anti-spatter film on nozzle surface after welding heat dries it.",
+    "source": "Cat01_p16",
+    "confidence": 1.0,
+    "compatible_with": [
+      "046260"
+    ],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "can",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046114",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Nozzle Coat Anti-Spatter Solution 2L",
+    "display_name_vi": "Dung dịch chống bắn tóe Nozzle Coat 2L (046114)",
+    "note": "Dedicated anti-spatter solution for TKP-A1 sprayer. 2L can.",
+    "source": "Cat01_p16",
+    "confidence": 1.0,
+    "compatible_with": [
+      "046260"
+    ],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "can",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046301",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Nozzle Cleaner Station TKS-RC (Direct Command Type)",
+    "display_name_vi": "Trạm vệ sinh chụp khí TKS-RC (Direct Command) — nozzle cleaner + wire cutter + anti-spatter sprayer",
+    "note": "Model: TKS-RC. Direct signal to control panel. Nozzle ID phi12/13/16/19mm. 327x255x904mm. AC100-240V/DC24V. 25kg.",
+    "source": "Cat01_p15",
+    "confidence": 1.0,
+    "compatible_with": [],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "bộ",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046302",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Nozzle Cleaner Station TKS-RS (Proximity Sensor Type)",
+    "display_name_vi": "Trạm vệ sinh chụp khí TKS-RS (Proximity Sensor) — tự động kích hoạt khi súng tiếp cận",
+    "note": "Model: TKS-RS. Internal proximity sensor detects nozzle approach and automatically activates. Only robot teaching required.",
+    "source": "Cat01_p15",
+    "confidence": 1.0,
+    "compatible_with": [],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "bộ",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046311",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Nozzle Cleaner Station TKS-Z1 (Basic)",
+    "display_name_vi": "Trạm vệ sinh chụp khí TKS-Z1 — nozzle cleaner TKN-A1 + wire cutter TKC-B1 + sprayer TKP-A1",
+    "note": "Model: TKS-Z1. Air-driven. Spring-type nozzle cleaner. Standard station for wide range of conditions.",
+    "source": "Cat01_p15",
+    "confidence": 1.0,
+    "compatible_with": [
+      "046200",
+      "046250",
+      "046260"
+    ],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "bộ",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046312",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Nozzle Cleaner Station TKS-Z2",
+    "display_name_vi": "Trạm vệ sinh chụp khí TKS-Z2 (nâng cấp từ TKS-Z1)",
+    "source": "Cat01_p15",
+    "confidence": 1.0,
+    "compatible_with": [
+      "046200",
+      "046250",
+      "046260"
+    ],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "bộ",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    },
+    "note": "Model: TKS-Z2. "
+  },
+  {
+    "tokin_part_no": "046313",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Nozzle Cleaner Station TKS-Z3 (Full Set)",
+    "display_name_vi": "Trạm vệ sinh chụp khí TKS-Z3 (bộ đầy đủ với support 90cm)",
+    "source": "Cat01_p15",
+    "confidence": 1.0,
+    "compatible_with": [
+      "046200",
+      "046250",
+      "046260"
+    ],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "bộ",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    },
+    "note": "Model: TKS-Z3. "
+  },
+  {
+    "tokin_part_no": "046401",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Fume Extractor WF-120",
+    "display_name_vi": "Máy hút khói hàn WF-120 (1000W, 200V, 30kg, compact)",
+    "note": "Model: WF-120. 200V single phase. Max airflow 3.0m3/min. Pressure 21.6kpa. Small filter x1. 75dB. 550x300x583mm.",
+    "source": "Cat01_p18",
+    "confidence": 1.0,
+    "compatible_with": [],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "cái",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046402",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Fume Extractor WF-130",
+    "display_name_vi": "Máy hút khói hàn WF-130 (1000W, 3 phase, 80kg)",
+    "note": "Model: WF-130. 200V 3-phase. Max airflow 3.1m3/min. Pressure 23.5kpa. 75dB. 661x300x686mm.",
+    "source": "Cat01_p18",
+    "confidence": 1.0,
+    "compatible_with": [],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "cái",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046403",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Fume Extractor WF-180",
+    "display_name_vi": "Máy hút khói hàn WF-180 (1000W, 3 phase, brushless motor ~8000h, 80kg)",
+    "note": "Model: WF-180. 200V 3-phase. Max airflow 3.1m3/min. Brushless motor ~8000h vs ~700h WF-120. 1000x360x660mm.",
+    "source": "Cat01_p18",
+    "confidence": 1.0,
+    "compatible_with": [],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "cái",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046404",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Fume Extractor WF-300",
+    "display_name_vi": "Máy hút khói hàn WF-300 (0.75kW, 3 phase, high-flow 8m3/min, 64kg)",
+    "note": "Model: WF-300. 200V 3-phase. 0.75kW. Max airflow 8m3/min. Pressure 2.16kpa. 1060x490x600mm.",
+    "source": "Cat01_p18",
+    "confidence": 1.0,
+    "compatible_with": [],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "cái",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "046501",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Coolant Circulation System WR-200TC (Thermo-chiller)",
+    "display_name_vi": "Hệ thống tuần hoàn nước làm mát WR-200TC (Thermo-chiller, kiểm soát nhiệt độ 5-40°C)",
+    "note": "Model: WR-200TC. AC200V single phase. 1.1/1.4KVA. Pressure 0.4MPa. Flow 2.1-2.2L/min. Cooling 1700/1900W. Tank ~5L. 45kg. 377x500x615mm. Temp ±0.1°C stability.",
+    "source": "Cat01_p8",
+    "confidence": 1.0,
+    "compatible_with": [],
+    "torch_models": [
+      "WX500R",
+      "WX451S",
+      "WX451R",
+      "WX452S",
+      "WX452R",
+      "TK-308RW",
+      "TK-308ALW"
+    ],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "cái",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  },
+  {
+    "tokin_part_no": "047001",
+    "category": "Tool",
+    "ecosystem": "UNIVERSAL",
+    "current_class": "ALL",
+    "display_name_en": "Smart-Glide Roller-Type Flexible Conduit",
+    "display_name_vi": "Conduit cấp dây Smart-Glide (roller-type, ma sát thấp nhất 0.0495, dây 0.9-1.6mm, tối đa 20m)",
+    "note": "Model: SG-19PP. Friction coefficient 0.0495 — lowest among all conduit types. R200mm bend. 0.51kg/m. For tight robot cells, long wire paths, frequent wire changes.",
+    "source": "Cat01_p13",
+    "confidence": 1.0,
+    "compatible_with": [],
+    "torch_models": [],
+    "business": {
+      "price_vnd": null,
+      "price_unit": "m",
+      "is_contact_price": true,
+      "is_priority_sell": false
+    }
+  }
+]
