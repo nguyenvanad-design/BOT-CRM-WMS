@@ -76,7 +76,17 @@ logger = logging.getLogger("tokinarc.vector_index")
 
 ROOT          = Path(__file__).parent.parent
 
-DATA_FILE     = ROOT / "data" / "tokinarc_data_v11l.json"
+# FIX (restructure 2026-06): default cũ trỏ tokinarc_data_v11l.json (file đã
+# bị xóa) → ủy quyền cho data_store resolve (env TOKINARC_DATA > version cao
+# nhất trong data/).
+def _default_data_file() -> Path:
+    try:
+        from core.data_store import _resolve_data_path
+        return Path(_resolve_data_path())
+    except Exception:
+        return ROOT / "data" / "tokinarc_data_v19.json"
+
+DATA_FILE     = _default_data_file()
 
 INDEX_FILE    = ROOT / "indexes" / "tokinarc_faiss.index"
 
@@ -84,7 +94,16 @@ CHUNKS_FILE   = ROOT / "indexes" / "tokinarc_chunks.pkl"
 
 MODEL_NAME    = "BAAI/bge-m3"
 
-DEVICE        = "cuda"
+# FIX (restructure 2026-06): hardcode "cuda" cũ crash trên máy không có GPU
+# (sentence-transformers raise khi torch không thấy CUDA).
+def _detect_device() -> str:
+    try:
+        import torch
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except Exception:
+        return "cpu"
+
+DEVICE        = os.environ.get("TOKINARC_DEVICE", "") or _detect_device()
 
 TOP_K         = 10
 

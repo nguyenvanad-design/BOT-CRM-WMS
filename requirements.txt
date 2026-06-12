@@ -1,0 +1,26 @@
+# TOKINARC API — dependencies (pinned theo môi trường production 2026-06-12)
+# Cài: pip install -r requirements.txt
+# Lưu ý: torch bản production là 2.6.0+cu124 (CUDA 12.4) — cài theo hướng dẫn
+#   https://pytorch.org/get-started/ nếu máy có GPU; bản pip mặc định là CPU.
+
+fastapi==0.136.1
+uvicorn==0.46.0
+pydantic==2.13.4
+python-dotenv==1.2.2
+requests==2.34.1
+
+# LLM
+google-genai==2.7.0
+
+# Retrieval
+faiss-cpu==1.13.2
+numpy==2.4.4
+sentence-transformers==5.3.0
+torch==2.6.0
+rank-bm25==0.2.2
+
+# Session (optional — fallback in-memory nếu không có Redis)
+redis==8.0.0
+
+# Vision
+pillow==12.2.0

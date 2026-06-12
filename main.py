@@ -411,10 +411,23 @@ class RateLimiter:
         self._window = window
         self._counts: dict[str, collections.deque] = {}
         self._lock   = __import__("threading").Lock()
+        self._last_prune = time.time()
+
+    def _prune(self, now: float):
+        """FIX (restructure 2026-06): dọn IP cũ — dict trước đây chỉ phình
+        không bao giờ xóa (memory leak chậm với traffic scanner)."""
+        if now - self._last_prune < 300:
+            return
+        self._last_prune = now
+        cutoff = now - self._window
+        stale = [ip for ip, dq in self._counts.items() if not dq or dq[-1] < cutoff]
+        for ip in stale:
+            del self._counts[ip]
 
     def is_allowed(self, ip: str, cost: int = 1) -> bool:
         now = time.time()
         with self._lock:
+            self._prune(now)
             dq = self._counts.setdefault(ip, collections.deque())
             while dq and dq[0] < now - self._window:
                 dq.popleft()
