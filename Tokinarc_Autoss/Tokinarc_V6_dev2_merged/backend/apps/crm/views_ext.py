@@ -24,7 +24,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.roles import is_manager, role_of
+from apps.accounts.roles import is_ceo, is_manager, role_of
 from apps.common.models import AuditLog
 
 from .models import (
@@ -135,20 +135,59 @@ class QuoteViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
+        """Duyệt cấp 1 (manager/CEO/admin).
+
+        - Báo giá dưới ngưỡng → APPROVED luôn.
+        - Báo giá ≥ ngưỡng → PENDING_CEO (chờ CEO duyệt cấp 2).
+        - Chống tự duyệt: người tạo không tự duyệt (trừ admin).
+        """
         quote = self.get_object()
         if not is_manager(request.user):
-            return Response({'detail': 'Chỉ quản lý/admin được duyệt báo giá.'},
+            return Response({'detail': 'Chỉ quản lý/CEO/admin được duyệt báo giá.'},
                             status=status.HTTP_403_FORBIDDEN)
         if quote.owner_id == request.user.id and role_of(request.user) != 'admin':
             return Response({'detail': 'Không tự duyệt báo giá của chính mình.'},
                             status=status.HTTP_403_FORBIDDEN)
-        if quote.status != QuoteStatus.DRAFT and quote.status != QuoteStatus.SENT:
-            return Response({'detail': f'Báo giá ở trạng thái {quote.status}, không thể duyệt.'},
+        if quote.status not in (QuoteStatus.DRAFT, QuoteStatus.SENT):
+            return Response({'detail': f'Báo giá ở trạng thái {quote.status}, không thể duyệt cấp 1.'},
                             status=400)
+        now = timezone.now()
+        quote.l1_approved_by = request.user
+        quote.l1_approved_at = now
+        if quote.requires_l2():
+            quote.status = QuoteStatus.PENDING_CEO
+            fields = ['status', 'l1_approved_by', 'l1_approved_at', 'updated_at']
+            _audit(request, 'approve_l1', 'Quote', quote.id, {'next': 'pending_ceo'})
+        else:
+            quote.status = QuoteStatus.APPROVED
+            quote.approved_by = request.user
+            fields = ['status', 'l1_approved_by', 'l1_approved_at', 'approved_by', 'updated_at']
+            _audit(request, 'approve', 'Quote', quote.id, {'level': 1})
+        quote.save(update_fields=fields)
+        return Response(QuoteSerializer(quote).data)
+
+    @action(detail=True, methods=['post'], url_path='approve-l2')
+    def approve_l2(self, request, pk=None):
+        """Duyệt cấp 2 (CEO/admin) cho báo giá vượt ngưỡng đang PENDING_CEO."""
+        quote = self.get_object()
+        if not is_ceo(request.user):
+            return Response({'detail': 'Chỉ CEO/admin được duyệt cấp 2.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        if quote.status != QuoteStatus.PENDING_CEO:
+            return Response({'detail': f'Báo giá ở trạng thái {quote.status}, không chờ CEO duyệt.'},
+                            status=400)
+        # Chống tự duyệt: người tạo / người đã duyệt cấp 1 không tự duyệt cấp 2 (trừ admin).
+        if role_of(request.user) != 'admin' and request.user.id in (quote.owner_id, quote.l1_approved_by_id):
+            return Response({'detail': 'Người tạo/đã duyệt cấp 1 không tự duyệt cấp 2.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        now = timezone.now()
         quote.status = QuoteStatus.APPROVED
+        quote.l2_approved_by = request.user
+        quote.l2_approved_at = now
         quote.approved_by = request.user
-        quote.save(update_fields=['status', 'approved_by', 'updated_at'])
-        _audit(request, 'approve', 'Quote', quote.id)
+        quote.save(update_fields=['status', 'l2_approved_by', 'l2_approved_at',
+                                  'approved_by', 'updated_at'])
+        _audit(request, 'approve', 'Quote', quote.id, {'level': 2})
         return Response(QuoteSerializer(quote).data)
 
     @action(detail=True, methods=['post'], url_path='to-contract')

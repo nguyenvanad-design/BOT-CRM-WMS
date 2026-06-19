@@ -7,15 +7,17 @@ from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.roles import MANAGER_ROLES
+
 from . import assistant, services
 
 
 class IsManagerOrAdmin(BasePermission):
-    message = "Chỉ quản lý/admin xem được dashboard CEO."
+    message = "Chỉ quản lý/CEO/admin xem được dashboard CEO."
 
     def has_permission(self, request, view):
         u = request.user
-        return bool(u and u.is_authenticated and getattr(u, 'role', '') in ('manager', 'admin'))
+        return bool(u and u.is_authenticated and getattr(u, 'role', '') in MANAGER_ROLES)
 
 
 class _Base(APIView):

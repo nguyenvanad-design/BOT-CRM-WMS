@@ -195,11 +195,12 @@ class Opportunity(BaseModel, SoftDeleteMixin):
 
 
 class QuoteStatus(models.TextChoices):
-    DRAFT     = 'draft',     'Nháp'
-    SENT      = 'sent',      'Đã gửi'
-    APPROVED  = 'approved',  'Đã duyệt'
-    REJECTED  = 'rejected',  'Từ chối'
-    CONVERTED = 'converted', 'Đã chuyển hợp đồng'
+    DRAFT       = 'draft',       'Nháp'
+    SENT        = 'sent',        'Đã gửi'
+    PENDING_CEO = 'pending_ceo', 'Chờ CEO duyệt'   # đã qua cấp 1, chờ cấp 2
+    APPROVED    = 'approved',    'Đã duyệt'
+    REJECTED    = 'rejected',    'Từ chối'
+    CONVERTED   = 'converted',   'Đã chuyển hợp đồng'
 
 
 class Quote(BaseModel, SoftDeleteMixin):
@@ -222,10 +223,22 @@ class Quote(BaseModel, SoftDeleteMixin):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='owned_quotes',
     )
+    # approved_by = người duyệt cuối cùng (cấp 1 nếu dưới ngưỡng, cấp 2 nếu vượt)
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='approved_quotes',
     )
+    # Duyệt 2 cấp: cấp 1 (manager) → cấp 2 (CEO, chỉ khi total_vnd ≥ ngưỡng)
+    l1_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='l1_approved_quotes',
+    )
+    l1_approved_at = models.DateTimeField(null=True, blank=True)
+    l2_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='l2_approved_quotes',
+    )
+    l2_approved_at = models.DateTimeField(null=True, blank=True)
     # Loose link sang sales.SalesOrder khi to-contract (tránh circular import)
     contract_order_code = models.CharField(max_length=30, blank=True, db_index=True)
     notes     = models.TextField(blank=True)
@@ -247,6 +260,11 @@ class Quote(BaseModel, SoftDeleteMixin):
             s=models.Sum(models.F('qty') * models.F('unit_price_vnd'))
         )
         self.total_vnd = agg['s'] or 0
+
+    def requires_l2(self) -> bool:
+        """Báo giá ≥ ngưỡng QUOTE_L2_THRESHOLD_VND cần duyệt cấp 2 (CEO)."""
+        threshold = getattr(settings, 'QUOTE_L2_THRESHOLD_VND', 100_000_000)
+        return self.total_vnd >= threshold
 
 
 class QuoteLine(models.Model):

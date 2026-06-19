@@ -72,20 +72,26 @@ class QuoteSerializer(serializers.ModelSerializer):
     owner_username = serializers.CharField(source='owner.username', read_only=True)
     customer_name  = serializers.CharField(source='customer.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    requires_l2    = serializers.SerializerMethodField()
 
     class Meta:
         model = Quote
         fields = [
             'id', 'code', 'customer', 'customer_name', 'opportunity',
-            'status', 'status_display', 'due_date', 'total_vnd',
+            'status', 'status_display', 'due_date', 'total_vnd', 'requires_l2',
             'owner', 'owner_username', 'approved_by', 'contract_order_code',
+            'l1_approved_by', 'l1_approved_at', 'l2_approved_by', 'l2_approved_at',
             'lines', 'notes', 'created_at', 'updated_at',
         ]
         # total_vnd tính ở server; code sinh ở server; owner set ở view.
         read_only_fields = [
             'id', 'code', 'total_vnd', 'owner', 'approved_by',
+            'l1_approved_by', 'l1_approved_at', 'l2_approved_by', 'l2_approved_at',
             'contract_order_code', 'status', 'created_at', 'updated_at',
         ]
+
+    def get_requires_l2(self, obj) -> bool:
+        return obj.requires_l2()
 
     @transaction.atomic
     def create(self, validated):

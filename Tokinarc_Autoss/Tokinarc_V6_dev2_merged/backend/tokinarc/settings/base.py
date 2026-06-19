@@ -125,3 +125,7 @@ MINIO_SECURE     = os.getenv('MINIO_SECURE', '0') == '1'
 # ─── Redis (cache + rate limit + lockout) ───────────────────────────────────
 REDIS_URL_CACHE     = os.getenv('REDIS_URL_CACHE',     'redis://redis:6379/0')
 REDIS_URL_RATELIMIT = os.getenv('REDIS_URL_RATELIMIT', 'redis://redis:6379/1')
+
+# ─── CRM — duyệt báo giá 2 cấp ──────────────────────────────────────────────
+# Báo giá có total_vnd ≥ ngưỡng này cần duyệt cấp 2 (CEO) sau cấp 1 (manager).
+QUOTE_L2_THRESHOLD_VND = int(os.getenv('QUOTE_L2_THRESHOLD_VND', '100000000'))

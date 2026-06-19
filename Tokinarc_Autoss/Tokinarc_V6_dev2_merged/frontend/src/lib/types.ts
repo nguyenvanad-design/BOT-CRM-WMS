@@ -2,7 +2,7 @@
  * Tokinarc frontend — src/lib/types.ts
  * Shape khớp serializer backend (UserSerializer, CustomerListSerializer).
  */
-export type Role = 'customer' | 'sales' | 'warehouse' | 'service' | 'manager' | 'admin'
+export type Role = 'customer' | 'sales' | 'warehouse' | 'service' | 'manager' | 'ceo' | 'admin'
 
 export interface User {
   id: string
@@ -333,7 +333,7 @@ export interface Opportunity {
 }
 
 export type QuoteStatus =
-  | 'draft' | 'sent' | 'approved' | 'rejected' | 'converted'
+  | 'draft' | 'sent' | 'pending_ceo' | 'approved' | 'rejected' | 'converted'
 
 export interface QuoteLine {
   id?: string
@@ -354,9 +354,14 @@ export interface Quote {
   status_display: string
   due_date: string | null
   total_vnd: string
+  requires_l2: boolean
   owner: string
   owner_username: string
   approved_by: string | null
+  l1_approved_by: string | null
+  l1_approved_at: string | null
+  l2_approved_by: string | null
+  l2_approved_at: string | null
   contract_order_code: string
   lines: QuoteLine[]
   notes: string

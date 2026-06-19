@@ -45,7 +45,7 @@ import { CeoInventoryPage } from '@/pages/ceo/Inventory'
 import { CeoAISummaryPage } from '@/pages/ceo/AISummary'
 import { RequireRole } from '@/components/RequireRole'
 
-const MGR = ['manager', 'admin'] as const
+const MGR = ['manager', 'ceo', 'admin'] as const
 
 function Protected({ children }: { children: React.ReactNode }) {
   const isAuthed = useAuth((s) => s.isAuthed)

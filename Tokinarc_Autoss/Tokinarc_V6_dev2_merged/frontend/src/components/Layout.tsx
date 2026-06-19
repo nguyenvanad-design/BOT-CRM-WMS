@@ -16,7 +16,7 @@ import { useAuth, isManager } from '@/lib/auth/store'
 import { ChatWidget } from '@/components/ChatWidget'
 
 const ROLE_LABEL: Record<string, string> = {
-  admin: 'Admin', manager: 'Quản lý', sales: 'Sale',
+  admin: 'Admin', ceo: 'CEO', manager: 'Quản lý', sales: 'Sale',
   warehouse: 'Kho', service: 'Dịch vụ', customer: 'Khách',
 }
 

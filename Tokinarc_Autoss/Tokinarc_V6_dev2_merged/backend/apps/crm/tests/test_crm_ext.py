@@ -48,6 +48,11 @@ def manager(db):
 
 
 @pytest.fixture
+def ceo(db):
+    return UserFactory(role='ceo')
+
+
+@pytest.fixture
 def api(sale):
     c = APIClient(); c.force_authenticate(sale); return c
 
@@ -140,6 +145,75 @@ def test_manager_approve_then_to_contract(manager, sale):
     rc = mc.post(f"/api/v1/crm/quotes/{q['id']}/to-contract/")
     assert rc.status_code == 200
     assert rc.data['contract_order_code'].startswith('HD-')
+
+
+# ─── Duyệt 2 cấp (manager → CEO) ──────────────────────────────────────────
+def _make_quote(sale, cust, unit_price, qty=1):
+    sc = APIClient(); sc.force_authenticate(sale)
+    return sc.post('/api/v1/crm/quotes/', {'customer': str(cust.id),
+                   'lines': [{'part_no': 'X', 'qty': qty, 'unit_price_vnd': unit_price}]},
+                   format='json').data
+
+
+@pytest.mark.django_db
+def test_quote_over_threshold_needs_ceo(manager, ceo, sale, settings):
+    """Báo giá ≥ ngưỡng: manager duyệt → pending_ceo, chưa được to-contract."""
+    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
+    cust = CustomerFactory(owner=sale)
+    q = _make_quote(sale, cust, unit_price=150_000_000)   # vượt ngưỡng
+    assert q['requires_l2'] is True
+
+    mc = APIClient(); mc.force_authenticate(manager)
+    r1 = mc.post(f"/api/v1/crm/quotes/{q['id']}/approve/")
+    assert r1.status_code == 200
+    assert r1.data['status'] == 'pending_ceo'
+    # chưa duyệt cấp 2 → không tạo HĐ được
+    assert mc.post(f"/api/v1/crm/quotes/{q['id']}/to-contract/").status_code == 400
+
+    # CEO duyệt cấp 2 → approved → tạo HĐ
+    cc = APIClient(); cc.force_authenticate(ceo)
+    r2 = cc.post(f"/api/v1/crm/quotes/{q['id']}/approve-l2/")
+    assert r2.status_code == 200
+    assert r2.data['status'] == 'approved'
+    assert r2.data['l1_approved_by'] is not None and r2.data['l2_approved_by'] is not None
+    assert cc.post(f"/api/v1/crm/quotes/{q['id']}/to-contract/").status_code == 200
+
+
+@pytest.mark.django_db
+def test_quote_under_threshold_skips_ceo(manager, sale, settings):
+    """Báo giá dưới ngưỡng: manager duyệt → approved luôn (không cần CEO)."""
+    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
+    cust = CustomerFactory(owner=sale)
+    q = _make_quote(sale, cust, unit_price=5_000_000)   # dưới ngưỡng
+    assert q['requires_l2'] is False
+    mc = APIClient(); mc.force_authenticate(manager)
+    r = mc.post(f"/api/v1/crm/quotes/{q['id']}/approve/")
+    assert r.status_code == 200
+    assert r.data['status'] == 'approved'
+
+
+@pytest.mark.django_db
+def test_manager_cannot_approve_l2(manager, sale, settings):
+    """Manager (cấp 1) không được duyệt cấp 2 → 403."""
+    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
+    cust = CustomerFactory(owner=sale)
+    q = _make_quote(sale, cust, unit_price=150_000_000)
+    mc = APIClient(); mc.force_authenticate(manager)
+    mc.post(f"/api/v1/crm/quotes/{q['id']}/approve/")   # → pending_ceo
+    r = mc.post(f"/api/v1/crm/quotes/{q['id']}/approve-l2/")
+    assert r.status_code == 403
+
+
+@pytest.mark.django_db
+def test_ceo_cannot_l2_own_l1(ceo, sale, settings):
+    """CEO tự duyệt cấp 1 rồi cấp 2 cùng báo giá → cấp 2 bị chặn (4-eyes)."""
+    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
+    cust = CustomerFactory(owner=sale)
+    q = _make_quote(sale, cust, unit_price=150_000_000)
+    cc = APIClient(); cc.force_authenticate(ceo)
+    assert cc.post(f"/api/v1/crm/quotes/{q['id']}/approve/").data['status'] == 'pending_ceo'
+    r = cc.post(f"/api/v1/crm/quotes/{q['id']}/approve-l2/")
+    assert r.status_code == 403
 
 
 @pytest.mark.django_db

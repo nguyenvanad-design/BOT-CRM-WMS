@@ -57,5 +57,9 @@ export const useAuth = create<AuthState>((set, get) => ({
   },
 }))
 
-/** Quản lý/CEO = manager hoặc admin (khớp MANAGER_ROLES backend). */
-export const isManager = (role?: Role) => role === 'manager' || role === 'admin'
+/** Mức quản lý+ = manager, ceo hoặc admin (khớp MANAGER_ROLES backend). */
+export const isManager = (role?: Role) =>
+  role === 'manager' || role === 'ceo' || role === 'admin'
+
+/** Duyệt cấp 2 báo giá = ceo hoặc admin (khớp CEO_ROLES backend). */
+export const isCeo = (role?: Role) => role === 'ceo' || role === 'admin'

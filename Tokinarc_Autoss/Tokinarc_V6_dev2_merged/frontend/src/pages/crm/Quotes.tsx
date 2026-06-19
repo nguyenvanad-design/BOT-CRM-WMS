@@ -1,17 +1,20 @@
 /**
  * Tokinarc frontend — src/pages/crm/Quotes.tsx
- * Danh sách báo giá THẬT (GET /crm/quotes/) + hành động:
- *   - Duyệt   → POST /crm/quotes/{id}/approve/      (chỉ manager/admin)
- *   - Tạo HĐ  → POST /crm/quotes/{id}/to-contract/  (khi đã duyệt)
+ * Danh sách báo giá THẬT (GET /crm/quotes/) + duyệt 2 cấp:
+ *   - Cấp 1  → POST /crm/quotes/{id}/approve/      (manager/CEO/admin)
+ *               · dưới ngưỡng → "Đã duyệt" luôn
+ *               · ≥ ngưỡng    → "Chờ CEO duyệt"
+ *   - Cấp 2  → POST /crm/quotes/{id}/approve-l2/   (chỉ CEO/admin)
+ *   - Tạo HĐ → POST /crm/quotes/{id}/to-contract/  (khi đã duyệt)
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { FileText, Check, ArrowRight, Plus } from 'lucide-react'
+import { FileText, Check, ArrowRight, Plus, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
 import { compactVnd, formatDate, QUOTE_STATUS_LABEL, QUOTE_STATUS_TONE } from '@/lib/crm'
-import { useAuth, isManager } from '@/lib/auth/store'
+import { useAuth, isManager, isCeo } from '@/lib/auth/store'
 import type { Quote } from '@/lib/types'
 import {
   PageHeader, Tag, Button, TableCard, Th, Td, RowMsg, Pagination,
@@ -21,7 +24,8 @@ import { QuoteForm } from '@/pages/crm/forms/QuoteForm'
 export function QuotesPage() {
   const qc = useQueryClient()
   const role = useAuth((s) => s.user?.role)
-  const canApprove = isManager(role)
+  const canApprove = isManager(role)   // cấp 1
+  const canApproveL2 = isCeo(role)     // cấp 2
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Quote | null>(null)
@@ -42,7 +46,16 @@ export function QuotesPage() {
 
   const approve = useMutation({
     mutationFn: (id: string) => api.post(`/crm/quotes/${id}/approve/`),
-    onSuccess: () => { toast.success('Đã duyệt báo giá'); invalidate() },
+    onSuccess: (res) => {
+      toast.success(res.data.status === 'pending_ceo'
+        ? 'Đã duyệt cấp 1 — chuyển CEO duyệt cấp 2' : 'Đã duyệt báo giá')
+      invalidate()
+    },
+    onError: (e) => toast.error(apiError(e)),
+  })
+  const approveL2 = useMutation({
+    mutationFn: (id: string) => api.post(`/crm/quotes/${id}/approve-l2/`),
+    onSuccess: () => { toast.success('CEO đã duyệt cấp 2'); invalidate() },
     onError: (e) => toast.error(apiError(e)),
   })
   const toContract = useMutation({
@@ -82,15 +95,34 @@ export function QuotesPage() {
               <Td className="text-txt-2">{formatDate(q.due_date)}</Td>
               <Td><Tag tone={QUOTE_STATUS_TONE[q.status]}>{QUOTE_STATUS_LABEL[q.status]}</Tag></Td>
               <Td className="text-right" onClick={(e) => e.stopPropagation()}>
+                {/* Cấp 1: manager/CEO/admin duyệt báo giá nháp/đã gửi */}
                 {(q.status === 'draft' || q.status === 'sent') && canApprove && (
                   <Button
                     variant="success" size="sm"
                     disabled={approve.isPending && approve.variables === q.id}
                     onClick={() => approve.mutate(q.id)}
                   >
-                    <Check size={13} /> Duyệt
+                    <Check size={13} /> Duyệt{q.requires_l2 ? ' (cấp 1)' : ''}
                   </Button>
                 )}
+                {(q.status === 'draft' || q.status === 'sent') && !canApprove && (
+                  <span className="text-[11px] text-txt-2">Chờ duyệt</span>
+                )}
+
+                {/* Cấp 2: chỉ CEO/admin duyệt báo giá vượt ngưỡng */}
+                {q.status === 'pending_ceo' && canApproveL2 && (
+                  <Button
+                    variant="success" size="sm"
+                    disabled={approveL2.isPending && approveL2.variables === q.id}
+                    onClick={() => approveL2.mutate(q.id)}
+                  >
+                    <ShieldCheck size={13} /> Duyệt cấp 2 (CEO)
+                  </Button>
+                )}
+                {q.status === 'pending_ceo' && !canApproveL2 && (
+                  <span className="text-[11px] text-txt-2">Chờ CEO duyệt</span>
+                )}
+
                 {q.status === 'approved' && (
                   <Button
                     size="sm"
@@ -102,9 +134,6 @@ export function QuotesPage() {
                 )}
                 {q.status === 'converted' && (
                   <span className="text-[11px] text-txt-2 font-mono">{q.contract_order_code || 'Đã chuyển'}</span>
-                )}
-                {(q.status === 'draft' || q.status === 'sent') && !canApprove && (
-                  <span className="text-[11px] text-txt-2">Chờ duyệt</span>
                 )}
               </Td>
             </tr>

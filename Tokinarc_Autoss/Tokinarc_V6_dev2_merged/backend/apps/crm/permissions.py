@@ -14,7 +14,7 @@ from apps.accounts.roles import (
     is_manager, role_of,
 )
 
-WRITE_ROLES = frozenset({Role.SALES, Role.MANAGER, Role.ADMIN})
+WRITE_ROLES = frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN})
 
 
 class IsAuthenticatedWithRole(permissions.BasePermission):

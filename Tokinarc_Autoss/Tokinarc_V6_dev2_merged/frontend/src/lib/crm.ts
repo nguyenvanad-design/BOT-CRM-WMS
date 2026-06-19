@@ -65,11 +65,12 @@ export const OPP_STAGE_ORDER: OppStage[] =
 
 // ── Quote ─────────────────────────────────────────────────────────────────
 export const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
-  draft: 'Nháp', sent: 'Đã gửi', approved: 'Đã duyệt',
+  draft: 'Nháp', sent: 'Đã gửi', pending_ceo: 'Chờ CEO duyệt', approved: 'Đã duyệt',
   rejected: 'Từ chối', converted: 'Đã chuyển HĐ',
 }
 export const QUOTE_STATUS_TONE: Record<QuoteStatus, TagTone> = {
-  draft: 'gray', sent: 'blue', approved: 'ok', rejected: 'danger', converted: 'purple',
+  draft: 'gray', sent: 'blue', pending_ceo: 'warn', approved: 'ok',
+  rejected: 'danger', converted: 'purple',
 }
 
 // ── Ticket ────────────────────────────────────────────────────────────────
