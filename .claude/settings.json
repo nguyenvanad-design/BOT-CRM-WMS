@@ -33,7 +33,8 @@
       "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py migrate crm)",
       "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py seed_crm_demo)",
       "Bash(git add *)",
-      "Bash(grep -i \"\\\\.env$\")"
+      "Bash(grep -i \"\\\\.env$\")",
+      "Bash(git commit -q -m '@ *)"
     ]
   }
 }

@@ -78,7 +78,8 @@ export function App() {
           <Route path="visits" element={<VisitsPage />} />
           <Route path="tickets" element={<TicketsPage />} />
 
-          {/* Có trong thiết kế, chưa có endpoint backend */}
+          {/* Đã nối API thật: contacts/contracts/activities (crm), products (catalog),
+              warranty (serial WMS); forecast (tính từ opportunities), ai (giới thiệu) */}
           <Route path="forecast" element={<CrmForecastPage />} />
           <Route path="contacts" element={<ContactsPage />} />
           <Route path="contracts" element={<ContractsPage />} />

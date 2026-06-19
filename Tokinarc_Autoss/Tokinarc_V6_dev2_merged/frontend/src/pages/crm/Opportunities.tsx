@@ -71,7 +71,7 @@ export function OpportunitiesPage() {
         />
       )}
 
-      <OpportunityForm open={formOpen} onClose={() => setFormOpen(false)} editing={editing} />
+      <OpportunityForm open={formOpen} onClose={() => setFormOpen(false)} />
     </div>
   )
 }

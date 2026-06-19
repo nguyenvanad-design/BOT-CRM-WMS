@@ -10,10 +10,10 @@ import { ArrowLeft, Target, Pencil, Phone, MapPin } from 'lucide-react'
 import { api, apiError } from '@/lib/api'
 import {
   compactVnd, formatDate, OPP_STAGE_LABEL, OPP_STAGE_TONE,
-  ACTIVITY_TYPE_LABEL, ACTIVITY_TYPE_TONE,
+  ACTIVITY_TYPE_TONE,
 } from '@/lib/crm'
 import type { Opportunity, Activity, Visit } from '@/lib/types'
-import { Card, SectionTitle, StatCard, Tag, Gauge } from '@/components/ui'
+import { Card, SectionTitle, StatCard, Tag } from '@/components/ui'
 import { OpportunityForm } from '@/pages/crm/forms/OpportunityForm'
 
 interface TimelineItem { date: string; kind: 'activity' | 'visit'; label: string; detail: string; who: string; tone: string }
