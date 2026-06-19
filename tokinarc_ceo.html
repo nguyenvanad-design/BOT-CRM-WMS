@@ -1,0 +1,559 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tokinarc — Bảng điều khiển Ban Giám Đốc</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--bg2:#121829;--bg3:#1b2237;--border:#283150;--text:#e8edf7;--text2:#7d8aa8;--gold:#e0b341;--gold2:#f0c75a;--green:#34d399;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;--teal:#2dd4bf;--orange:#fb923c}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;font-size:13px}
+.sidebar{width:210px;min-width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.logo{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--gold),var(--orange));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo-text{font-weight:700;font-size:14px}.logo-sub{font-size:10px;color:var(--gold)}
+nav{flex:1;padding:8px}
+.nav-group{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;padding:12px 10px 4px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--text2);transition:.15s;margin-bottom:1px;font-size:12px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(224,179,65,.13);color:var(--gold);font-weight:600}
+.nav-icon{width:16px;text-align:center}.nav-label{flex:1}
+.nav-badge{background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px}
+.topbar h1{font-size:17px;font-weight:600;flex:1}
+.greeting{font-size:12px;color:var(--text2)}
+.btn{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:500;transition:.15s;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:var(--gold);color:#1a1407}.btn-primary:hover{background:var(--gold2)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.sel{padding:6px 10px;border-radius:6px;background:var(--bg3);color:var(--text);border:1px solid var(--border);font-size:12px}
+.content{flex:1;overflow-y:auto;padding:22px}
+.page{display:none}.page.active{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;cursor:pointer;transition:.15s}
+.kpi:hover{border-color:var(--gold)}
+.kpi-accent{position:absolute;top:0;left:0;width:3px;height:100%}
+.kpi-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.kpi-val{font-size:25px;font-weight:700;margin:6px 0 2px}
+.kpi-delta{font-size:11px}.kpi-target{font-size:10px;color:var(--text2);margin-top:4px}
+.green{color:var(--green)}.red{color:var(--red)}.gold{color:var(--gold)}.blue{color:var(--blue)}.purple{color:var(--purple)}.teal{color:var(--teal)}.orange{color:var(--orange)}.muted{color:var(--text2)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.grid-23{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.card-title .sub{font-size:11px;color:var(--text2);font-weight:400}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:8px 10px;color:var(--text2);font-size:10px;font-weight:600;border-bottom:1px solid var(--border);text-transform:uppercase}
+td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:12px}
+tr:hover td{background:var(--bg3)}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600}
+.tag-green{background:rgba(52,211,153,.15);color:var(--green)}
+.tag-red{background:rgba(248,113,113,.15);color:var(--red)}
+.tag-gold{background:rgba(224,179,65,.15);color:var(--gold)}
+.tag-blue{background:rgba(96,165,250,.15);color:var(--blue)}
+.tag-purple{background:rgba(167,139,250,.15);color:var(--purple)}
+.tag-teal{background:rgba(45,212,191,.15);color:var(--teal)}
+.tag-gray{background:var(--bg3);color:var(--text2)}
+.bar-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bar-h-label{width:130px;font-size:12px;flex-shrink:0}
+.bar-h-track{flex:1;height:10px;background:var(--bg3);border-radius:5px;overflow:hidden}
+.bar-h-fill{height:100%;border-radius:5px}
+.bar-h-val{width:72px;text-align:right;font-size:12px;font-weight:600;flex-shrink:0}
+.rank{width:22px;height:22px;border-radius:50%;background:var(--bg3);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-right:8px}
+.rank-1{background:rgba(224,179,65,.2);color:var(--gold)}
+.rank-2{background:rgba(125,138,168,.2);color:#c7d0e3}
+.rank-3{background:rgba(251,146,60,.2);color:var(--orange)}
+.progress-ring{display:flex;align-items:center;gap:14px}
+.donut{width:90px;height:90px;flex-shrink:0}
+.legend{display:flex;flex-direction:column;gap:6px;font-size:12px}
+.legend-item{display:flex;align-items:center;gap:6px}
+.legend-dot{width:9px;height:9px;border-radius:2px}
+.alert-strip{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.alert-card{flex:1;min-width:200px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;border-left:3px solid var(--gold)}
+.alert-card.warn{border-left-color:var(--red)}.alert-card.ok{border-left-color:var(--green)}
+.alert-icon{font-size:20px}
+.alert-text{flex:1}.alert-text strong{font-size:13px}.alert-text div{font-size:11px;color:var(--text2)}
+.fc-bars{display:flex;align-items:flex-end;gap:10px;height:140px;padding-top:10px}
+.fc-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.fc-bar-wrap{width:100%;display:flex;gap:3px;align-items:flex-end;height:120px}
+.fc-bar{flex:1;border-radius:4px 4px 0 0;cursor:pointer;transition:.2s;min-height:2px}
+.fc-label{font-size:10px;color:var(--text2)}
+.region-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.region-row:last-child{border:none}
+.dot-lg{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.health-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.health-item:last-child{border:none}
+.gauge-mini{width:60px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.gauge-mini-fill{height:100%;border-radius:3px}
+.waterfall{display:flex;align-items:flex-end;gap:6px;height:160px;padding-top:10px}
+.wf-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.wf-bar{width:100%;border-radius:3px;cursor:pointer;transition:.2s;min-height:2px}
+.wf-lab{font-size:9px;color:var(--text2);margin-top:4px;text-align:center}
+.ai-block{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:12px;border-left:3px solid var(--gold)}
+.ai-block.warn{border-left-color:var(--red)}.ai-block.ok{border-left-color:var(--green)}
+.ai-block h4{font-size:13px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.ai-block p{font-size:12px;color:var(--text2);line-height:1.7}
+.ai-block .hl{color:var(--text);font-weight:600}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--gold);border-radius:8px;padding:12px 16px;font-size:12px;z-index:9999;transform:translateY(80px);opacity:0;transition:.3s}
+.toast.show{transform:translateY(0);opacity:1}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style></head><body>
+
+<aside class="sidebar">
+  <div class="logo"><div class="logo-icon">👑</div><div><div class="logo-text">Tokinarc</div><div class="logo-sub">Executive</div></div></div>
+  <nav>
+    <div class="nav-group">Tổng quan</div>
+    <div class="nav-item active" onclick="navTo('overview',this)"><span class="nav-icon">📊</span><span class="nav-label">Tổng quan</span></div>
+    <div class="nav-item" onclick="navTo('aisummary',this)"><span class="nav-icon">✨</span><span class="nav-label">AI Summary</span></div>
+    <div class="nav-group">Tài chính</div>
+    <div class="nav-item" onclick="navTo('revenue',this)"><span class="nav-icon">💰</span><span class="nav-label">Revenue</span></div>
+    <div class="nav-item" onclick="navTo('profit',this)"><span class="nav-icon">📈</span><span class="nav-label">Profit</span></div>
+    <div class="nav-item" onclick="navTo('cashflow',this)"><span class="nav-icon">💵</span><span class="nav-label">Cash Flow</span></div>
+    <div class="nav-item" onclick="navTo('debt',this)"><span class="nav-icon">📉</span><span class="nav-label">Debt</span><span class="nav-badge">3</span></div>
+    <div class="nav-item" onclick="navTo('purchasing',this)"><span class="nav-icon">🛒</span><span class="nav-label">Purchasing</span></div>
+    <div class="nav-group">Thương mại</div>
+    <div class="nav-item" onclick="navTo('sales',this)"><span class="nav-icon">🎯</span><span class="nav-label">Sales</span></div>
+    <div class="nav-item" onclick="navTo('cushealth',this)"><span class="nav-icon">🏭</span><span class="nav-label">Customer Health</span></div>
+    <div class="nav-item" onclick="navTo('installed',this)"><span class="nav-icon">🤖</span><span class="nav-label">Installed Base</span></div>
+    <div class="nav-item" onclick="navTo('service',this)"><span class="nav-icon">🔧</span><span class="nav-label">Service</span></div>
+    <div class="nav-group">Vận hành</div>
+    <div class="nav-item" onclick="navTo('inventory',this)"><span class="nav-icon">📦</span><span class="nav-label">Inventory</span></div>
+    <div class="nav-item" onclick="navTo('forecast',this)"><span class="nav-icon">🔮</span><span class="nav-label">Forecast</span></div>
+  </nav>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div><h1 id="page-title">Tổng quan</h1><div class="greeting">Chào buổi sáng, Ông Minh · Tháng 6/2026</div></div>
+    <select class="sel" onchange="toast('Kỳ: '+this.value)"><option>Tháng 6/2026</option><option>Quý 2/2026</option><option>Năm 2026</option><option>So cùng kỳ</option></select>
+    <button class="btn btn-ghost btn-sm" onclick="toast('Đang tạo báo cáo PDF...')">📄 Xuất báo cáo</button>
+  </div>
+  <div class="content" id="content"></div><div class="card" id="global-chatbar" style="margin:14px 18px 18px"><div class="section-title">💬 AI Chatbot</div><div style="padding:10px;background:var(--bg3);border-radius:6px;font-size:12px">Hỏi nhanh: "Doanh thu quý này?" · "Khách hàng nào đóng góp nhiều nhất?" · "Tồn kho có rủi ro gì?"<br><div style="margin-top:8px;display:flex;gap:8px"><input class="form-input" id="chat-q" placeholder="Nhập câu hỏi..." style="flex:1" onkeydown="if(event.key==='Enter')askAI()"><button class="btn btn-primary btn-sm" onclick="askAI()">Hỏi</button></div></div></div>
+</div>
+<div id="toast-el" class="toast"></div>
+<script>
+const pages={
+overview:`
+<div class="alert-strip">
+  <div class="alert-card ok"><span class="alert-icon">📈</span><div class="alert-text"><strong>Doanh thu vượt 12% target</strong><div>₫ 2.47 tỷ / ₫ 2.2 tỷ tháng này</div></div></div>
+  <div class="alert-card warn"><span class="alert-icon">⚠️</span><div class="alert-text"><strong>Dòng tiền căng</strong><div>Công nợ quá hạn ₫ 340 tr cần thu hồi</div></div></div>
+  <div class="alert-card"><span class="alert-icon">🤖</span><div class="alert-text"><strong>Installed Base 156 máy</strong><div>Doanh thu consumable lặp lại ₫ 480 tr/quý</div></div></div>
+</div>
+<div class="kpi-grid">
+  <div class="kpi" onclick="navTo('revenue')"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Doanh thu tháng</div><div class="kpi-val gold">₫ 2.47 tỷ</div><div class="kpi-delta green">▲ 18.3% so T5</div><div class="kpi-target">Đạt 112% target</div></div>
+  <div class="kpi" onclick="navTo('profit')"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">Lợi nhuận gộp</div><div class="kpi-val green">₫ 642 tr</div><div class="kpi-delta green">▲ biên 26%</div><div class="kpi-target">Cùng kỳ: 23%</div></div>
+  <div class="kpi" onclick="navTo('cashflow')"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">Tiền mặt cuối kỳ</div><div class="kpi-val blue">₫ 1.34 tỷ</div><div class="kpi-delta red">▼ ₫ 180 tr</div><div class="kpi-target">Phải trả NCC ₫ 720 tr</div></div>
+  <div class="kpi" onclick="navTo('debt')"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-label">Công nợ phải thu</div><div class="kpi-val">₫ 1.86 tỷ</div><div class="kpi-delta red">▲ ₫ 340 tr quá hạn</div><div class="kpi-target">DSO 38 ngày</div></div>
+</div>
+<div class="grid-23">
+  <div class="card"><div class="card-title">Doanh thu & Lợi nhuận 6 tháng <span class="sub">triệu đồng</span></div>
+    <div class="fc-bars" id="ov-chart"></div>
+    <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--text2)"><span><span class="legend-dot" style="display:inline-block;background:var(--gold)"></span> Doanh thu</span><span><span class="legend-dot" style="display:inline-block;background:var(--green)"></span> Lợi nhuận gộp</span></div>
+  </div>
+  <div class="card"><div class="card-title">Cơ cấu doanh thu</div>
+    <div class="progress-ring">
+      <svg class="donut" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--bg3)" stroke-width="4"/><circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--gold)" stroke-width="4" stroke-dasharray="44 56" transform="rotate(-90 18 18)"/><circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--blue)" stroke-width="4" stroke-dasharray="31 69" stroke-dashoffset="-44" transform="rotate(-90 18 18)"/><circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--teal)" stroke-width="4" stroke-dasharray="25 75" stroke-dashoffset="-75" transform="rotate(-90 18 18)"/></svg>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--gold)"></span>Robotic Torch · 44%</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Consumable · 31%</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--teal)"></span>TIG & Service · 25%</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="grid-3">
+  <div class="card"><div class="card-title">Top khách hàng</div>
+    <div class="bar-h"><span class="bar-h-label"><span class="rank rank-1">1</span>Hanoi Robot</span><div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:var(--gold)"></div></div><span class="bar-h-val">780tr</span></div>
+    <div class="bar-h"><span class="bar-h-label"><span class="rank rank-2">2</span>Vina Steel</span><div class="bar-h-track"><div class="bar-h-fill" style="width:60%;background:var(--blue)"></div></div><span class="bar-h-val">320tr</span></div>
+    <div class="bar-h"><span class="bar-h-label"><span class="rank rank-3">3</span>Dong Nai</span><div class="bar-h-track"><div class="bar-h-fill" style="width:38%;background:var(--orange)"></div></div><span class="bar-h-val">185tr</span></div>
+    <div class="bar-h"><span class="bar-h-label"><span class="rank">4</span>Vung Tau</span><div class="bar-h-track"><div class="bar-h-fill" style="width:30%;background:var(--purple)"></div></div><span class="bar-h-val">145tr</span></div>
+  </div>
+  <div class="card"><div class="card-title">Doanh thu theo vùng</div>
+    <div class="region-row"><span class="dot-lg" style="background:var(--gold)"></span><span style="flex:1">Miền Nam</span><strong>₫ 1.4 tỷ</strong><span class="green" style="font-size:11px">57%</span></div>
+    <div class="region-row"><span class="dot-lg" style="background:var(--blue)"></span><span style="flex:1">Miền Bắc</span><strong>₫ 820 tr</strong><span class="green" style="font-size:11px">33%</span></div>
+    <div class="region-row"><span class="dot-lg" style="background:var(--teal)"></span><span style="flex:1">Miền Trung</span><strong>₫ 250 tr</strong><span class="muted" style="font-size:11px">10%</span></div>
+  </div>
+  <div class="card"><div class="card-title">Chỉ số sức khỏe</div>
+    <div class="health-item"><span>Tỷ lệ chốt deal</span><div style="display:flex;align-items:center;gap:8px"><div class="gauge-mini"><div class="gauge-mini-fill" style="width:47%;background:var(--green)"></div></div><strong>47%</strong></div></div>
+    <div class="health-item"><span>Giao hàng đúng hạn</span><div style="display:flex;align-items:center;gap:8px"><div class="gauge-mini"><div class="gauge-mini-fill" style="width:92%;background:var(--green)"></div></div><strong>92%</strong></div></div>
+    <div class="health-item"><span>SLA dịch vụ</span><div style="display:flex;align-items:center;gap:8px"><div class="gauge-mini"><div class="gauge-mini-fill" style="width:78%;background:var(--gold)"></div></div><strong>78%</strong></div></div>
+    <div class="health-item"><span>Hài lòng KH (NPS)</span><div style="display:flex;align-items:center;gap:8px"><div class="gauge-mini"><div class="gauge-mini-fill" style="width:68%;background:var(--gold)"></div></div><strong>+68</strong></div></div>
+  </div>
+</div>`,
+
+aisummary:`
+<div class="card" style="border-left:3px solid var(--gold);background:linear-gradient(90deg,rgba(224,179,65,.06),transparent)">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-size:22px">✨</span><div><div style="font-size:15px;font-weight:600">Tóm tắt điều hành — Tháng 6/2026</div><div style="font-size:11px;color:var(--text2)">AI tạo tự động · cập nhật 08:00 hôm nay</div></div></div>
+  <p style="font-size:13px;line-height:1.8;color:var(--text)">Tháng 6 là <span class="green" style="font-weight:600">tháng tốt</span>: doanh thu ₫ 2.47 tỷ vượt 12% target, lợi nhuận gộp biên 26% (cao nhất 6 tháng). Tuy nhiên <span class="red" style="font-weight:600">dòng tiền cần chú ý</span> — tiền mặt giảm ₫ 180 tr do công nợ phải thu tăng và đơn nhập hàng lớn từ Tokinarc JP sắp đến hạn thanh toán.</p>
+</div>
+<div class="grid-2">
+  <div class="ai-block ok"><h4>✅ Điểm tích cực</h4><p>• Doanh thu <span class="hl">vượt target 12%</span>, dẫn dắt bởi deal Hanoi Robot Welding<br>• Biên lợi nhuận service đạt <span class="hl">45%</span> — cao nhất trong các dòng<br>• Installed base tăng lên <span class="hl">156 máy</span>, dự báo consumable Q3 ₫ 1.4 tỷ<br>• Tỷ lệ chốt deal cải thiện lên 47%</p></div>
+  <div class="ai-block warn"><h4>⚠️ Cần hành động</h4><p>• <span class="hl">Delta Welding</span> nợ quá hạn 48 ngày (₫ 95tr) — nguy cơ nợ xấu<br>• <span class="hl">6 khách hàng</span> không mua >3 tháng, nguy cơ rời<br>• <span class="hl">WX-500R</span> sắp hết hàng (3/10) — ảnh hưởng deal Vina Steel<br>• SLA dịch vụ 78%, dưới mục tiêu 85% — 1 ticket quá hạn</p></div>
+</div>
+<div class="ai-block"><h4>🎯 Khuyến nghị ưu tiên tuần này</h4><p><span class="hl">1.</span> Gọi thu hồi công nợ Delta Welding & Saigon Metalwork (tổng ₫ 140tr) trước khi thành nợ xấu.<br><span class="hl">2.</span> Đặt gấp 20 WX-500R từ Tokinarc JP để kịp giao deal Vina Steel ₫ 320tr.<br><span class="hl">3.</span> Khởi động chiến dịch chăm sóc 6 KH ngủ đông — ưu tiên Delta Welding (từng mua ₫ 200tr/năm).<br><span class="hl">4.</span> Phân công thêm kỹ sư cho ticket Dong Nai Steel đang quá SLA.</p></div>
+<div class="ai-block"><h4>🔮 Triển vọng tháng 7</h4><p>Pipeline weighted ₫ 2.7 tỷ — khả năng đạt target cao nếu chốt được 2 deal lớn (Hanoi Robot 80%, Vina Steel 60%). Rủi ro chính là dòng tiền: cần thu ₫ 340tr công nợ quá hạn để cân đối thanh toán NCC. <span class="hl">Dự báo doanh thu T7: ₫ 2.6–2.9 tỷ.</span></p>
+<div style="margin-top:10px;display:flex;gap:8px"><button class="btn btn-primary btn-sm" onclick="toast('Đã gửi tóm tắt qua email')">📧 Gửi cho ban GĐ</button><button class="btn btn-ghost btn-sm" onclick="toast('Đang hỏi AI...')">💬 Hỏi thêm AI</button></div></div>`,
+
+revenue:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Doanh thu tháng</div><div class="kpi-val gold">₫ 2.47 tỷ</div><div class="kpi-delta green">▲ 18.3%</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">Doanh thu YTD</div><div class="kpi-val blue">₫ 13.7 tỷ</div><div class="kpi-delta green">▲ 15% YoY</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">Đạt target năm</div><div class="kpi-val green">49%</div><div class="kpi-delta muted">₫ 28 tỷ mục tiêu</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-label">Doanh thu lặp lại</div><div class="kpi-val purple">₫ 480 tr</div><div class="kpi-delta green">consumable/tháng</div></div>
+</div>
+<div class="card"><div class="card-title">Doanh thu theo tháng <span class="sub">triệu đồng — cột vàng = tháng hiện tại</span></div>
+  <div class="fc-bars" id="rev-chart"></div><div class="fc-bars" id="rev-labels" style="height:auto;padding:0"></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">Doanh thu theo dòng sản phẩm</div>
+    <div class="bar-h"><span class="bar-h-label">Robotic Torch</span><div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:var(--gold)"></div></div><span class="bar-h-val">6.0tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Consumable</span><div class="bar-h-track"><div class="bar-h-fill" style="width:70%;background:var(--blue)"></div></div><span class="bar-h-val">4.2tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">TIG Torch</span><div class="bar-h-track"><div class="bar-h-fill" style="width:35%;background:var(--teal)"></div></div><span class="bar-h-val">2.1tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Dịch vụ</span><div class="bar-h-track"><div class="bar-h-fill" style="width:23%;background:var(--purple)"></div></div><span class="bar-h-val">1.4tỷ</span></div>
+  </div>
+  <div class="card"><div class="card-title">Doanh thu theo phân khúc KH</div>
+    <div class="bar-h"><span class="bar-h-label">Nhà máy SX</span><div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:var(--gold)"></div></div><span class="bar-h-val">5.8tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Robot Integrator</span><div class="bar-h-track"><div class="bar-h-fill" style="width:62%;background:var(--purple)"></div></div><span class="bar-h-val">3.6tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Đại lý</span><div class="bar-h-track"><div class="bar-h-fill" style="width:40%;background:var(--blue)"></div></div><span class="bar-h-val">2.3tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Đóng tàu</span><div class="bar-h-track"><div class="bar-h-fill" style="width:34%;background:var(--teal)"></div></div><span class="bar-h-val">2.0tỷ</span></div>
+  </div>
+</div>`,
+
+profit:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">Lợi nhuận gộp</div><div class="kpi-val green">₫ 642 tr</div><div class="kpi-delta green">biên 26%</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">LN gộp YTD</div><div class="kpi-val gold">₫ 3.4 tỷ</div><div class="kpi-delta green">biên 24.8%</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">Chi phí vận hành</div><div class="kpi-val">₫ 1.9 tỷ</div><div class="kpi-delta muted">14% doanh thu</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-label">Lợi nhuận ròng</div><div class="kpi-val purple">₫ 1.5 tỷ</div><div class="kpi-delta green">biên 11%</div></div>
+</div>
+<div class="card"><div class="card-title">Phân rã lợi nhuận <span class="sub">từ doanh thu đến LN ròng — triệu đồng</span></div>
+  <div class="waterfall" id="wf-chart"></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">Biên lợi nhuận theo dòng SP</div>
+    <table><thead><tr><th>Dòng SP</th><th>Doanh thu</th><th>Biên LN</th></tr></thead><tbody>
+    <tr><td>Dịch vụ & bảo trì</td><td>₫ 1.4 tỷ</td><td class="green">45%</td></tr>
+    <tr><td>Consumable</td><td>₫ 4.2 tỷ</td><td class="gold">32%</td></tr>
+    <tr><td>Robotic Torch</td><td>₫ 6.0 tỷ</td><td class="green">28%</td></tr>
+    <tr><td>TIG Torch</td><td>₫ 2.1 tỷ</td><td class="blue">22%</td></tr>
+    </tbody></table>
+  </div>
+  <div class="card"><div class="card-title">Cơ cấu chi phí</div>
+    <div class="bar-h"><span class="bar-h-label">Giá vốn hàng bán</span><div class="bar-h-track"><div class="bar-h-fill" style="width:75%;background:var(--red)"></div></div><span class="bar-h-val">10.3tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Lương & hoa hồng</span><div class="bar-h-track"><div class="bar-h-fill" style="width:30%;background:var(--orange)"></div></div><span class="bar-h-val">1.1tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Vận chuyển kho</span><div class="bar-h-track"><div class="bar-h-fill" style="width:14%;background:var(--blue)"></div></div><span class="bar-h-val">480tr</span></div>
+    <div class="bar-h"><span class="bar-h-label">Marketing</span><div class="bar-h-track"><div class="bar-h-fill" style="width:9%;background:var(--purple)"></div></div><span class="bar-h-val">320tr</span></div>
+  </div>
+</div>`,
+
+cashflow:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">Tiền mặt đầu kỳ</div><div class="kpi-val">₫ 1.52 tỷ</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">Thu trong kỳ</div><div class="kpi-val blue">₫ 2.13 tỷ</div><div class="kpi-delta green">▲ từ bán hàng</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-label">Chi trong kỳ</div><div class="kpi-val red">₫ 2.31 tỷ</div><div class="kpi-delta red">NCC + lương + VH</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Tiền mặt cuối kỳ</div><div class="kpi-val gold">₫ 1.34 tỷ</div><div class="kpi-delta red">▼ ₫ 180 tr</div></div>
+</div>
+<div class="card"><div class="card-title">Dòng tiền vào/ra 6 tháng <span class="sub">triệu đồng</span></div>
+  <div class="fc-bars" id="cf-chart"></div>
+  <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--text2)"><span><span class="legend-dot" style="display:inline-block;background:var(--green)"></span> Tiền vào</span><span><span class="legend-dot" style="display:inline-block;background:var(--red)"></span> Tiền ra</span></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">Dự báo dòng tiền 30 ngày tới</div>
+    <table><thead><tr><th>Khoản</th><th>Loại</th><th>Số tiền</th><th>Hạn</th></tr></thead><tbody>
+    <tr><td>Thu Hanoi Robot</td><td><span class="tag tag-green">Vào</span></td><td class="green">+200 tr</td><td>10/07</td></tr>
+    <tr><td>Thu Dong Nai Steel</td><td><span class="tag tag-green">Vào</span></td><td class="green">+185 tr</td><td>15/07</td></tr>
+    <tr><td>Trả Tokinarc JP</td><td><span class="tag tag-red">Ra</span></td><td class="red">-480 tr</td><td>20/07</td></tr>
+    <tr><td>Lương + hoa hồng</td><td><span class="tag tag-red">Ra</span></td><td class="red">-180 tr</td><td>30/07</td></tr>
+    </tbody></table>
+  </div>
+  <div class="card"><div class="card-title">⚠️ Cảnh báo thanh khoản</div>
+    <div class="ai-block warn" style="margin:0;border:none;padding:0;border-left:3px solid var(--red);padding-left:12px"><p style="color:var(--text)">Ngày <span class="hl">20/07</span> phải trả Tokinarc JP ₫ 480tr nhưng dự kiến tiền mặt chỉ còn ₫ 420tr nếu chưa thu được công nợ. <span class="red" style="font-weight:600">Cần thu ₫ 340tr quá hạn trước 18/07</span> hoặc đàm phán gia hạn với NCC.</p></div>
+    <div style="margin-top:12px"><button class="btn btn-primary btn-sm" onclick="toast('Đã tạo nhắc nhở thu công nợ')">📌 Tạo nhắc thu nợ</button></div>
+  </div>
+</div>`,
+
+debt:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Tổng phải thu</div><div class="kpi-val gold">₫ 1.86 tỷ</div><div class="kpi-delta muted">12 khách hàng</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">Trong hạn</div><div class="kpi-val green">₫ 1.52 tỷ</div><div class="kpi-delta muted">82%</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-label">Quá hạn</div><div class="kpi-val red">₫ 340 tr</div><div class="kpi-delta red">3 khách hàng</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">DSO trung bình</div><div class="kpi-val blue">38 ngày</div><div class="kpi-delta green">▼ 4 ngày</div></div>
+</div>
+<div class="card"><div class="card-title">Phân tích tuổi nợ (Aging)</div>
+  <div class="bar-h"><span class="bar-h-label">Trong hạn</span><div class="bar-h-track"><div class="bar-h-fill" style="width:82%;background:var(--green)"></div></div><span class="bar-h-val">1.52tỷ</span></div>
+  <div class="bar-h"><span class="bar-h-label">Quá 1-30 ngày</span><div class="bar-h-track"><div class="bar-h-fill" style="width:11%;background:var(--gold)"></div></div><span class="bar-h-val">205tr</span></div>
+  <div class="bar-h"><span class="bar-h-label">Quá 31-60 ngày</span><div class="bar-h-track"><div class="bar-h-fill" style="width:5%;background:var(--orange)"></div></div><span class="bar-h-val">95tr</span></div>
+  <div class="bar-h"><span class="bar-h-label">Quá &gt;60 ngày</span><div class="bar-h-track"><div class="bar-h-fill" style="width:2%;background:var(--red)"></div></div><span class="bar-h-val">40tr</span></div>
+</div>
+<div class="card"><div class="card-title">Công nợ quá hạn cần thu hồi</div>
+<table><thead><tr><th>Khách hàng</th><th>Số tiền</th><th>Quá hạn</th><th>Hóa đơn</th><th>Mức độ</th></tr></thead><tbody>
+<tr><td><strong>Hanoi Robot Welding</strong></td><td class="red">₫ 200 tr</td><td>25 ngày</td><td>HD-2024-112</td><td><span class="tag tag-gold">TB</span></td></tr>
+<tr><td><strong>Delta Welding</strong></td><td class="red">₫ 95 tr</td><td>48 ngày</td><td>HD-2024-098</td><td><span class="tag tag-red">Cao</span></td></tr>
+<tr><td><strong>Saigon Metalwork</strong></td><td class="red">₫ 45 tr</td><td>62 ngày</td><td>HD-2024-076</td><td><span class="tag tag-red">Cao</span></td></tr>
+</tbody></table></div>`,
+
+purchasing:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Phải trả NCC</div><div class="kpi-val gold">₫ 720 tr</div><div class="kpi-delta muted">2 nhà cung cấp</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">Đơn nhập đang về</div><div class="kpi-val blue">₫ 480 tr</div><div class="kpi-delta muted">3 PO</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">Lead time TB</div><div class="kpi-val green">18 ngày</div><div class="kpi-delta muted">Tokinarc JP</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-label">Chi mua YTD</div><div class="kpi-val purple">₫ 9.8 tỷ</div></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">Phải trả theo nhà cung cấp</div>
+    <div class="bar-h"><span class="bar-h-label">Tokinarc JP</span><div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:var(--gold)"></div></div><span class="bar-h-val">480tr</span></div>
+    <div class="bar-h"><span class="bar-h-label">Panasonic VN</span><div class="bar-h-track"><div class="bar-h-fill" style="width:50%;background:var(--blue)"></div></div><span class="bar-h-val">240tr</span></div>
+  </div>
+  <div class="card"><div class="card-title">Đơn nhập sắp về</div>
+    <table><thead><tr><th>PO</th><th>NCC</th><th>Giá trị</th><th>ETA</th></tr></thead><tbody>
+    <tr><td class="blue">PO-0234</td><td>Panasonic</td><td>₫ 180tr</td><td>16/06</td></tr>
+    <tr><td class="blue">PO-0233</td><td>Tokinarc JP</td><td>₫ 220tr</td><td>18/06</td></tr>
+    <tr><td class="blue">PO-0232</td><td>Panasonic</td><td>₫ 80tr</td><td>14/06</td></tr>
+    </tbody></table>
+  </div>
+</div>
+<div class="card"><div class="card-title">🤖 AI đề xuất mua hàng (auto-reorder)</div>
+<table><thead><tr><th>Sản phẩm</th><th>Tồn hiện tại</th><th>Đề xuất đặt</th><th>NCC</th><th></th></tr></thead><tbody>
+<tr><td>WX-500R</td><td class="red">3 / min 10</td><td class="gold">20 bộ</td><td>Tokinarc JP</td><td><button class="btn btn-primary btn-sm" onclick="toast('Đã tạo PO WX-500R')">Tạo PO</button></td></tr>
+<tr><td>036001 TipBody</td><td class="red">15 / min 50</td><td class="gold">100 cái</td><td>Panasonic</td><td><button class="btn btn-primary btn-sm" onclick="toast('Đã tạo PO TipBody')">Tạo PO</button></td></tr>
+</tbody></table></div>`
+};
+Object.assign(pages,{
+sales:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Pipeline mở</div><div class="kpi-val gold">₫ 5.8 tỷ</div><div class="kpi-delta muted">11 cơ hội</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">Forecast weighted</div><div class="kpi-val green">₫ 2.7 tỷ</div><div class="kpi-delta green">dự kiến chốt</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">Tỷ lệ chốt</div><div class="kpi-val blue">47%</div><div class="kpi-delta green">▲ 2.1%</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-label">Deal TB</div><div class="kpi-val purple">₫ 77 tr</div><div class="kpi-delta green">▲ 12%</div></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">Pipeline theo giai đoạn</div>
+    <div class="bar-h"><span class="bar-h-label">Tiếp cận</span><div class="bar-h-track"><div class="bar-h-fill" style="width:35%;background:var(--text2)"></div></div><span class="bar-h-val">520tr</span></div>
+    <div class="bar-h"><span class="bar-h-label">Đề xuất</span><div class="bar-h-track"><div class="bar-h-fill" style="width:80%;background:var(--blue)"></div></div><span class="bar-h-val">1.2tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Đàm phán</span><div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:var(--gold)"></div></div><span class="bar-h-val">1.5tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Chốt</span><div class="bar-h-track"><div class="bar-h-fill" style="width:64%;background:var(--green)"></div></div><span class="bar-h-val">965tr</span></div>
+  </div>
+  <div class="card"><div class="card-title">Hiệu suất theo sale</div>
+    <table><thead><tr><th>Sale</th><th>Doanh số</th><th>Target</th></tr></thead><tbody>
+    <tr><td>Tuấn P.</td><td class="gold">₫ 1.05 tỷ</td><td><span class="tag tag-green">131%</span></td></tr>
+    <tr><td>Minh T.</td><td class="gold">₫ 920 tr</td><td><span class="tag tag-green">115%</span></td></tr>
+    <tr><td>Hoa N.</td><td class="gold">₫ 760 tr</td><td><span class="tag tag-gold">95%</span></td></tr>
+    </tbody></table>
+  </div>
+</div>
+<div class="card"><div class="card-title">Cơ hội lớn sắp chốt</div>
+<table><thead><tr><th>Khách hàng</th><th>Sản phẩm</th><th>Giá trị</th><th>Xác suất</th><th>Dự kiến</th><th>Giai đoạn</th></tr></thead><tbody>
+<tr><td><strong>Hanoi Robot Welding</strong></td><td>TK-508RR x5</td><td class="gold">₫ 780 tr</td><td class="green">80%</td><td>30/07</td><td><span class="tag tag-gold">Đàm phán</span></td></tr>
+<tr><td><strong>Vina Steel Corp</strong></td><td>WX-500R x3</td><td class="gold">₫ 320 tr</td><td class="gold">60%</td><td>15/07</td><td><span class="tag tag-blue">Đề xuất</span></td></tr>
+<tr><td><strong>Dong Nai Steel</strong></td><td>YMSA-500R x2</td><td class="gold">₫ 185 tr</td><td class="green">90%</td><td>05/07</td><td><span class="tag tag-green">Chốt</span></td></tr>
+</tbody></table></div>`,
+
+cushealth:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Tổng KH</div><div class="kpi-val gold">47</div><div class="kpi-delta green">▲ 3 tháng này</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">KH khỏe mạnh</div><div class="kpi-val green">32</div><div class="kpi-delta muted">68% — mua đều</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-label">Nguy cơ rời</div><div class="kpi-val red">6</div><div class="kpi-delta red">>3 tháng không mua</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">LTV trung bình</div><div class="kpi-val blue">₫ 290 tr</div><div class="kpi-delta green">▲ 8%</div></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">Phân bố sức khỏe KH</div>
+    <div class="bar-h"><span class="bar-h-label">🟢 Khỏe mạnh</span><div class="bar-h-track"><div class="bar-h-fill" style="width:68%;background:var(--green)"></div></div><span class="bar-h-val">32 KH</span></div>
+    <div class="bar-h"><span class="bar-h-label">🟡 Cần theo dõi</span><div class="bar-h-track"><div class="bar-h-fill" style="width:19%;background:var(--gold)"></div></div><span class="bar-h-val">9 KH</span></div>
+    <div class="bar-h"><span class="bar-h-label">🔴 Nguy cơ rời</span><div class="bar-h-track"><div class="bar-h-fill" style="width:13%;background:var(--red)"></div></div><span class="bar-h-val">6 KH</span></div>
+  </div>
+  <div class="card"><div class="card-title">⚠️ Khách hàng cần chú ý</div>
+    <table><tbody>
+    <tr><td><strong>Delta Welding</strong></td><td class="muted">Mua cuối 4 tháng</td><td><span class="tag tag-red">Nguy cơ</span></td></tr>
+    <tr><td><strong>Quang Ngai Steel</strong></td><td class="muted">Giảm 40% đơn</td><td><span class="tag tag-gold">Cảnh báo</span></td></tr>
+    <tr><td><strong>Saigon Metalwork</strong></td><td class="muted">Nợ quá hạn</td><td><span class="tag tag-gold">Theo dõi</span></td></tr>
+    </tbody></table>
+  </div>
+</div>
+<div class="card"><div class="card-title">Top 10 khách hàng theo doanh số</div>
+<table><thead><tr><th>#</th><th>Khách hàng</th><th>Phân khúc</th><th>Doanh số YTD</th><th>Sức khỏe</th><th>Xu hướng</th></tr></thead><tbody>
+<tr><td><span class="rank rank-1">1</span></td><td><strong>Hanoi Robot Welding</strong></td><td><span class="tag tag-purple">Integrator</span></td><td class="gold">₫ 1.8 tỷ</td><td><span class="tag tag-green">Khỏe</span></td><td class="green">↗</td></tr>
+<tr><td><span class="rank rank-2">2</span></td><td><strong>Dong Nai Steel</strong></td><td><span class="tag tag-blue">Nhà máy</span></td><td class="gold">₫ 1.2 tỷ</td><td><span class="tag tag-green">Khỏe</span></td><td class="green">↗</td></tr>
+<tr><td><span class="rank rank-3">3</span></td><td><strong>Vina Steel Corp</strong></td><td><span class="tag tag-blue">Nhà máy</span></td><td class="gold">₫ 980 tr</td><td><span class="tag tag-green">Khỏe</span></td><td class="green">↗</td></tr>
+<tr><td><span class="rank">4</span></td><td><strong>Vung Tau Offshore</strong></td><td><span class="tag tag-gray">Đóng tàu</span></td><td class="gold">₫ 720 tr</td><td><span class="tag tag-gold">TD</span></td><td class="muted">→</td></tr>
+<tr><td><span class="rank">5</span></td><td><strong>Delta Welding</strong></td><td><span class="tag tag-gold">Đại lý</span></td><td class="gold">₫ 540 tr</td><td><span class="tag tag-red">Nguy cơ</span></td><td class="red">↘</td></tr>
+</tbody></table></div>`,
+
+installed:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Tổng máy đang chạy</div><div class="kpi-val gold">156</div><div class="kpi-delta green">▲ 12 năm nay</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">DT consumable/quý</div><div class="kpi-val green">₫ 1.4 tỷ</div><div class="kpi-delta green">lặp lại</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">Còn bảo hành</div><div class="kpi-val blue">98</div><div class="kpi-delta muted">63% tổng</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-label">Hết BH (cơ hội PM)</div><div class="kpi-val red">58</div><div class="kpi-delta gold">bán gói bảo trì</div></div>
+</div>
+<div class="card" style="border-left:3px solid var(--gold)"><div style="font-size:12px;color:var(--text2);line-height:1.6">💡 <span style="color:var(--text)">Mỗi máy đang chạy tạo dòng tiền consumable định kỳ.</span> 156 máy × trung bình ₫ 9tr consumable/quý ≈ ₫ 1.4 tỷ doanh thu lặp lại. Đây là tài sản giá trị nhất của doanh nghiệp phân phối.</div></div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">Máy đang chạy theo dòng</div>
+    <div class="bar-h"><span class="bar-h-label">Robotic Torch</span><div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:var(--gold)"></div></div><span class="bar-h-val">68 máy</span></div>
+    <div class="bar-h"><span class="bar-h-label">TIG Torch</span><div class="bar-h-track"><div class="bar-h-fill" style="width:66%;background:var(--blue)"></div></div><span class="bar-h-val">45 máy</span></div>
+    <div class="bar-h"><span class="bar-h-label">WX Series</span><div class="bar-h-track"><div class="bar-h-fill" style="width:43%;background:var(--teal)"></div></div><span class="bar-h-val">29 máy</span></div>
+    <div class="bar-h"><span class="bar-h-label">Manual</span><div class="bar-h-track"><div class="bar-h-fill" style="width:21%;background:var(--purple)"></div></div><span class="bar-h-val">14 máy</span></div>
+  </div>
+  <div class="card"><div class="card-title">🤖 AI dự báo consumable theo Installed Base</div>
+    <table><thead><tr><th>Linh kiện</th><th>Nhu cầu Q3</th><th>Theo chu kỳ</th></tr></thead><tbody>
+    <tr><td>Tip (002001...)</td><td class="gold">~1,200 cái</td><td class="muted">3 tháng/lần</td></tr>
+    <tr><td>Nozzle (001002...)</td><td class="gold">~600 cái</td><td class="muted">6 tháng/lần</td></tr>
+    <tr><td>TipBody (036001)</td><td class="gold">~150 cái</td><td class="muted">khi mòn</td></tr>
+    </tbody></table>
+  </div>
+</div>
+<div class="card"><div class="card-title">Máy theo khách hàng (Installed Base)</div>
+<table><thead><tr><th>Khách hàng</th><th>Số máy</th><th>Dòng SP</th><th>Bảo hành</th><th>DT consumable/quý</th></tr></thead><tbody>
+<tr><td><strong>Hanoi Robot Welding</strong></td><td>18</td><td>TK-508RR</td><td><span class="tag tag-green">Còn hạn</span></td><td class="gold">₫ 320 tr</td></tr>
+<tr><td><strong>Dong Nai Steel</strong></td><td>12</td><td>YMSA-500R</td><td><span class="tag tag-green">Còn hạn</span></td><td class="gold">₫ 210 tr</td></tr>
+<tr><td><strong>Vina Steel Corp</strong></td><td>9</td><td>WX-500R</td><td><span class="tag tag-gold">Sắp hết</span></td><td class="gold">₫ 165 tr</td></tr>
+<tr><td><strong>Vung Tau Offshore</strong></td><td>7</td><td>TA-26 TIG</td><td><span class="tag tag-red">Hết hạn</span></td><td class="gold">₫ 90 tr</td></tr>
+</tbody></table></div>`,
+
+service:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">DT dịch vụ tháng</div><div class="kpi-val gold">₫ 180 tr</div><div class="kpi-delta green">biên 45%</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">Ticket đang mở</div><div class="kpi-val blue">3</div><div class="kpi-delta red">1 quá SLA</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">SLA đạt</div><div class="kpi-val green">78%</div><div class="kpi-delta gold">mục tiêu 85%</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-label">Chi phí bảo hành</div><div class="kpi-val purple">₫ 42 tr</div><div class="kpi-delta muted">trong định mức</div></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">Ticket theo loại lỗi</div>
+    <div class="bar-h"><span class="bar-h-label">Torch lỗi</span><div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:var(--gold)"></div></div><span class="bar-h-val">42%</span></div>
+    <div class="bar-h"><span class="bar-h-label">Wire feed</span><div class="bar-h-track"><div class="bar-h-fill" style="width:65%;background:var(--blue)"></div></div><span class="bar-h-val">28%</span></div>
+    <div class="bar-h"><span class="bar-h-label">Robot/sensor</span><div class="bar-h-track"><div class="bar-h-fill" style="width:48%;background:var(--purple)"></div></div><span class="bar-h-val">20%</span></div>
+    <div class="bar-h"><span class="bar-h-label">Khác</span><div class="bar-h-track"><div class="bar-h-fill" style="width:24%;background:var(--teal)"></div></div><span class="bar-h-val">10%</span></div>
+  </div>
+  <div class="card"><div class="card-title">Hiệu suất kỹ sư</div>
+    <table><thead><tr><th>Kỹ sư</th><th>Ticket xử lý</th><th>SLA</th></tr></thead><tbody>
+    <tr><td>KS. Nam</td><td>12</td><td><span class="tag tag-green">92%</span></td></tr>
+    <tr><td>KS. Sơn</td><td>9</td><td><span class="tag tag-gold">78%</span></td></tr>
+    <tr><td>KS. Phúc</td><td>7</td><td><span class="tag tag-green">88%</span></td></tr>
+    </tbody></table>
+  </div>
+</div>
+<div class="card"><div class="card-title">Ticket cần chú ý</div>
+<table><thead><tr><th>Mã</th><th>Khách hàng</th><th>Lỗi</th><th>Kỹ sư</th><th>SLA</th><th>Trạng thái</th></tr></thead><tbody>
+<tr><td class="gold"><strong>TK-0451</strong></td><td>Dong Nai Steel</td><td>Torch lỗi khí</td><td>KS. Nam</td><td class="red">Quá 2h</td><td><span class="tag tag-gold">Đang xử lý</span></td></tr>
+<tr><td class="gold"><strong>TK-0450</strong></td><td>Vina Steel</td><td>Wire feed kẹt</td><td>KS. Sơn</td><td class="green">Còn 6h</td><td><span class="tag tag-blue">Mới</span></td></tr>
+<tr><td class="gold"><strong>TK-0449</strong></td><td>Hanoi Robot</td><td>Sensor lỗi</td><td>Chưa gán</td><td class="green">Còn 3h</td><td><span class="tag tag-blue">Mới</span></td></tr>
+</tbody></table></div>`,
+
+inventory:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Giá trị tồn kho</div><div class="kpi-val gold">₫ 3.2 tỷ</div><div class="kpi-delta muted">838 SKU · 3 kho</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">Vòng quay tồn</div><div class="kpi-val green">4.2x</div><div class="kpi-delta green">▲ /năm</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div><div class="kpi-label">Sắp hết hàng</div><div class="kpi-val red">5</div><div class="kpi-delta red">SKU cần đặt</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-label">Hàng tồn chậm</div><div class="kpi-val purple">₫ 280 tr</div><div class="kpi-delta muted">>6 tháng</div></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">Tồn kho theo chi nhánh</div>
+    <div class="bar-h"><span class="bar-h-label">Kho HCM</span><div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:var(--gold)"></div></div><span class="bar-h-val">1.8tỷ</span></div>
+    <div class="bar-h"><span class="bar-h-label">Kho Hà Nội</span><div class="bar-h-track"><div class="bar-h-fill" style="width:54%;background:var(--blue)"></div></div><span class="bar-h-val">980tr</span></div>
+    <div class="bar-h"><span class="bar-h-label">Kho Đà Nẵng</span><div class="bar-h-track"><div class="bar-h-fill" style="width:23%;background:var(--teal)"></div></div><span class="bar-h-val">420tr</span></div>
+  </div>
+  <div class="card"><div class="card-title">Chỉ số vận hành kho</div>
+    <div class="health-item"><span>Giao hàng đúng hạn</span><strong class="green">92%</strong></div>
+    <div class="health-item"><span>Độ chính xác kiểm kê</span><strong class="green">98.5%</strong></div>
+    <div class="health-item"><span>Thời gian xử lý đơn TB</span><strong>4.2 giờ</strong></div>
+    <div class="health-item"><span>Tỷ lệ sai pick</span><strong class="gold">1.2%</strong></div>
+  </div>
+</div>
+<div class="card"><div class="card-title">⚠️ Hàng cần chú ý</div>
+<table><thead><tr><th>Sản phẩm</th><th>Tình trạng</th><th>Tồn</th><th>Đề xuất</th></tr></thead><tbody>
+<tr><td>WX-500R</td><td><span class="tag tag-red">Sắp hết</span></td><td class="red">3 / min 10</td><td>Đặt 20 từ Tokinarc JP</td></tr>
+<tr><td>036001 TipBody</td><td><span class="tag tag-red">Sắp hết</span></td><td class="red">15 / min 50</td><td>Đặt 100 từ Panasonic</td></tr>
+<tr><td>FX-9 TIG (cũ)</td><td><span class="tag tag-purple">Tồn chậm</span></td><td>45 · 8 tháng</td><td>Khuyến mãi xả</td></tr>
+</tbody></table></div>`,
+
+forecast:`
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-label">Forecast tháng 7</div><div class="kpi-val gold">₫ 2.7 tỷ</div><div class="kpi-delta green">Target ₫ 2.2 tỷ</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-label">Forecast Quý 3</div><div class="kpi-val blue">₫ 7.5 tỷ</div><div class="kpi-delta green">đạt 105% target</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div><div class="kpi-label">Forecast cả năm</div><div class="kpi-val green">₫ 28 tỷ</div><div class="kpi-delta green">▲ vượt 8%</div></div>
+  <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-label">Độ chính xác FC</div><div class="kpi-val purple">94%</div><div class="kpi-delta muted">6 tháng qua</div></div>
+</div>
+<div class="card"><div class="card-title">Forecast vs Thực tế <span class="sub">triệu đồng — AI dự báo</span></div>
+  <div class="fc-bars" id="fc-chart"></div>
+  <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--text2)"><span><span class="legend-dot" style="display:inline-block;background:var(--gold)"></span> Forecast</span><span><span class="legend-dot" style="display:inline-block;background:var(--green)"></span> Thực tế</span></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-title">🤖 AI dự báo nhu cầu Q3</div>
+    <table><tbody>
+    <tr><td>Tip (consumable)</td><td class="gold">~1,200 cái</td><td class="muted">từ installed base</td></tr>
+    <tr><td>Nozzle</td><td class="gold">~600 cái</td><td class="muted">12 KH đang dùng</td></tr>
+    <tr><td>Robotic Torch</td><td class="gold">~25 bộ</td><td class="muted">2 dự án mới</td></tr>
+    </tbody></table>
+    <div style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="toast('Đã tạo kế hoạch mua hàng Q3')">📋 Tạo kế hoạch mua</button></div>
+  </div>
+  <div class="card"><div class="card-title">Kịch bản dự báo cả năm</div>
+    <div class="health-item"><span>🔵 Lạc quan</span><strong class="green">₫ 31 tỷ</strong></div>
+    <div class="health-item"><span>🟡 Khả thi</span><strong class="gold">₫ 28 tỷ</strong></div>
+    <div class="health-item"><span>🔴 Thận trọng</span><strong class="red">₫ 24 tỷ</strong></div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text2)">Dựa trên pipeline, mùa vụ và tỷ lệ chốt lịch sử.</div>
+  </div>
+</div>`
+});
+const months=['T1','T2','T3','T4','T5','T6'];
+const revenue=[1850,1980,1720,2150,2090,2470];
+const profit=[440,490,410,540,520,642];
+const cashIn=[1780,1920,1680,2080,1950,2130];
+const cashOut=[1820,1850,1750,1990,2010,2310];
+const fcReal=[1900,1950,1750,2100,2150,2470];
+const fcPlan=[1800,2000,1700,2200,2000,2700];
+
+const titles={overview:'Tổng quan',aisummary:'AI Executive Summary',revenue:'Revenue',profit:'Profit',cashflow:'Cash Flow',debt:'Debt',purchasing:'Purchasing',sales:'Sales',cushealth:'Customer Health',installed:'Installed Base',service:'Service',inventory:'Inventory',forecast:'Forecast'};
+
+function navTo(page,el){
+  document.getElementById('content').innerHTML=pages[page]||'<div class="card">Đang phát triển...</div>';
+  document.getElementById('page-title').textContent=titles[page]||page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');else{document.querySelectorAll('.nav-item').forEach(n=>{if(n.querySelector('.nav-label')?.textContent===titles[page])n.classList.add('active')})}
+  if(page==='overview')dual('ov-chart',revenue,profit);
+  if(page==='revenue')dual('rev-chart',revenue,revenue,'var(--gold)','var(--gold)');
+  if(page==='profit')waterfall();
+  if(page==='cashflow')dual('cf-chart',cashIn,cashOut,'var(--green)','var(--red)');
+  if(page==='forecast')dual('fc-chart',fcPlan,fcReal,'var(--gold)','var(--green)');
+}
+
+function dual(id,a,b,ca,cb){
+  const el=document.getElementById(id);if(!el)return;
+  ca=ca||'var(--gold)';cb=cb||'var(--green)';
+  const single=(a===b);
+  const max=Math.max(...a,...b);el.innerHTML='';
+  months.forEach((m,i)=>{
+    const col=document.createElement('div');col.className='fc-col';
+    const wrap=document.createElement('div');wrap.className='fc-bar-wrap';
+    const b1=document.createElement('div');b1.className='fc-bar';b1.style.cssText=`height:${Math.round(a[i]/max*115)}px;background:${i===5&&single?'var(--gold)':ca};${single&&i!==5?'opacity:.45':''}`;b1.onclick=()=>toast(`${m}: ${a[i]} tr`);
+    wrap.appendChild(b1);
+    if(!single){const b2=document.createElement('div');b2.className='fc-bar';b2.style.cssText=`height:${Math.round(b[i]/max*115)}px;background:${cb}`;b2.onclick=()=>toast(`${m}: ${b[i]} tr`);wrap.appendChild(b2)}
+    col.appendChild(wrap);
+    const lab=document.createElement('div');lab.className='fc-label';lab.textContent=m;col.appendChild(lab);
+    el.appendChild(col);
+  });
+}
+
+function waterfall(){
+  const el=document.getElementById('wf-chart');if(!el)return;
+  const steps=[['Doanh thu',2470,'var(--gold)'],['Giá vốn',-1620,'var(--red)'],['LN gộp',850,'var(--green)'],['Chi phí VH',-380,'var(--orange)'],['LN trước thuế',470,'var(--blue)'],['Thuế',-94,'var(--red)'],['LN ròng',376,'var(--purple)']];
+  const max=2470;el.innerHTML='';
+  steps.forEach(([lab,val,col])=>{
+    const c=document.createElement('div');c.className='wf-col';
+    const bar=document.createElement('div');bar.className='wf-bar';
+    bar.style.cssText=`height:${Math.round(Math.abs(val)/max*140)}px;background:${col}`;
+    bar.onclick=()=>toast(`${lab}: ${val>0?'+':''}${val} tr`);
+    c.appendChild(bar);
+    const l=document.createElement('div');l.className='wf-lab';l.innerHTML=lab+'<br>'+(val>0?'':'')+val;c.appendChild(l);
+    el.appendChild(c);
+  });
+}
+
+let tt;function toast(msg){const el=document.getElementById('toast-el');el.textContent=msg;el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2600)}
+
+navTo('overview');
+</script>
+<script>
+function askAI(){
+  var el=document.getElementById('chat-q');
+  var q=el?el.value.trim():'';
+  if(typeof toast==='function'){toast(q?('AI đang xử lý: '+q):'AI đang xử lý...','');}
+  if(el)el.value='';
+}
+</script>
+</body></html>

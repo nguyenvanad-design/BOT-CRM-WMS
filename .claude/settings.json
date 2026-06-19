@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc -l)",
+      "Bash(python -c \"import django; print\\('django', django.get_version\\(\\)\\)\")",
+      "Bash(timeout 180 python -m pytest apps/ -q)",
+      "Bash(docker run *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(break)",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py seed_users_roles --help)",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python -c \"import django,os; django.setup\\(\\); from apps.accounts.models import User; [print\\(u.username, getattr\\(u,'role','?'\\)\\) for u in User.objects.all\\(\\)]\")",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py runserver 8000 --noreload)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/auth/login/ -H 'Content-Type: application/json' -d '{\"username\":\"sale1\",\"password\":\"demo12345\"}')",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('tickets count =',d['count']\\); [print\\(' -',t['code'],t['customer_name'],t['status'],t['priority']\\) for t in d['results']]\")",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"django http %{http_code}\\\\n\" http://localhost:8000/api/v1/auth/login/ -X POST -H \"Content-Type: application/json\" -d '{\"username\":\"x\",\"password\":\"y\"}')",
+      "Bash(curl -s -o /dev/null -w \"vite http %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(ls public *)",
+      "Bash(grep -l \"manifest\\\\|serviceWorker\\\\|service-worker\" index.html src/*.tsx)",
+      "Bash(curl -s -o /dev/null -w \"vite :5173 → http %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"django :8000 → http %{http_code}\\\\n\" -X POST http://localhost:8000/api/v1/auth/login/ -H \"Content-Type: application/json\" -d '{\"username\":\"quanly1\",\"password\":\"demo12345\"}')",
+      "Bash(curl -s -X POST http://localhost:5173/chatbot/api/v2/query -H \"Content-Type: application/json\" -d '{\"query\":\"WX-500R la sung han gi?\"}' --max-time 60)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('success:', d.get\\('success'\\)\\); print\\('session_id:', d.get\\('session_id'\\)\\); print\\('text:', \\(d.get\\('text'\\) or ''\\)[:400]\\)\")",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python -c \"import django; django.setup\\(\\); from apps.catalog.models import Part, Torch; print\\('parts',Part.objects.count\\(\\),'torches',Torch.objects.count\\(\\)\\)\")",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/auth/login/ -H 'Content-Type: application/json' -d '{\"username\":\"quanly1\",\"password\":\"demo12345\"}')",
+      "Bash(curl -s -o /dev/null -w \"vite :5173 → %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"django :8000 → %{http_code}\\\\n\" -X POST http://localhost:8000/api/v1/auth/login/ -H \"Content-Type: application/json\" -d '{\"username\":\"quanly1\",\"password\":\"demo12345\"}')",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py seed_from_json data/tokinarc_data_v19.json)",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py makemigrations catalog)",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py migrate catalog)",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py makemigrations crm)",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py migrate crm)",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py seed_crm_demo)",
+      "Bash(git add *)",
+      "Bash(grep -i \"\\\\.env$\")"
+    ]
+  }
+}

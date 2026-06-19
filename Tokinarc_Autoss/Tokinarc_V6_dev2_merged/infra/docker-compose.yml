@@ -1,0 +1,149 @@
+# Tokinarc V6.C-fix — infra/docker-compose.yml
+#
+# Thay đổi so với V6.B:
+#  1. postgres dùng image custom (infra/postgres/Dockerfile) đã thêm `mc` → fix
+#     bug WAL archive silent fail.
+#  2. Path build context sửa về repo root để build từ infra/ subdir.
+#  3. Healthcheck Django đổi `/api/health/ready/` (đã có view tương ứng).
+#  4. Worker mount script worker_entrypoint.sh từ infra/scripts/.
+#
+# Chạy từ repo root:
+#   cd <repo>
+#   bash infra/scripts/gen_keys.sh          # tạo cặp khóa lần đầu
+#   cp infra/.env.example .env && nano .env
+#   docker compose -f infra/docker-compose.yml --env-file .env up -d --build
+
+services:
+  postgres:
+    build: ./postgres                    # CUSTOM: thêm mc (xem infra/postgres/Dockerfile)
+    environment:
+      POSTGRES_DB:       ${PGDATABASE}
+      POSTGRES_USER:     ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+    command: >
+      postgres
+      -c wal_level=replica
+      -c archive_mode=on
+      -c archive_command='mc pipe ${MINIO_BACKUP_ALIAS:-backup}/tokinarc-backup/wal/%f < %p'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${PGDATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [internal]
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  django:
+    build: ../backend                    # từ infra/ build ../backend
+    env_file: [../.env]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis:    {condition: service_healthy}
+      minio:    {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/ready/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    secrets: [jwt_private, jwt_public]
+    networks: [internal]
+
+  chatbot:
+    build: ../chatbot
+    env_file: [../.env]
+    # Chatbot THẬT v8.0 tự chứa data/indexes — KHÔNG gọi Django, không cần
+    # postgres. Bỏ depends_on django/postgres để 2 service độc lập, tránh
+    # chatbot chờ Django vô ích.
+    volumes:
+      - hf_cache:/root/.cache/huggingface   # cache model bge-m3, tránh tải lại mỗi lần
+    healthcheck:
+      # '/' (chat UI) không yêu cầu X-API-Key → dùng làm liveness.
+      # /api/v1/health của bản thật cần key nên không gọi trần được.
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s        # bge-m3 + index load lần đầu hơi lâu
+    networks: [internal]
+
+  worker:
+    build: ../backend
+    command: ["bash", "/scripts/worker_entrypoint.sh"]
+    env_file: [../.env]
+    volumes:
+      - ./scripts:/scripts:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis:    {condition: service_healthy}
+    networks: [internal]
+
+  nginx-public:
+    image: nginx:1.26
+    volumes:
+      - ./nginx/public.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/letsencrypt:ro
+    ports:
+      - "443:443"          # EXPOSE Internet — chỉ /api/chat + /api/auth
+    depends_on: [django, chatbot]
+    networks: [internal, public]
+
+  nginx-internal:
+    image: nginx:1.26
+    volumes:
+      - ./nginx/internal.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/letsencrypt:ro
+      - frontend_dist:/var/www/frontend:ro
+    ports:
+      - "10.0.0.10:443:443"
+    depends_on: [django, chatbot]
+    networks: [internal]
+
+  frontend-build:
+    build: ../frontend
+    volumes:
+      - frontend_dist:/app/dist
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  frontend_dist:
+  hf_cache:
+
+secrets:
+  jwt_private:
+    file: ./secrets/jwt_private.pem
+  jwt_public:
+    file: ./secrets/jwt_public.pem
+
+networks:
+  internal:
+  public:

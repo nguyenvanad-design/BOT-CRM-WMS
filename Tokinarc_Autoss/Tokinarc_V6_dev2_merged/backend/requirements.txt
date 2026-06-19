@@ -1,0 +1,18 @@
+# Tokinarc V6.B — backend/requirements.txt (production deps, pinned)
+Django==5.0.6
+djangorestframework==3.15.1
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.3.1
+django-filter==24.2
+drf-spectacular==0.27.2
+psycopg[binary]==3.1.19
+pgvector==0.3.0
+gunicorn==22.0.0
+redis==5.0.4
+minio==7.2.7
+uuid6==2024.1.12
+cryptography==42.0.7
+sentry-sdk==2.3.1
+python-dotenv==1.0.1
+python-json-logger==2.0.7
+openpyxl==3.1.2

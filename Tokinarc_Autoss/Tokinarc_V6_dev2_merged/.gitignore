@@ -1,0 +1,42 @@
+# Tokinarc V6 — .gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Django
+*.sqlite3
+db.sqlite3
+/static/
+/media/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+infra/secrets/
+*.pem
+
+# Frontend
+node_modules/
+frontend/dist/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Docker / build
+*.tar
+*.tar.gz

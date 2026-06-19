@@ -1,10 +1,37 @@
-
+# Secrets / env
 .env
 *.env
-_backups/
-_trash/
+!.env.example
+*.pem
+infra/secrets/
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+
+# Django
+*.sqlite3
+db.sqlite3
+
+# Node / frontend
+node_modules/
+frontend/dist/
+
+# Logs / temp
 logs/
 *.log
-data/*.pdf
+_backups/
+_trash/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store

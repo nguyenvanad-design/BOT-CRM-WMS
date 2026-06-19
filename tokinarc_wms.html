@@ -1,0 +1,486 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tokinarc WMS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b1120;--bg2:#111827;--bg3:#1e2a3a;--border:#243044;--text:#e2e8f0;--text2:#64748b;--blue:#0ea5e9;--blue2:#38bdf8;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--orange:#f97316;--purple:#a78bfa}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;font-size:13px}
+.sidebar{width:210px;min-width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.logo{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.logo-icon{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo-text{font-weight:700;font-size:14px}.logo-sub{font-size:10px;color:var(--text2)}
+nav{flex:1;padding:8px}
+.nav-group{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;padding:10px 10px 4px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;color:var(--text2);transition:.15s;margin-bottom:1px;font-size:12px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(14,165,233,.15);color:var(--blue);font-weight:600}
+.nav-icon{width:16px;text-align:center}.nav-label{flex:1}
+.badge{background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px}
+.badge-b{background:var(--blue);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px}
+.topbar h1{font-size:16px;font-weight:600;flex:1}
+.btn{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:500;transition:.15s;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue2);color:#000}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-success{background:var(--green);color:#fff}.btn-danger{background:var(--red);color:#fff}.btn-warning{background:var(--yellow);color:#fff}
+.content{flex:1;overflow-y:auto;padding:20px}
+.page{display:none}.page.active{display:block}
+.alert{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:12px}
+.alert-b{background:rgba(14,165,233,.1);border-color:rgba(14,165,233,.3)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px}
+.stat-card{cursor:pointer;transition:.15s;margin-bottom:0}.stat-card:hover{border-color:var(--blue)}
+.stat-val{font-size:24px;font-weight:700}.stat-label{font-size:11px;color:var(--text2);margin-top:2px}.stat-delta{font-size:11px;margin-top:4px}
+.section-title{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:8px 10px;color:var(--text2);font-size:11px;font-weight:600;border-bottom:1px solid var(--border);text-transform:uppercase}
+td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px}
+tr:hover td{background:var(--bg3)}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600}
+.tag-green{background:rgba(34,197,94,.15);color:var(--green)}
+.tag-red{background:rgba(239,68,68,.15);color:var(--red)}
+.tag-yellow{background:rgba(245,158,11,.15);color:var(--yellow)}
+.tag-blue{background:rgba(14,165,233,.15);color:var(--blue)}
+.tag-orange{background:rgba(249,115,22,.15);color:var(--orange)}
+.tag-purple{background:rgba(167,139,250,.15);color:var(--purple)}
+.tag-gray{background:var(--bg3);color:var(--text2)}
+.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}.blue{color:var(--blue)}.muted{color:var(--text2)}.orange{color:var(--orange)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:10px;width:560px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column}
+.modal-lg{width:720px}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.modal-title{font-size:15px;font-weight:700}
+.modal-close{margin-left:auto;cursor:pointer;color:var(--text2);font-size:18px;padding:2px 6px;border-radius:4px}.modal-close:hover{background:var(--bg3)}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.form-row{display:flex;gap:12px;margin-bottom:12px}.form-row.single{display:block}
+.form-group{flex:1}
+.form-label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit}
+.form-textarea{min-height:70px;resize:vertical}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--blue)}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:12px;z-index:9999;max-width:320px;transform:translateY(80px);opacity:0;transition:.3s}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.toast-success{border-color:var(--green)}.toast.toast-error{border-color:var(--red)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail-item label{font-size:10px;color:var(--text2);text-transform:uppercase;font-weight:600}.detail-item p{font-size:13px;margin-top:2px}
+.search-bar{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+.search-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:12px}
+.search-input:focus{outline:none;border-color:var(--blue)}
+.action-btn{background:none;border:none;cursor:pointer;color:var(--text2);padding:4px 8px;border-radius:4px;font-size:12px}.action-btn:hover{background:var(--bg3);color:var(--text)}
+.dropdown{position:relative;display:inline-block}
+.dropdown-menu{display:none;position:absolute;right:0;top:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;min-width:170px;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.dropdown-menu.open{display:block}
+.dropdown-item{padding:8px 12px;cursor:pointer;font-size:12px;color:var(--text2)}.dropdown-item:hover{background:var(--bg3);color:var(--text)}
+.rack-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.rack-cell{aspect-ratio:1;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;transition:.15s;border:1px solid transparent}
+.rack-full{background:rgba(14,165,233,.3);color:var(--blue)}.rack-full:hover{background:rgba(14,165,233,.5)}
+.rack-low{background:rgba(245,158,11,.2);color:var(--yellow)}.rack-low:hover{background:rgba(245,158,11,.4)}
+.rack-empty{background:var(--bg3);color:var(--text2)}.rack-empty:hover{background:var(--border)}
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border)}
+.tab{padding:8px 14px;cursor:pointer;font-size:12px;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px}.tab:hover{color:var(--text)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+.mini-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px}
+.mini-bar-fill{height:100%;border-radius:3px;background:var(--blue)}
+.scan-box{background:var(--bg3);border:2px dashed var(--border);border-radius:8px;padding:24px;text-align:center;margin-bottom:14px}
+.scan-result{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;display:none}
+.wh-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;font-size:12px}
+.wh-pill.active{border-color:var(--blue);color:var(--blue);background:rgba(14,165,233,.1)}
+.serial-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12px}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style></head><body>
+
+<aside class="sidebar">
+  <div class="logo"><div class="logo-icon">📦</div><div><div class="logo-text">Tokinarc</div><div class="logo-sub">WMS v2.0</div></div></div>
+  <nav>
+    <div class="nav-group">Tổng quan</div>
+    <div class="nav-item active" onclick="navTo('dashboard',this)"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></div>
+    <div class="nav-item" onclick="navTo('warehouses',this)"><span class="nav-icon">🏢</span><span class="nav-label">Sơ đồ khu</span></div>
+    <div class="nav-group">Nhập kho</div>
+    <div class="nav-item" onclick="navTo('asn',this)"><span class="nav-icon">📨</span><span class="nav-label">ASN dự kiến</span><span class="badge-b">2</span></div>
+    <div class="nav-item" onclick="navTo('inbound',this)"><span class="nav-icon">📥</span><span class="nav-label">Nhập kho</span><span class="badge-b">3</span></div>
+    <div class="nav-item" onclick="navTo('putaway',this)"><span class="nav-icon">🎯</span><span class="nav-label">Putaway</span></div>
+    <div class="nav-group">Xuất kho</div>
+    <div class="nav-item" onclick="navTo('outbound',this)"><span class="nav-icon">📤</span><span class="nav-label">Xuất kho</span></div>
+    <div class="nav-item" onclick="navTo('picking',this)"><span class="nav-icon">🛒</span><span class="nav-label">Picking & Pack</span></div>
+    <div class="nav-group">Tồn kho</div>
+    <div class="nav-item" onclick="navTo('stock',this)"><span class="nav-icon">📋</span><span class="nav-label">Tồn kho</span></div>
+    <div class="nav-item" onclick="navTo('serial',this)"><span class="nav-icon">🔖</span><span class="nav-label">Serial / Lot</span></div>
+    <div class="nav-item" onclick="navTo('lowstock',this)"><span class="nav-icon">⚠️</span><span class="nav-label">Sắp hết</span><span class="badge">5</span></div>
+    <div class="nav-group">Khác</div>
+    <div class="nav-item" onclick="navTo('map',this)"><span class="nav-icon">🗺️</span><span class="nav-label">Sơ đồ kho</span></div>
+    <div class="nav-item" onclick="navTo('scan',this)"><span class="nav-icon">📷</span><span class="nav-label">Quét Barcode</span></div>
+    <div class="nav-item" onclick="navTo('inventory',this)"><span class="nav-icon">🔍</span><span class="nav-label">Kiểm kê</span></div>
+    <div class="nav-item" onclick="navTo('reports',this)"><span class="nav-icon">📈</span><span class="nav-label">Báo cáo</span></div>
+  </nav>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <select class="form-select" style="width:auto" id="wh-select" onchange="toast('Đang xem: '+this.value,'')"><option>📍 Toàn kho HCM</option><option>Zone A — Tip & Collet</option><option>Zone B — Nozzle</option><option>Zone C — Torch Body</option><option>Zone D — Liner & Cáp</option><option>Zone E — Gioăng & TIG</option><option>Zone F — Dụng cụ</option></select>
+    <button class="btn btn-ghost btn-sm" onclick="toast('Đã đồng bộ','success')">🔄 Đồng bộ</button>
+    <button class="btn btn-primary btn-sm" onclick="openModal('m-inbound')">+ Nhập kho</button>
+  </div>
+  <div class="content" id="content"></div><div class="card" id="global-chatbar" style="margin:14px 18px 18px"><div class="section-title">💬 AI Chatbot</div><div style="padding:10px;background:var(--bg3);border-radius:6px;font-size:12px">Hỏi nhanh: "Tồn Tip 002001 còn bao nhiêu?" · "Bin nào sắp hết hàng?" · "Đơn xuất nào chờ pick?"<br><div style="margin-top:8px;display:flex;gap:8px"><input class="form-input" id="chat-q" placeholder="Nhập câu hỏi..." style="flex:1" onkeydown="if(event.key==='Enter')askAI()"><button class="btn btn-primary btn-sm" onclick="askAI()">Hỏi</button></div></div></div>
+</div>
+
+<div id="modals"></div>
+<div id="toast-el" class="toast"></div>
+<script>
+const pages={
+dashboard:`
+<div class="alert"><span>🚨</span><span><strong>5 mặt hàng sắp hết</strong> — cần đặt bổ sung</span><button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="navTo('lowstock')">Xem ngay</button></div>
+<div class="alert alert-b"><span>📨</span><span><strong>2 ASN dự kiến về</strong> trong 3 ngày tới</span><button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="navTo('asn')">Xem ASN</button></div>
+<div class="grid-4">
+<div class="card stat-card" onclick="navTo('stock')"><div class="stat-val blue">838</div><div class="stat-label">Tổng SKU</div><div class="stat-delta green">▲ 12 mới</div></div>
+<div class="card stat-card" onclick="navTo('warehouses')"><div class="stat-val green">₫ 1.8 tỷ</div><div class="stat-label">Giá trị tồn kho HCM</div></div>
+<div class="card stat-card" onclick="navTo('outbound')"><div class="stat-val">147</div><div class="stat-label">Xuất kho T6</div><div class="stat-delta green">▲ 23%</div></div>
+<div class="card stat-card" onclick="navTo('lowstock')"><div class="stat-val red">5</div><div class="stat-label">Sắp hết hàng</div></div>
+</div>
+<div class="grid-2">
+<div class="card"><div class="section-title">Tồn kho theo khu (zone)</div>
+<table><tbody>
+<tr><td><strong>Zone A — Tip & Collet</strong><br><span class="muted" style="font-size:10px">222 mã</span></td><td><div class="mini-bar"><div class="mini-bar-fill" style="width:85%"></div></div></td><td class="blue">₫ 520 tr</td></tr>
+<tr><td><strong>Zone B — Nozzle</strong><br><span class="muted" style="font-size:10px">125 mã</span></td><td><div class="mini-bar"><div class="mini-bar-fill" style="width:60%"></div></div></td><td class="blue">₫ 340 tr</td></tr>
+<tr><td><strong>Zone C — Torch Body</strong><br><span class="muted" style="font-size:10px">166 mã</span></td><td><div class="mini-bar"><div class="mini-bar-fill" style="width:70%"></div></div></td><td class="blue">₫ 480 tr</td></tr>
+<tr><td><strong>Zone D — Liner & Cáp</strong><br><span class="muted" style="font-size:10px">169 mã</span></td><td><div class="mini-bar"><div class="mini-bar-fill" style="width:45%"></div></div></td><td class="blue">₫ 290 tr</td></tr>
+<tr><td><strong>Zone E — Gioăng & TIG</strong><br><span class="muted" style="font-size:10px">91 mã</span></td><td><div class="mini-bar"><div class="mini-bar-fill" style="width:30%"></div></div></td><td class="blue">₫ 110 tr</td></tr>
+<tr><td><strong>Zone F — Dụng cụ & Gá</strong><br><span class="muted" style="font-size:10px">58 mã</span></td><td><div class="mini-bar"><div class="mini-bar-fill" style="width:20%"></div></div></td><td class="blue">₫ 60 tr</td></tr>
+</tbody></table></div>
+<div class="card"><div class="section-title">Nhập/Xuất 7 ngày</div><div id="io-chart" style="display:flex;align-items:flex-end;gap:10px;height:90px"></div><div id="io-labels" style="display:flex;gap:10px;margin-top:4px"></div></div>
+</div>`,
+
+warehouses:`
+<div class="card"><div class="section-title" style="margin-bottom:4px">📍 Kho xưởng HCM <span class="muted" style="font-weight:400;font-size:11px">Q.Tân Bình · 838 mã · cấu trúc Zone → Kệ → Ngăn (Bin)</span></div></div>
+<div class="grid-3">
+<div class="card stat-card" style="border-left:3px solid var(--blue)"><div class="section-title" style="margin:0">Zone A — Tip & Collet</div><div class="muted" style="font-size:11px;margin:6px 0">222 mã · ngăn kéo nhỏ</div><div class="stat-val blue" style="font-size:18px">85%</div><div style="margin-top:6px"><span class="tag tag-yellow">Sắp đầy</span></div></div>
+<div class="card stat-card" style="border-left:3px solid var(--green)"><div class="section-title" style="margin:0">Zone B — Nozzle</div><div class="muted" style="font-size:11px;margin:6px 0">125 mã</div><div class="stat-val blue" style="font-size:18px">60%</div><div style="margin-top:6px"><span class="tag tag-green">Còn chỗ</span></div></div>
+<div class="card stat-card" style="border-left:3px solid var(--orange)"><div class="section-title" style="margin:0">Zone C — Torch Body</div><div class="muted" style="font-size:11px;margin:6px 0">166 mã · kệ trung</div><div class="stat-val blue" style="font-size:18px">70%</div><div style="margin-top:6px"><span class="tag tag-green">Còn chỗ</span></div></div>
+<div class="card stat-card" style="border-left:3px solid var(--purple)"><div class="section-title" style="margin:0">Zone D — Liner & Cáp</div><div class="muted" style="font-size:11px;margin:6px 0">169 mã · kệ dài</div><div class="stat-val blue" style="font-size:18px">45%</div><div style="margin-top:6px"><span class="tag tag-green">Còn chỗ</span></div></div>
+<div class="card stat-card" style="border-left:3px solid var(--teal)"><div class="section-title" style="margin:0">Zone E — Gioăng & TIG</div><div class="muted" style="font-size:11px;margin:6px 0">91 mã · ngăn nhỏ</div><div class="stat-val blue" style="font-size:18px">30%</div><div style="margin-top:6px"><span class="tag tag-green">Còn chỗ</span></div></div>
+<div class="card stat-card" style="border-left:3px solid var(--yellow)"><div class="section-title" style="margin:0">Zone F — Dụng cụ & Gá</div><div class="muted" style="font-size:11px;margin:6px 0">58 mã</div><div class="stat-val blue" style="font-size:18px">20%</div><div style="margin-top:6px"><span class="tag tag-green">Còn chỗ</span></div></div>
+</div>
+<div class="card"><div class="section-title">Cấu trúc vị trí <span class="muted" style="font-weight:400;font-size:11px">Zone → Kệ (Rack) → Ngăn (Bin) — ví dụ A-R01-B03</span></div>
+<table><thead><tr><th>Mã vị trí</th><th>Zone</th><th>Loại hàng</th><th>Hệ</th><th>Sức chứa</th><th>Trạng thái</th></tr></thead><tbody>
+<tr><td class="blue"><strong>A-R01-B03</strong></td><td>A — Tip & Collet</td><td>Tip, Collet</td><td>N / WX</td><td>85%</td><td><span class="tag tag-yellow">Sắp đầy</span></td></tr>
+<tr><td class="blue"><strong>A-R02-B01</strong></td><td>A — Tip & Collet</td><td>TipBody, Adapter</td><td>N</td><td>70%</td><td><span class="tag tag-green">Còn chỗ</span></td></tr>
+<tr><td class="blue"><strong>B-R01-B02</strong></td><td>B — Nozzle</td><td>Nozzle, Ceramic</td><td>N / WX</td><td>60%</td><td><span class="tag tag-green">Còn chỗ</span></td></tr>
+<tr><td class="blue"><strong>C-R01-B01</strong></td><td>C — Torch Body</td><td>TorchBody, Handle</td><td>N / WX</td><td>70%</td><td><span class="tag tag-green">Còn chỗ</span></td></tr>
+<tr><td class="blue"><strong>D-R01-B01</strong></td><td>D — Liner & Cáp</td><td>Liner, Cáp, Dây khí</td><td>Mọi hệ</td><td>45%</td><td><span class="tag tag-green">Còn chỗ</span></td></tr>
+<tr><td class="blue"><strong>E-R01-B02</strong></td><td>E — Gioăng & TIG</td><td>O-ring, Điện cực TIG</td><td>TIG</td><td>30%</td><td><span class="tag tag-green">Còn chỗ</span></td></tr>
+<tr><td class="blue"><strong>F-R01-B01</strong></td><td>F — Dụng cụ & Gá</td><td>Tool, Gá robot</td><td>—</td><td>20%</td><td><span class="tag tag-green">Còn chỗ</span></td></tr>
+</tbody></table></div>`,
+
+asn:`
+<div class="search-bar"><input class="search-input" placeholder="🔍 Tìm ASN..."><button class="btn btn-primary btn-sm" onclick="openModal('m-asn')">+ Tạo ASN</button></div>
+<div class="card" style="padding:0"><div style="padding:14px 16px"><div class="section-title" style="margin:0">📨 Advanced Shipping Notice — hàng nhà CC báo trước</div></div>
+<table><thead><tr><th>Mã ASN</th><th>Nhà cung cấp</th><th>Hàng hóa</th><th>SL</th><th>Zone đích</th><th>ETA</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+<tr><td class="blue"><strong>ASN-0091</strong></td><td>Panasonic VN</td><td>002001 Tip, 001002 Nozzle</td><td>1,500</td><td>A, B</td><td>16/06</td><td><span class="tag tag-yellow">Đang vận chuyển</span></td><td><button class="btn btn-primary btn-sm" onclick="toast('Đã chuyển sang nhập kho','success')">→ Nhập</button></td></tr>
+<tr><td class="blue"><strong>ASN-0090</strong></td><td>Tokinarc JP</td><td>TK-508RR, YMSA-500R</td><td>30</td><td>C</td><td>18/06</td><td><span class="tag tag-blue">Đã book tàu</span></td><td><button class="btn btn-ghost btn-sm" onclick="toast('Theo dõi lô hàng','')">Theo dõi</button></td></tr>
+<tr><td class="blue"><strong>ASN-0089</strong></td><td>Panasonic VN</td><td>036001 TipBody</td><td>500</td><td>A</td><td>14/06</td><td><span class="tag tag-green">Đã về kho</span></td><td><button class="btn btn-ghost btn-sm" onclick="navTo('putaway')">→ Putaway</button></td></tr>
+</tbody></table></div>`,
+
+inbound:`
+<div class="search-bar"><input class="search-input" placeholder="🔍 Tìm phiếu nhập..."><button class="btn btn-primary btn-sm" onclick="openModal('m-inbound')">+ Tạo phiếu nhập</button></div>
+<div class="card" style="padding:0"><table><thead><tr><th>Mã PO</th><th>Nhà CC</th><th>Sản phẩm</th><th>SL</th><th>Zone</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+<tr><td class="blue"><strong>PO-0234</strong></td><td>Panasonic VN</td><td>002001 Tip</td><td>1000</td><td>A</td><td><span class="tag tag-yellow">Chờ kiểm</span></td><td><button class="btn btn-success btn-sm" onclick="confPO(this,'PO-0234')">✓ Xác nhận</button></td></tr>
+<tr><td class="blue"><strong>PO-0233</strong></td><td>Tokinarc JP</td><td>TK-508RR (có Serial)</td><td>10</td><td>C</td><td><span class="tag tag-yellow">Chờ kiểm</span></td><td><button class="btn btn-success btn-sm" onclick="confPO(this,'PO-0233')">✓ Xác nhận</button></td></tr>
+<tr><td class="blue"><strong>PO-0232</strong></td><td>Panasonic VN</td><td>001002 Nozzle</td><td>500</td><td>B</td><td><span class="tag tag-yellow">Chờ kiểm</span></td><td><button class="btn btn-success btn-sm" onclick="confPO(this,'PO-0232')">✓ Xác nhận</button></td></tr>
+<tr><td class="blue"><strong>PO-0228</strong></td><td>Tokinarc JP</td><td>YMSA-500R</td><td>20</td><td>C</td><td><span class="tag tag-green">Đã nhận</span></td><td><button class="btn btn-ghost btn-sm" onclick="toast('Xem chi tiết','')">Chi tiết</button></td></tr>
+</tbody></table></div>`,
+
+putaway:`
+<div class="card"><div class="section-title">🎯 Putaway — gợi ý vị trí nhập kho tự động</div>
+<table><thead><tr><th>Sản phẩm</th><th>SL</th><th>Vị trí gợi ý</th><th>Lý do</th><th></th></tr></thead><tbody>
+<tr><td class="blue">036001 TipBody</td><td>500</td><td><strong>A-R02-B01</strong></td><td class="muted">Gần SKU cùng họ, bin trống</td><td><button class="btn btn-primary btn-sm" onclick="toast('Đã xác nhận vị trí','success')">✓ Chấp nhận</button></td></tr>
+<tr><td class="blue">002001 Tip</td><td>1000</td><td><strong>A-R01-B03</strong></td><td class="muted">Bổ sung bin hiện có</td><td><button class="btn btn-primary btn-sm" onclick="toast('Đã xác nhận vị trí','success')">✓ Chấp nhận</button></td></tr>
+<tr><td class="blue">TK-508RR</td><td>10</td><td><strong>C-R01-B01</strong></td><td class="muted">Zone Torch, gần khu xuất</td><td><button class="btn btn-primary btn-sm" onclick="toast('Đã xác nhận vị trí','success')">✓ Chấp nhận</button></td></tr>
+</tbody></table></div>`,
+
+outbound:`
+<div class="search-bar"><input class="search-input" placeholder="🔍 Tìm phiếu xuất..."><button class="btn btn-primary btn-sm" onclick="openModal('m-outbound')">+ Tạo phiếu xuất</button></div>
+<div class="card" style="padding:0"><table><thead><tr><th>Mã</th><th>Khách hàng</th><th>Sản phẩm</th><th>SL</th><th>Zone lấy</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+<tr><td class="blue"><strong>XK-0567</strong></td><td>Dong Nai Steel</td><td>YMSA-500R x2</td><td>2</td><td>C</td><td><span class="tag tag-orange">Đang pick</span></td><td><button class="btn btn-success btn-sm" onclick="toast('Đã pick xong','success')">✓ Đã lấy</button></td></tr>
+<tr><td class="blue"><strong>XK-0566</strong></td><td>Vina Steel Corp</td><td>WX-500R, Tip x50</td><td>51</td><td>A, C</td><td><span class="tag tag-yellow">Chờ pick</span></td><td><button class="btn btn-primary btn-sm" onclick="navTo('picking')">→ Picking</button></td></tr>
+<tr><td class="blue"><strong>XK-0563</strong></td><td>Hanoi Robot Welding</td><td>TK-508RR x5</td><td>5</td><td>C</td><td><span class="tag tag-blue">Đang giao</span></td><td><button class="btn btn-ghost btn-sm" onclick="toast('Đang giao','')">Theo dõi</button></td></tr>
+</tbody></table></div>`,
+
+picking:`
+<div class="card"><div class="section-title">🛒 Pick List — XK-0566 (Vina Steel Corp) <span class="tag tag-blue">FEFO</span></div>
+<table><thead><tr><th>Sản phẩm</th><th>SL cần</th><th>Vị trí pick</th><th>Lot/Serial</th><th>HSD</th><th></th></tr></thead><tbody>
+<tr><td class="blue">WX-500R</td><td>1</td><td><strong>C-R01-B01</strong></td><td>WX500-SN00079</td><td>—</td><td><button class="btn btn-success btn-sm" onclick="pickRow(this)">✓ Pick</button></td></tr>
+<tr><td class="blue">002001 Tip</td><td>50</td><td><strong>A-R01-B03</strong></td><td>LOT-2024-0312</td><td>06/2026</td><td><button class="btn btn-success btn-sm" onclick="pickRow(this)">✓ Pick</button></td></tr>
+</tbody></table>
+<div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-primary" onclick="toast('Đã chuyển sang đóng gói','success')">📦 Hoàn tất Pick → Packing</button></div></div>
+<div class="card"><div class="section-title">Quy tắc xuất kho</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<span class="tag tag-blue">FIFO — Vào trước xuất trước</span>
+<span class="tag tag-yellow">FEFO — Hết hạn trước xuất trước (consumable)</span>
+<span class="tag tag-green">Nearest Location — vị trí gần nhất</span>
+</div></div>`,
+
+transfer:`
+<div class="card"><div class="section-title">🔄 Chuyển vị trí nội bộ <span class="muted" style="font-weight:400;font-size:11px">di chuyển hàng giữa các ngăn/zone trong kho</span></div>
+<div class="form-row"><div class="form-group"><label class="form-label">Sản phẩm</label><input class="form-input" placeholder="002001, TK-508RR"></div><div class="form-group"><label class="form-label">Số lượng</label><input class="form-input" type="number" value="1"></div></div>
+<div class="form-row"><div class="form-group"><label class="form-label">Từ vị trí</label><input class="form-input" placeholder="A-R01-B03"></div><div class="form-group"><label class="form-label">Đến vị trí</label><input class="form-input" placeholder="A-R02-B01"></div></div>
+<button class="btn btn-primary" onclick="toast('Đã chuyển vị trí','success')">🔄 Xác nhận chuyển</button></div>
+<div class="card"><div class="section-title">Lịch sử chuyển vị trí</div>
+<table><tbody>
+<tr><td class="muted">Hôm nay</td><td>002001 Tip x200</td><td>A-R01-B03 → A-R02-B01</td><td><span class="tag tag-green">Hoàn tất</span></td></tr>
+<tr><td class="muted">Hôm qua</td><td>036001 TipBody x50</td><td>A-R01-B04 → A-R02-B01</td><td><span class="tag tag-green">Hoàn tất</span></td></tr>
+</tbody></table></div>`,
+
+stock:`
+<div class="search-bar"><input class="search-input" placeholder="🔍 Tìm mã, tên SP..." oninput="filt('st-tb',this.value)">
+<div class="tabs" style="margin:0;border:none"><div class="tab active" onclick="filtCat('',this)">Tất cả</div><div class="tab" onclick="filtCat('Tip',this)">Tip</div><div class="tab" onclick="filtCat('Nozzle',this)">Nozzle</div><div class="tab" onclick="filtCat('Torch',this)">Torch</div></div></div>
+<div class="card" style="padding:0"><table id="st-tb"><thead><tr><th>Mã SP</th><th>Tên</th><th>Loại</th><th>Zone</th><th>Tồn</th><th>Tối thiểu</th><th>Vị trí (Bin)</th><th></th></tr></thead><tbody id="st-rows"></tbody></table></div>`,
+
+serial:`
+<div class="tabs"><div class="tab active" onclick="serTab('serial',this)">🔖 Serial Number (Torch)</div><div class="tab" onclick="serTab('lot',this)">📦 Lot Number (Consumable)</div></div>
+<div id="ser-serial">
+<div class="card" style="padding:0"><table><thead><tr><th>Serial</th><th>Sản phẩm</th><th>Vị trí</th><th>Trạng thái</th><th>KH (nếu đã bán)</th></tr></thead><tbody>
+<tr><td class="blue"><strong>TK508-SN00045</strong></td><td>TK-508RR</td><td>—</td><td><span class="tag tag-green">Đã bán</span></td><td>Hanoi Robot Welding</td></tr>
+<tr><td class="blue"><strong>TK508-SN00046</strong></td><td>TK-508RR</td><td>C-R01-B02</td><td><span class="tag tag-blue">Trong kho</span></td><td>—</td></tr>
+<tr><td class="blue"><strong>YMSA-SN00112</strong></td><td>YMSA-500R</td><td>—</td><td><span class="tag tag-green">Đã bán</span></td><td>Dong Nai Steel</td></tr>
+<tr><td class="blue"><strong>YMSA-SN00113</strong></td><td>YMSA-500R</td><td>C-R01-B01</td><td><span class="tag tag-blue">Trong kho</span></td><td>—</td></tr>
+<tr><td class="blue"><strong>WX500-SN00079</strong></td><td>WX-500R</td><td>C-R01-B01</td><td><span class="tag tag-yellow">Đã giữ (reserve)</span></td><td>Vina Steel Corp</td></tr>
+</tbody></table></div></div>
+<div id="ser-lot" style="display:none">
+<div class="card" style="padding:0"><table><thead><tr><th>Lot Number</th><th>Sản phẩm</th><th>SL còn</th><th>Ngày nhập</th><th>HSD</th><th>Trạng thái</th></tr></thead><tbody>
+<tr><td class="blue"><strong>LOT-2024-0312</strong></td><td>002001 Tip</td><td>380</td><td>12/03/2024</td><td>06/2026</td><td><span class="tag tag-green">Tốt</span></td></tr>
+<tr><td class="blue"><strong>LOT-2024-0289</strong></td><td>001002 Nozzle</td><td>200</td><td>05/03/2024</td><td>03/2026</td><td><span class="tag tag-yellow">Ưu tiên xuất (FEFO)</span></td></tr>
+<tr><td class="blue"><strong>LOT-2024-0401</strong></td><td>036001 TipBody</td><td>10</td><td>20/04/2024</td><td>04/2027</td><td><span class="tag tag-green">Tốt</span></td></tr>
+</tbody></table></div></div>`,
+
+lowstock:`
+<div class="card" style="padding:0"><div style="padding:14px 16px"><div class="section-title" style="margin:0">⚠️ Sắp hết hàng <button class="btn btn-danger btn-sm" onclick="orderAll()">🛒 Đặt tất cả</button></div></div>
+<table><thead><tr><th>Mã SP</th><th>Sản phẩm</th><th>Tồn</th><th>Tối thiểu</th><th>Nhà CC</th><th></th></tr></thead><tbody>
+<tr><td class="blue">036001</td><td>N TipBody 500A</td><td class="red">15</td><td>50</td><td>Panasonic VN</td><td><button class="btn btn-danger btn-sm" onclick="ordOne(this,'036001')">🛒 Đặt</button></td></tr>
+<tr><td class="blue">YMSA-500R</td><td>YMSA Robotic Torch</td><td class="red">8</td><td>20</td><td>Tokinarc JP</td><td><button class="btn btn-danger btn-sm" onclick="ordOne(this,'YMSA-500R')">🛒 Đặt</button></td></tr>
+<tr><td class="blue">004002</td><td>N Insulator S-type</td><td class="yellow">18</td><td>50</td><td>Panasonic VN</td><td><button class="btn btn-warning btn-sm" onclick="ordOne(this,'004002')">🛒 Đặt</button></td></tr>
+<tr><td class="blue">003002</td><td>N Orifice 350A</td><td class="yellow">22</td><td>50</td><td>Panasonic VN</td><td><button class="btn btn-warning btn-sm" onclick="ordOne(this,'003002')">🛒 Đặt</button></td></tr>
+<tr><td class="blue">WX-500R</td><td>WX Robotic Torch</td><td class="red">3</td><td>10</td><td>Tokinarc JP</td><td><button class="btn btn-danger btn-sm" onclick="ordOne(this,'WX-500R')">🛒 Đặt</button></td></tr>
+</tbody></table></div>`,
+
+map:`
+<div class="card"><div class="section-title">🗺️ Sơ đồ kho HCM <span class="muted" style="font-weight:400;font-size:11px">Click ô để xem chi tiết</span></div>
+<div style="display:flex;gap:12px;margin-bottom:10px">
+<span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:12px;height:12px;background:rgba(14,165,233,.3);border-radius:2px"></span>Đầy</span>
+<span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:12px;height:12px;background:rgba(245,158,11,.2);border-radius:2px"></span>Sắp hết</span>
+<span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:12px;height:12px;background:var(--bg3);border-radius:2px"></span>Trống</span></div>
+<div id="rack-grid" class="rack-grid"></div></div>`,
+
+scan:`
+<div class="tabs"><div class="tab active" onclick="scanMode('in',this)">📥 Quét Nhập kho</div><div class="tab" onclick="scanMode('lookup',this)">🔍 Tra cứu</div></div>
+
+<div id="scan-inbound">
+<div class="card">
+  <div class="search-bar" style="margin-bottom:14px">
+    <select class="form-select" id="sc-supplier" style="width:auto"><option>Panasonic VN</option><option>Tokinarc JP</option><option>Khác</option></select>
+    <span class="tag tag-blue" id="sc-wh" data-wh="HCM" style="padding:6px 12px">📍 Kho HCM</span>
+    <span class="muted" style="font-size:11px;flex:1">Chọn NCC & kho, sau đó quét liên tiếp từng mã</span>
+    <span class="tag tag-green" id="sc-status">● Sẵn sàng quét</span>
+  </div>
+  <div class="scan-box" style="padding:18px">
+    <div style="font-size:28px;margin-bottom:6px">📷</div>
+    <div class="muted" style="margin-bottom:10px">Quét barcode hoặc nhập mã — tự động nhận diện & cộng vào danh sách</div>
+    <div style="display:flex;gap:8px;max-width:420px;margin:0 auto">
+      <input class="form-input" id="sc-in" placeholder="Quét/nhập mã rồi Enter: 002001, TK-508RR..." onkeydown="if(event.key==='Enter')scanIn()" autofocus>
+      <input class="form-input" id="sc-qty" type="number" value="1" min="1" style="width:70px" title="Số lượng mỗi lần quét">
+      <button class="btn btn-primary" onclick="scanIn()">➕ Quét</button>
+    </div>
+    <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="demoScanIn()">🎲 Mô phỏng quét máy</button></div>
+  </div>
+</div>
+<div class="card" style="padding:0">
+  <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
+    <div class="section-title" style="margin:0">📋 Danh sách quét — phiên nhập <span id="sc-batch" class="blue" style="font-weight:600">RC-2026-0042</span></div>
+    <div style="display:flex;gap:8px;align-items:center"><span class="muted" style="font-size:12px">Tổng: <strong id="sc-total" class="blue">0</strong> dòng</span><button class="btn btn-ghost btn-sm" onclick="clearScan()">🗑 Xóa hết</button></div>
+  </div>
+  <table id="sc-tb"><thead><tr><th>Mã SP</th><th>Tên</th><th>Loại</th><th>SL quét</th><th>Vị trí (Putaway)</th><th>Serial/Lot</th><th></th></tr></thead>
+  <tbody id="sc-rows"><tr id="sc-empty"><td colspan="7" class="muted" style="text-align:center;padding:24px">Chưa có dòng nào. Bắt đầu quét để tự động thêm vào đây.</td></tr></tbody></table>
+  <div style="padding:14px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border)">
+    <button class="btn btn-ghost" onclick="clearScan()">Hủy phiên</button>
+    <button class="btn btn-success" id="sc-commit" onclick="commitScan()" disabled>✓ Xác nhận nhập kho — cập nhật tồn</button>
+  </div>
+</div>
+</div>
+
+<div id="scan-lookup" style="display:none">
+<div class="card"><div class="section-title">🔍 Tra cứu nhanh sản phẩm</div>
+<div class="scan-box"><div style="font-size:28px;margin-bottom:6px">📷</div><div class="muted" style="margin-bottom:10px">Nhập mã để xem tồn kho & vị trí</div>
+<div style="display:flex;gap:8px;max-width:360px;margin:0 auto"><input class="form-input" id="scan-in" placeholder="002001, TK-508RR..." onkeydown="if(event.key==='Enter')doScan()"><button class="btn btn-primary" onclick="doScan()">🔍 Tra</button></div>
+<div style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="demoScan()">🎲 Demo scan</button></div></div>
+<div id="scan-res" class="scan-result"></div></div>
+</div>`,
+
+inventory:`
+<div class="card"><div class="section-title">🔍 Kiểm kê kho <button class="btn btn-primary btn-sm" onclick="toast('Đã tạo phiếu kiểm kê','success')">+ Tạo phiếu</button></div>
+<table><thead><tr><th>Mã SP</th><th>Tên</th><th>Tồn hệ thống</th><th>Tồn thực tế</th><th>Chênh lệch</th><th>Trạng thái</th></tr></thead><tbody>
+<tr><td class="blue">002001</td><td>N Tip 0.9mm</td><td>580</td><td><input class="form-input" style="width:70px;padding:4px 6px" value="580" onchange="chkDiff(this,580,'002001')"></td><td id="d-002001" class="green">0</td><td><span class="tag tag-green">OK</span></td></tr>
+<tr><td class="blue">001002</td><td>N Nozzle 12mm</td><td>320</td><td><input class="form-input" style="width:70px;padding:4px 6px" value="320" onchange="chkDiff(this,320,'001002')"></td><td id="d-001002" class="green">0</td><td><span class="tag tag-green">OK</span></td></tr>
+<tr><td class="blue">036001</td><td>N TipBody</td><td>15</td><td><input class="form-input" style="width:70px;padding:4px 6px" value="13" onchange="chkDiff(this,15,'036001')"></td><td id="d-036001" class="red">-2</td><td><span class="tag tag-red">Lệch</span></td></tr>
+</tbody></table>
+<div style="margin-top:12px"><button class="btn btn-primary" onclick="toast('Đã lưu kiểm kê','success')">💾 Lưu</button></div></div>`,
+
+reports:`
+<div class="grid-3">
+<div class="card stat-card"><div class="stat-label">Nhập kho T6</div><div class="stat-val blue">₫ 480 tr</div></div>
+<div class="card stat-card"><div class="stat-label">Xuất kho T6</div><div class="stat-val green">₫ 620 tr</div></div>
+<div class="card stat-card"><div class="stat-label">Vòng quay tồn</div><div class="stat-val">4.2x</div></div>
+</div>
+<div class="card"><div class="section-title">Top SP xuất nhiều nhất</div>
+<table><thead><tr><th>Sản phẩm</th><th>SL xuất</th><th>Doanh thu</th></tr></thead><tbody>
+<tr><td>002001 — N Tip</td><td>2,400</td><td class="green">₫ 108 tr</td></tr>
+<tr><td>001002 — N Nozzle</td><td>1,200</td><td class="green">₫ 102 tr</td></tr>
+<tr><td>TK-508RR</td><td>15</td><td class="green">₫ 180 tr</td></tr>
+</tbody></table>
+<div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="toast('Đã xuất Excel','success')">📤 Xuất Excel</button></div></div>`
+};
+const modalHTML=`
+<div class="modal-overlay" id="m-inbound"><div class="modal"><div class="modal-header"><div class="modal-title">📥 Tạo phiếu nhập kho</div><div class="modal-close" onclick="closeModal('m-inbound')">✕</div></div><div class="modal-body">
+<div class="form-row"><div class="form-group"><label class="form-label">Mã sản phẩm *</label><input class="form-input" placeholder="002001, TK-508RR"></div><div class="form-group"><label class="form-label">Số lượng *</label><input class="form-input" type="number" value="1"></div></div>
+<div class="form-row"><div class="form-group"><label class="form-label">Nhà cung cấp</label><select class="form-select"><option>Panasonic VN</option><option>Tokinarc JP</option><option>Khác</option></select></div><div class="form-group"><label class="form-label">Zone đích (tự gợi ý)</label><select class="form-select"><option>A — Tip & Collet</option><option>B — Nozzle</option><option>C — Torch Body</option><option>D — Liner & Cáp</option><option>E — Gioăng & TIG</option><option>F — Dụng cụ</option></select></div></div>
+<div class="form-row"><div class="form-group"><label class="form-label">Vị trí (Bin)</label><input class="form-input" placeholder="A-R01-B03"></div><div class="form-group"><label class="form-label">Serial/Lot</label><input class="form-input" placeholder="SN hoặc LOT-..."></div></div>
+</div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-inbound')">Hủy</button><button class="btn btn-primary" onclick="save('m-inbound','Đã tạo phiếu nhập')">✓ Tạo</button></div></div></div>
+
+<div class="modal-overlay" id="m-outbound"><div class="modal"><div class="modal-header"><div class="modal-title">📤 Tạo phiếu xuất kho</div><div class="modal-close" onclick="closeModal('m-outbound')">✕</div></div><div class="modal-body">
+<div class="form-row single"><div class="form-group"><label class="form-label">Khách hàng *</label><input class="form-input"></div></div>
+<div class="form-row"><div class="form-group"><label class="form-label">Mã sản phẩm</label><input class="form-input"></div><div class="form-group"><label class="form-label">Số lượng</label><input class="form-input" type="number" value="1"></div></div>
+<div class="form-row"><div class="form-group"><label class="form-label">Lấy từ Zone</label><select class="form-select"><option>Tự động (Nearest)</option><option>A — Tip & Collet</option><option>B — Nozzle</option><option>C — Torch Body</option></select></div><div class="form-group"><label class="form-label">Quy tắc</label><select class="form-select"><option>FEFO</option><option>FIFO</option><option>Nearest</option></select></div></div>
+</div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-outbound')">Hủy</button><button class="btn btn-primary" onclick="save('m-outbound','Đã tạo phiếu xuất')">✓ Tạo</button></div></div></div>
+
+<div class="modal-overlay" id="m-asn"><div class="modal"><div class="modal-header"><div class="modal-title">📨 Tạo ASN</div><div class="modal-close" onclick="closeModal('m-asn')">✕</div></div><div class="modal-body">
+<div class="form-row"><div class="form-group"><label class="form-label">Nhà cung cấp *</label><select class="form-select"><option>Panasonic VN</option><option>Tokinarc JP</option></select></div><div class="form-group"><label class="form-label">Zone đích</label><select class="form-select"><option>A — Tip & Collet</option><option>B — Nozzle</option><option>C — Torch Body</option><option>D — Liner & Cáp</option></select></div></div>
+<div class="form-row"><div class="form-group"><label class="form-label">Hàng hóa</label><input class="form-input" placeholder="002001 Tip, ..."></div><div class="form-group"><label class="form-label">Số lượng</label><input class="form-input" type="number"></div></div>
+<div class="form-row single"><div class="form-group"><label class="form-label">ETA (ngày dự kiến về)</label><input class="form-input" type="date"></div></div>
+</div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-asn')">Hủy</button><button class="btn btn-primary" onclick="save('m-asn','Đã tạo ASN')">💾 Lưu</button></div></div></div>
+
+<div class="modal-overlay" id="m-reorder"><div class="modal"><div class="modal-header"><div class="modal-title">🛒 Đặt hàng bổ sung</div><div class="modal-close" onclick="closeModal('m-reorder')">✕</div></div><div class="modal-body">
+<div class="form-row"><div class="form-group"><label class="form-label">Sản phẩm</label><input class="form-input" value="036001 - N TipBody" readonly></div><div class="form-group"><label class="form-label">SL đặt</label><input class="form-input" type="number" value="100"></div></div>
+<div class="form-row single"><div class="form-group"><label class="form-label">Nhà cung cấp</label><select class="form-select"><option>Panasonic VN</option><option>Tokinarc JP</option></select></div></div>
+</div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-reorder')">Hủy</button><button class="btn btn-primary" onclick="save('m-reorder','Đã gửi đơn đặt hàng')">📧 Gửi PO</button></div></div></div>
+
+<div class="modal-overlay" id="m-adjust"><div class="modal"><div class="modal-header"><div class="modal-title">✏ Điều chỉnh tồn kho</div><div class="modal-close" onclick="closeModal('m-adjust')">✕</div></div><div class="modal-body">
+<div class="form-row"><div class="form-group"><label class="form-label">Sản phẩm</label><input class="form-input" value="002001" readonly></div><div class="form-group"><label class="form-label">Tồn thực tế</label><input class="form-input" type="number"></div></div>
+<div class="form-row single"><div class="form-group"><label class="form-label">Lý do</label><select class="form-select"><option>Kiểm kê định kỳ</option><option>Hàng hỏng/thiếu</option><option>Nhập nhầm</option></select></div></div>
+</div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('m-adjust')">Hủy</button><button class="btn btn-primary" onclick="save('m-adjust','Đã điều chỉnh tồn')">✓ Xác nhận</button></div></div></div>
+`;
+document.getElementById('modals').innerHTML=modalHTML;
+
+const ioData=[142,98,165,120,201,178,155],ioIn=[80,55,90,70,110,95,88],wkdays=['T2','T3','T4','T5','T6','T7','CN'];
+const scanData={'002001':{name:'N Tip 0.9mm',cat:'Tip',stock:580,loc:'A-R01-B03'},'001002':{name:'N Nozzle 12mm',cat:'Nozzle',stock:320,loc:'A-R01-B02'},'036001':{name:'N TipBody 500A',cat:'TipBody',stock:15,loc:'A-R02-B01'},'TK-508RR':{name:'TK Robotic Torch',cat:'Torch',stock:22,loc:'C-R01-B02'},'YMSA-500R':{name:'YMSA Robotic Torch',cat:'Torch',stock:8,loc:'C-R01-B01'},'WX-500R':{name:'WX Robotic Torch',cat:'Torch',stock:3,loc:'C-R01-B01'}};
+const scanKeys=Object.keys(scanData);
+let liveStock={
+'002001':{name:'N Tip 0.9mm',cat:'Tip',zone:'A',stock:580,min:100,loc:'A-R01-B03'},
+'001002':{name:'N Nozzle 12mm',cat:'Nozzle',zone:'B',stock:320,min:80,loc:'B-R01-B02'},
+'YMSA-500R':{name:'YMSA Robotic Torch',cat:'Torch',zone:'C',stock:8,min:5,loc:'C-R01-B01'},
+'TK-508RR':{name:'TK Robotic Torch',cat:'Torch',zone:'C',stock:22,min:5,loc:'C-R01-B02'},
+'036001':{name:'N TipBody 500A',cat:'TipBody',zone:'A',stock:15,min:50,loc:'A-R02-B01'},
+'WX-500R':{name:'WX Robotic Torch',cat:'Torch',zone:'C',stock:3,min:5,loc:'C-R01-B01'}
+};
+const zoneColor={A:'blue',B:'green',C:'orange',D:'purple',E:'teal',F:'yellow'};
+let scanBatch=[];
+function renderStock(){
+  const tb=document.getElementById('st-rows');if(!tb)return;tb.innerHTML='';
+  Object.entries(liveStock).forEach(([code,it])=>{
+    const tc=it.stock<it.min?'red':it.stock<it.min*1.5?'yellow':'green';
+    const catTag=it.cat==='Tip'?'blue':it.cat==='Nozzle'?'green':it.cat==='Torch'?'orange':'yellow';
+    const zc=zoneColor[it.zone]||'blue';
+    tb.insertAdjacentHTML('beforeend',`<tr data-cat="${it.cat}"><td class="blue">${code}</td><td>${it.name}</td><td><span class="tag tag-${catTag}">${it.cat}</span></td><td><span class="tag tag-${zc}">Zone ${it.zone}</span></td><td class="${tc}"><strong>${it.stock}</strong></td><td class="muted">${it.min}</td><td class="muted">${it.loc}</td><td><div class="dropdown"><button class="action-btn" onclick="ddToggle(this)">⋯</button><div class="dropdown-menu"><div class="dropdown-item" onclick="openModal('m-reorder')">🛒 Đặt hàng</div><div class="dropdown-item" onclick="openModal('m-adjust')">✏ Điều chỉnh</div><div class="dropdown-item" onclick="navTo('serial')">🔖 Serial/Lot</div></div></div></td></tr>`);
+  });
+}
+const rackData=[{id:'A1',s:'full',i:'Zone A · 002001 Tip'},{id:'A2',s:'full',i:'Zone A · Tip 0.8mm'},{id:'A3',s:'full',i:'Zone A · Collet N'},{id:'A4',s:'low',i:'Zone A · 036001 TipBody'},{id:'A5',s:'full',i:'Zone A · TipAdapter'},{id:'A6',s:'empty',i:''},
+{id:'B1',s:'full',i:'Zone B · 001002 Nozzle'},{id:'B2',s:'full',i:'Zone B · CeramicNozzle'},{id:'B3',s:'low',i:'Zone B · LavaNozzle'},{id:'B4',s:'empty',i:''},{id:'B5',s:'empty',i:''},{id:'B6',s:'empty',i:''},
+{id:'C1',s:'low',i:'Zone C · YMSA-500R'},{id:'C2',s:'full',i:'Zone C · TK-508RR'},{id:'C3',s:'low',i:'Zone C · WX-500R'},{id:'C4',s:'full',i:'Zone C · TorchBody N'},{id:'C5',s:'full',i:'Zone C · Handle'},{id:'C6',s:'empty',i:''},
+{id:'D1',s:'full',i:'Zone D · Liner'},{id:'D2',s:'full',i:'Zone D · PowerCable'},{id:'D3',s:'full',i:'Zone D · GasHose'},{id:'D4',s:'empty',i:''},{id:'D5',s:'empty',i:''},{id:'D6',s:'empty',i:''},
+{id:'E1',s:'full',i:'Zone E · O-Ring'},{id:'E2',s:'full',i:'Zone E · Điện cực TIG'},{id:'E3',s:'low',i:'Zone E · Insulator'},{id:'E4',s:'empty',i:''},{id:'E5',s:'empty',i:''},{id:'E6',s:'empty',i:''},
+{id:'F1',s:'full',i:'Zone F · Tool'},{id:'F2',s:'full',i:'Zone F · Gá robot'},{id:'F3',s:'empty',i:''},{id:'F4',s:'empty',i:''},{id:'F5',s:'empty',i:''},{id:'F6',s:'empty',i:''}];
+
+const titles={dashboard:'Dashboard',warehouses:'Sơ đồ khu',asn:'ASN dự kiến',inbound:'Nhập kho',putaway:'Putaway',outbound:'Xuất kho',picking:'Picking & Packing',transfer:'Chuyển vị trí',stock:'Tồn kho',serial:'Serial / Lot',lowstock:'Sắp hết hàng',map:'Sơ đồ kho',scan:'Quét Barcode',inventory:'Kiểm kê',reports:'Báo cáo'};
+function navTo(page,el){
+  document.getElementById('content').innerHTML=pages[page]||'<div class="card">Đang phát triển...</div>';
+  document.getElementById('page-title').textContent=titles[page]||page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');else{document.querySelectorAll('.nav-item').forEach(n=>{if(n.querySelector('.nav-label')?.textContent===titles[page])n.classList.add('active')})}
+  if(page==='dashboard')buildIO();
+  if(page==='map')buildRack();
+  if(page==='stock')renderStock();
+  if(page==='scan'){scanBatch=[];setTimeout(()=>document.getElementById('sc-in')?.focus(),50)}
+}
+function buildIO(){const max=Math.max(...ioData),bc=document.getElementById('io-chart'),lb=document.getElementById('io-labels');if(!bc)return;bc.innerHTML='';lb.innerHTML='';ioData.forEach((v,i)=>{const w=document.createElement('div');w.style.cssText='flex:1;display:flex;gap:2px;align-items:flex-end';const b1=document.createElement('div');b1.style.cssText=`flex:1;height:${Math.round(v/max*85)}px;background:rgba(14,165,233,.5);border-radius:3px 3px 0 0;cursor:pointer`;b1.onclick=()=>toast(`${wkdays[i]} Xuất: ${v}`,'');const b2=document.createElement('div');b2.style.cssText=`flex:1;height:${Math.round(ioIn[i]/max*85)}px;background:rgba(34,197,94,.4);border-radius:3px 3px 0 0;cursor:pointer`;b2.onclick=()=>toast(`${wkdays[i]} Nhập: ${ioIn[i]}`,'');w.appendChild(b1);w.appendChild(b2);bc.appendChild(w);const l=document.createElement('div');l.style.cssText='flex:1;text-align:center;font-size:10px;color:var(--text2)';l.textContent=wkdays[i];lb.appendChild(l)})}
+function buildRack(){const g=document.getElementById('rack-grid');if(!g)return;g.innerHTML='';rackData.forEach(r=>{const c=document.createElement('div');c.className='rack-cell rack-'+r.s;c.textContent=r.id;c.title=r.i||'Trống';c.onclick=()=>toast(r.i?`${r.id}: ${r.i} — ${r.s==='full'?'Còn hàng':r.s==='low'?'Sắp hết':'Trống'}`:`${r.id}: Trống`,r.s==='low'?'error':'');g.appendChild(c)})}
+
+function serTab(t,el){el.parentElement.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('ser-serial').style.display=t==='serial'?'':'none';document.getElementById('ser-lot').style.display=t==='lot'?'':'none'}
+function doScan(){const v=document.getElementById('scan-in').value.trim(),res=document.getElementById('scan-res'),it=scanData[v]||scanData[Object.keys(scanData).find(k=>k.toLowerCase()===v.toLowerCase())];res.style.display='block';if(it){const sc=it.stock<20?'red':it.stock<50?'yellow':'green';res.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Mã</div><div style="font-weight:700;color:var(--blue)">${v}</div></div><div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Tên</div><div>${it.name}</div></div><div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Tồn</div><div class="${sc}" style="font-size:18px;font-weight:700">${it.stock}</div></div><div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Vị trí</div><div>${it.loc}</div></div></div><div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-primary btn-sm" onclick="toast('Tạo phiếu xuất ${v}','success')">📤 Xuất</button><button class="btn btn-ghost btn-sm" onclick="openModal('m-reorder')">🛒 Đặt</button></div>`}else{res.innerHTML=`<div class="red">❌ Không tìm thấy "${v}"</div><div class="muted" style="margin-top:4px;font-size:11px">Thử: 002001, TK-508RR, YMSA-500R</div>`}}
+function demoScan(){const k=scanKeys[Math.floor(Math.random()*scanKeys.length)];document.getElementById('scan-in').value=k;doScan()}
+
+function scanMode(mode,el){el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.getElementById('scan-inbound').style.display=mode==='in'?'':'none';document.getElementById('scan-lookup').style.display=mode==='lookup'?'':'none';if(mode==='in'){setTimeout(()=>document.getElementById('sc-in')?.focus(),50)}}
+
+function scanIn(){
+  const inp=document.getElementById('sc-in'),v=inp.value.trim();
+  if(!v)return;
+  const code=Object.keys(liveStock).find(k=>k.toLowerCase()===v.toLowerCase());
+  const st=document.getElementById('sc-status');
+  if(!code){st.className='tag tag-red';st.textContent='● Mã không nhận diện';toast('❌ Không tìm thấy mã "'+v+'"','error');inp.value='';inp.focus();return}
+  const it=liveStock[code];
+  const qty=parseInt(document.getElementById('sc-qty').value)||1;
+  document.getElementById('sc-empty')?.remove();
+  const existing=scanBatch.find(b=>b.code===code);
+  if(existing){existing.qty+=qty;const r=document.getElementById('scrow-'+code);r.querySelector('.qcell').innerHTML='<strong class="green">'+existing.qty+'</strong>'}
+  else{
+    const isTorch=it.cat==='Torch';
+    const sl=isTorch?code.split('-')[0]+'-SN'+String(Math.floor(Math.random()*9000)+1000):'LOT-2026-'+String(Math.floor(Math.random()*900)+100);
+    scanBatch.push({code,qty,loc:it.loc,sl});
+    document.getElementById('sc-rows').insertAdjacentHTML('beforeend',`<tr id="scrow-${code}"><td class="blue"><strong>${code}</strong></td><td>${it.name}</td><td><span class="tag tag-${it.cat==='Torch'?'orange':'blue'}">${it.cat}</span></td><td class="qcell"><strong class="green">${qty}</strong></td><td class="muted">${it.loc} <span class="tag tag-green" style="font-size:9px">tự gợi ý</span></td><td class="muted" style="font-size:11px">${sl}</td><td><button class="action-btn" onclick="rmScan('${code}')">✕</button></td></tr>`);
+  }
+  st.className='tag tag-green';st.textContent='● Đã quét: '+code;
+  document.getElementById('sc-total').textContent=scanBatch.length;
+  document.getElementById('sc-commit').disabled=false;
+  inp.value='';inp.focus();
+  toast('✓ '+code+' +'+qty,'success');
+}
+function demoScanIn(){const k=scanKeys[Math.floor(Math.random()*scanKeys.length)];document.getElementById('sc-in').value=k;scanIn()}
+function rmScan(code){scanBatch=scanBatch.filter(b=>b.code!==code);document.getElementById('scrow-'+code)?.remove();document.getElementById('sc-total').textContent=scanBatch.length;if(!scanBatch.length){document.getElementById('sc-commit').disabled=true;document.getElementById('sc-rows').innerHTML='<tr id="sc-empty"><td colspan="7" class="muted" style="text-align:center;padding:24px">Chưa có dòng nào. Bắt đầu quét để tự động thêm vào đây.</td></tr>'}}
+function clearScan(){scanBatch=[];const tb=document.getElementById('sc-rows');if(tb)tb.innerHTML='<tr id="sc-empty"><td colspan="7" class="muted" style="text-align:center;padding:24px">Chưa có dòng nào. Bắt đầu quét để tự động thêm vào đây.</td></tr>';document.getElementById('sc-total').textContent='0';document.getElementById('sc-commit').disabled=true;const st=document.getElementById('sc-status');if(st){st.className='tag tag-green';st.textContent='● Sẵn sàng quét'}}
+function commitScan(){
+  if(!scanBatch.length)return;
+  let n=0;
+  scanBatch.forEach(b=>{liveStock[b.code].stock+=b.qty;n+=b.qty});
+  const cnt=scanBatch.length;
+  renderStock();
+  clearScan();
+  toast('✓ Đã nhập '+n+' sản phẩm ('+cnt+' mã) vào tồn kho','success');
+  setTimeout(()=>navTo('stock'),700);
+}
+
+function openModal(id){document.getElementById(id)?.classList.add('open')}
+function closeModal(id){document.getElementById(id)?.classList.remove('open')}
+function save(id,msg){closeModal(id);toast(msg,'success')}
+function confPO(btn,po){btn.textContent='✓ Đã nhận';btn.disabled=true;btn.className='btn btn-ghost btn-sm';toast('Đã xác nhận '+po,'success')}
+function pickRow(btn){btn.textContent='✓ Đã pick';btn.disabled=true;btn.className='btn btn-ghost btn-sm';toast('Đã pick','success')}
+function ordOne(btn,p){btn.textContent='✓ Đã đặt';btn.disabled=true;btn.className='btn btn-ghost btn-sm';toast('Đã đặt '+p,'success')}
+function orderAll(){document.querySelectorAll('#content button[onclick^="ordOne"]').forEach(b=>{b.textContent='✓ Đã đặt';b.disabled=true;b.className='btn btn-ghost btn-sm'});toast('Đã đặt tất cả 5 mặt hàng','success')}
+function filt(tbid,q){q=q.toLowerCase();document.querySelectorAll('#'+tbid+' tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')}
+function filtCat(cat,el){if(el){el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')}document.querySelectorAll('#st-tb tbody tr').forEach(r=>r.style.display=!cat||r.dataset.cat===cat?'':'none')}
+function chkDiff(inp,sys,code){const a=parseInt(inp.value)||0,d=a-sys,el=document.getElementById('d-'+code);if(el){el.textContent=(d>=0?'+':'')+d;el.style.color=d===0?'var(--green)':d<0?'var(--red)':'var(--yellow)'}}
+function ddToggle(btn){document.querySelectorAll('.dropdown-menu').forEach(m=>{if(m!==btn.nextElementSibling)m.classList.remove('open')});btn.nextElementSibling.classList.toggle('open')}
+document.addEventListener('click',e=>{if(!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('open'))});
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
+let tt;function toast(msg,type){const el=document.getElementById('toast-el');el.textContent=msg;el.className='toast'+(type==='success'?' toast-success':type==='error'?' toast-error':'');el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2800)}
+
+navTo('dashboard');
+</script>
+<script>
+function askAI(){
+  var el=document.getElementById('chat-q');
+  var q=el?el.value.trim():'';
+  if(typeof toast==='function'){toast(q?('AI đang xử lý: '+q):'AI đang xử lý...','');}
+  if(el)el.value='';
+}
+</script>
+</body></html>
