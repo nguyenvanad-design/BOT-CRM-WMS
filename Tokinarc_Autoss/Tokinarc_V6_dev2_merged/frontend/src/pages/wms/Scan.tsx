@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { BrowserMultiFormatReader } from '@zxing/library'
-import { ScanLine, Camera, CameraOff, Search, PackagePlus, ClipboardCheck } from 'lucide-react'
+import { ScanLine, Camera, CameraOff, Search, PackagePlus, PackageMinus, ClipboardCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { compactVnd } from '@/lib/crm'
@@ -16,7 +16,7 @@ import { SERIAL_STATUS_LABEL, SERIAL_STATUS_TONE } from '@/lib/wms'
 import type { CatalogPart, SerialNumber } from '@/lib/types'
 import { Card, PageHeader, Button, Tag } from '@/components/ui'
 
-type Mode = 'lookup' | 'receive' | 'count'
+type Mode = 'lookup' | 'receive' | 'issue' | 'count'
 type Target = 'code' | 'bin'
 interface LookupResult { code: string; parts: CatalogPart[]; serials: SerialNumber[] }
 interface EntryLog { text: string; ok: boolean }
@@ -24,6 +24,7 @@ interface EntryLog { text: string; ok: boolean }
 const MODES: { key: Mode; label: string; icon: typeof Search }[] = [
   { key: 'lookup', label: 'Tra cứu', icon: Search },
   { key: 'receive', label: 'Nhập kho', icon: PackagePlus },
+  { key: 'issue', label: 'Xuất kho', icon: PackageMinus },
   { key: 'count', label: 'Kiểm kê', icon: ClipboardCheck },
 ]
 
@@ -99,7 +100,7 @@ export function ScanPage() {
     }
   }
 
-  const entryMode = mode === 'receive' || mode === 'count'
+  const entryMode = mode === 'receive' || mode === 'issue' || mode === 'count'
 
   return (
     <div className="max-w-2xl">
@@ -162,10 +163,12 @@ export function ScanPage() {
           <div className="mt-3 pt-3 border-t border-line space-y-2">
             <Field label="Mã hàng" value={code} onChange={setCode} placeholder="Quét hoặc nhập mã phụ tùng" />
             <Field label="Mã ô (bin)" value={binCode} onChange={setBinCode} placeholder="VD HCM-A-R01-B03" />
-            <Field label={mode === 'receive' ? 'Số lượng nhập' : 'Số đếm thực tế'} value={qty}
-              onChange={setQty} placeholder="0" type="number" />
+            <Field label={mode === 'receive' ? 'Số lượng nhập' : mode === 'issue' ? 'Số lượng xuất' : 'Số đếm thực tế'}
+              value={qty} onChange={setQty} placeholder="0" type="number" />
             <Button onClick={submitEntry} disabled={busy}>
-              {mode === 'receive' ? <><PackagePlus size={15} /> Nhập kho</> : <><ClipboardCheck size={15} /> Cập nhật tồn</>}
+              {mode === 'receive' ? <><PackagePlus size={15} /> Nhập kho</>
+                : mode === 'issue' ? <><PackageMinus size={15} /> Xuất kho</>
+                : <><ClipboardCheck size={15} /> Cập nhật tồn</>}
             </Button>
           </div>
         )}

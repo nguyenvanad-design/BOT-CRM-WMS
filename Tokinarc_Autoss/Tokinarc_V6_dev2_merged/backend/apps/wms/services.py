@@ -68,6 +68,27 @@ def receive_stock(*, bin_obj: Bin, part=None, torch=None, qty: int,
 
 
 @transaction.atomic
+def issue_stock(*, bin_obj: Bin, part=None, torch=None, qty: int,
+                user=None, ref_id: str = '') -> InventoryItem:
+    """Xuất kho: -qty khỏi bin (kiểm tra tồn khả dụng), movement reason=outbound."""
+    if qty <= 0:
+        raise ValueError("qty xuất phải > 0.")
+    item = (InventoryItem.objects.select_for_update()
+            .filter(bin=bin_obj, part=part, torch=torch).first())
+    if item is None or item.available_qty < qty:
+        have = item.available_qty if item else 0
+        raise InsufficientStock(f"Tồn khả dụng {have} < {qty}.")
+    InventoryItem.objects.filter(pk=item.pk).update(qty_on_hand=F('qty_on_hand') - qty)
+    StockMovement.objects.create(
+        warehouse=_wh_of_bin(bin_obj), part=part, torch=torch, bin=bin_obj,
+        delta=-qty, reason=MovementReason.OUTBOUND, ref_kind='outbound',
+        ref_id=ref_id, by_user=user,
+    )
+    item.refresh_from_db()
+    return item
+
+
+@transaction.atomic
 def transfer_stock(*, from_bin: Bin, to_bin: Bin, part=None, torch=None,
                    qty: int, user=None) -> None:
     """Chuyển nội bộ / liên kho: -qty bin nguồn, +qty bin đích, 2 movement."""

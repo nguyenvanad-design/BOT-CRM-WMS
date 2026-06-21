@@ -115,6 +115,23 @@ def test_scan_entry_count_sets_stock(auth, part):
 
 
 @pytest.mark.django_db
+def test_scan_entry_issue_deducts_stock(auth, part):
+    BinFactory(full_code='HCM-A-R01-B09')
+    auth.post('/api/v1/wms/inventory/scan-entry/',
+              {'code': '002001', 'bin_code': 'HCM-A-R01-B09', 'qty': 30, 'mode': 'receive'},
+              format='json')
+    r = auth.post('/api/v1/wms/inventory/scan-entry/',
+                  {'code': '002001', 'bin_code': 'HCM-A-R01-B09', 'qty': 12, 'mode': 'issue'},
+                  format='json')
+    assert r.status_code == 200 and r.data['qty_on_hand'] == 18
+    # xuất quá tồn → 409
+    r2 = auth.post('/api/v1/wms/inventory/scan-entry/',
+                   {'code': '002001', 'bin_code': 'HCM-A-R01-B09', 'qty': 999, 'mode': 'issue'},
+                   format='json')
+    assert r2.status_code == 409
+
+
+@pytest.mark.django_db
 def test_scan_entry_unknown_part_or_bin(auth, part):
     BinFactory(full_code='HCM-A-R01-B07')
     assert auth.post('/api/v1/wms/inventory/scan-entry/',

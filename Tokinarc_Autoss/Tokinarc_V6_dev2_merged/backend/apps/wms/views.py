@@ -145,6 +145,7 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
 
         Body: {code, bin_code, qty, mode, warehouse?}
           - mode='receive' → +qty vào ô (nhập kho nhanh).
+          - mode='issue'   → -qty khỏi ô (xuất kho nhanh).
           - mode='count'   → set tồn = qty (kiểm kê).
         code = mã phụ tùng (tokin_part_no); bin_code = full_code của ô.
         """
@@ -159,10 +160,10 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
 
         if not code or not bin_code:
             return Response({'detail': 'Thiếu mã phụ tùng hoặc mã ô (bin).'}, status=400)
-        if mode not in ('receive', 'count'):
-            return Response({'detail': "mode phải là 'receive' hoặc 'count'."}, status=400)
-        if mode == 'receive' and qty <= 0:
-            return Response({'detail': 'Số lượng nhập phải > 0.'}, status=400)
+        if mode not in ('receive', 'issue', 'count'):
+            return Response({'detail': "mode phải là 'receive', 'issue' hoặc 'count'."}, status=400)
+        if mode in ('receive', 'issue') and qty <= 0:
+            return Response({'detail': 'Số lượng phải > 0.'}, status=400)
         if mode == 'count' and qty < 0:
             return Response({'detail': 'Số đếm không được âm.'}, status=400)
 
@@ -180,6 +181,14 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
             item = services.receive_stock(bin_obj=bin_obj, part=part, qty=qty,
                                           user=request.user, ref_id='scan')
             msg = f'Đã nhập +{qty} vào {bin_obj.full_code}.'
+        elif mode == 'issue':
+            try:
+                item = services.issue_stock(bin_obj=bin_obj, part=part, qty=qty,
+                                            user=request.user, ref_id='scan')
+            except services.InsufficientStock as e:
+                return Response({'detail': str(e), 'code': 'CONFLICT'},
+                                status=status.HTTP_409_CONFLICT)
+            msg = f'Đã xuất -{qty} khỏi {bin_obj.full_code}.'
         else:
             item = services.adjust_stock(bin_obj=bin_obj, part=part, new_qty=qty,
                                          reason='adjust', user=request.user,
