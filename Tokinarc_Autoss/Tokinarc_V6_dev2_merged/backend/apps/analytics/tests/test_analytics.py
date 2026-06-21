@@ -160,6 +160,62 @@ def test_assistant_create_contract_from_approved_quote(sale, seeded, no_llm):
     assert ct.owner == sale
 
 
+@pytest.fixture
+def warehouse_user(db):
+    return User.objects.create(username='kho1', role=Role.WAREHOUSE)
+
+
+@pytest.fixture
+def wh(db):
+    from apps.wms.models import Warehouse
+    return Warehouse.objects.create(code='HCM', name='Kho HCM', is_active=True, is_default=True)
+
+
+@pytest.fixture
+def part1(db):
+    from apps.catalog.models import Part
+    return Part.objects.create(tokin_part_no='001002', category='tip',
+                               display_name_vi='Bép hàn 0.8', price_vnd=120000)
+
+
+@pytest.mark.django_db
+def test_assistant_warehouse_inbound(warehouse_user, wh, part1, no_llm):
+    """Nhân viên kho lập phiếu NHẬP kho qua bot → tạo InboundOrder nháp THẬT."""
+    from apps.wms.models import InboundOrder
+    c = APIClient(); c.force_authenticate(warehouse_user)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'nhập kho 100 x 001002'}, format='json')
+    assert r.status_code == 200
+    assert 'phiếu nhập kho nháp' in r.data['text'].lower()
+    o = InboundOrder.objects.get()
+    assert o.status == 'draft' and o.warehouse == wh
+    assert o.lines.count() == 1 and o.lines.first().qty_expected == 100
+
+
+@pytest.mark.django_db
+def test_assistant_warehouse_outbound(warehouse_user, wh, part1, no_llm):
+    """Nhân viên kho lập phiếu XUẤT kho qua bot → tạo OutboundOrder nháp THẬT."""
+    from apps.wms.models import OutboundOrder
+    c = APIClient(); c.force_authenticate(warehouse_user)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'xuất kho 20 x 001002'}, format='json')
+    assert r.status_code == 200
+    assert 'phiếu xuất kho nháp' in r.data['text'].lower()
+    o = OutboundOrder.objects.get()
+    assert o.status == 'draft'
+    assert o.lines.first().qty_ordered == 20
+
+
+@pytest.mark.django_db
+def test_assistant_sale_blocked_wms(sale, wh, part1, no_llm):
+    """Sale KHÔNG có quyền lập phiếu kho → từ chối."""
+    c = APIClient(); c.force_authenticate(sale)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'nhập kho 5 x 001002'}, format='json')
+    assert r.status_code == 200
+    assert 'không có quyền' in r.data['text'].lower()
+
+
 @pytest.mark.django_db
 def test_assistant_contract_blocked_if_quote_not_approved(sale, seeded, no_llm):
     """Báo giá chưa duyệt → không soạn được hợp đồng."""

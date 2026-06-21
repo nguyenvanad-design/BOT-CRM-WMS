@@ -372,6 +372,86 @@ def tool_create_contract(user, customer_name: str, quote_code: str) -> str:
             f"Vào màn Hợp đồng để nhập giá trị, điều khoản & trình duyệt.")
 
 
+# ── Tool ghi: phiếu nhập / xuất kho ─────────────────────────────────────────
+def _default_warehouse():
+    from apps.wms.models import Warehouse
+    actives = Warehouse.objects.filter(is_active=True)
+    if actives.count() == 1:
+        return actives.first()
+    return actives.filter(is_default=True).first()   # None nếu nhiều kho, không default
+
+
+def _next_wms_code(model, prefix: str) -> str:
+    """Sinh mã PREFIX-YYYY-NNN tăng dần trong năm."""
+    year = date.today().year
+    pre = f"{prefix}-{year}-"
+    last = model.objects.filter(code__startswith=pre).order_by('-code').first()
+    n = (int(last.code.rsplit('-', 1)[-1]) + 1) if last else 1
+    return f"{pre}{n:03d}"
+
+
+def _resolve_part_lines(items: list[dict]):
+    """[{part_no, qty}] → (found[(pn,name,qty,Part)], missing[pn])."""
+    from apps.catalog.models import Part
+    found, missing = [], []
+    for it in items or []:
+        pn = str(it.get('part_no', '')).strip()
+        qty = max(1, int(it.get('qty', 1) or 1))
+        if not pn:
+            continue
+        part = Part.objects.filter(tokin_part_no=pn).first()
+        if part:
+            found.append((pn, part.display_name_vi or pn, qty, part))
+        else:
+            missing.append(pn)
+    return found, missing
+
+
+def tool_wms_inbound(user, items: list[dict]) -> str:
+    """Lập PHIẾU NHẬP KHO nháp (draft). Nhận hàng thực hiện sau ở màn Nhập kho."""
+    from apps.wms.models import InboundLine, InboundOrder
+    wh = _default_warehouse()
+    if not wh:
+        return "Hệ thống có nhiều kho — vui lòng lập phiếu nhập trên màn Nhập kho và chọn kho cụ thể."
+    if not items:
+        return "Cần mã phụ tùng + số lượng để lập phiếu nhập. VD: \"nhập kho 100 x 001002\"."
+    found, missing = _resolve_part_lines(items)
+    if not found:
+        return f"Không lập được phiếu nhập: không có mã phụ tùng hợp lệ ({', '.join(missing)})."
+    order = InboundOrder.objects.create(code=_next_wms_code(InboundOrder, 'IN'),
+                                        warehouse=wh, created_by=user, updated_by=user)
+    for _pn, _n, qty, part in found:
+        InboundLine.objects.create(inbound=order, part=part, qty_expected=qty)
+    rows = '\n'.join(f"• {n} (`{pn}`) × {qty}" for pn, n, qty, _ in found)
+    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
+    return (f"✅ Đã lập **phiếu nhập kho nháp {order.code}** (kho {wh.code}):\n{rows}{note}\n"
+            f"Vào màn Nhập kho để xác nhận nhận hàng (cộng tồn).")
+
+
+def tool_wms_outbound(user, items: list[dict], customer_name: str = '') -> str:
+    """Lập PHIẾU XUẤT KHO nháp (draft). Soạn & giao hàng thực hiện sau ở màn Xuất kho."""
+    from apps.wms.models import OutboundLine, OutboundOrder
+    wh = _default_warehouse()
+    if not wh:
+        return "Hệ thống có nhiều kho — vui lòng lập phiếu xuất trên màn Xuất kho và chọn kho cụ thể."
+    if not items:
+        return "Cần mã phụ tùng + số lượng để lập phiếu xuất. VD: \"xuất kho 20 x 001002\"."
+    found, missing = _resolve_part_lines(items)
+    if not found:
+        return f"Không lập được phiếu xuất: không có mã phụ tùng hợp lệ ({', '.join(missing)})."
+    cust = _resolve_customer(customer_name, user) if customer_name else None
+    order = OutboundOrder.objects.create(code=_next_wms_code(OutboundOrder, 'OUT'),
+                                         warehouse=wh, customer=cust,
+                                         created_by=user, updated_by=user)
+    for _pn, _n, qty, part in found:
+        OutboundLine.objects.create(outbound=order, part=part, qty_ordered=qty)
+    rows = '\n'.join(f"• {n} (`{pn}`) × {qty}" for pn, n, qty, _ in found)
+    who = f" cho **{cust.name}**" if cust else ""
+    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
+    return (f"✅ Đã lập **phiếu xuất kho nháp {order.code}** (kho {wh.code}){who}:\n{rows}{note}\n"
+            f"Vào màn Xuất kho để soạn hàng (pick) & giao.")
+
+
 def answer(question: str, user) -> str:
     """Điểm vào chính: yêu cầu + user → trả lời/hành động (role-gated, data thật)."""
     from apps.accounts.roles import can_use_intent, role_of
@@ -407,8 +487,15 @@ def answer(question: str, user) -> str:
         m = re.search(r'\bBG[-\s]?(\d+)\b', question, re.I)
         quote_code = f"BG-{int(m.group(1)):04d}" if m else (intent.get('quote_code') or '')
         return tool_create_contract(user, cust_name, quote_code)
-    if name in ('wms_inbound', 'wms_outbound', 'lookup_doc'):
-        return "Chức năng này đang được hoàn thiện (Phase tiếp theo). Hiện đã có: báo giá, soạn hợp đồng, báo cáo CEO, đánh giá kế hoạch."
+    if name == 'wms_inbound':
+        items = intent.get('items') or _parse_items(question)
+        return tool_wms_inbound(user, items)
+    if name == 'wms_outbound':
+        items = intent.get('items') or _parse_items(question)
+        cust_name = intent.get('customer_name') or _detect_customer(question)
+        return tool_wms_outbound(user, items, cust_name)
+    if name == 'lookup_doc':
+        return "Tra cứu tài liệu nội bộ đang được hoàn thiện (Phase tiếp theo)."
 
     return ("Em là **trợ lý nội bộ Tokinarc**. Tùy quyền của anh/chị, em có thể: "
             "**làm báo giá** (VD: \"làm báo giá cho Công ty ABC: 5 x 001002\"), "
