@@ -227,6 +227,30 @@ def test_assistant_sale_blocked_wms(sale, wh, part1, no_llm):
 
 
 @pytest.mark.django_db
+def test_assistant_manager_blocked_wms(manager, wh, part1, no_llm):
+    """Manager KHÔNG lập phiếu kho qua bot (chỉ warehouse/CEO/admin)."""
+    from apps.wms.models import InboundOrder
+    c = APIClient(); c.force_authenticate(manager)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'nhập kho 5 x 001002'}, format='json')
+    assert r.status_code == 200
+    assert 'không có quyền' in r.data['text'].lower()
+    assert not InboundOrder.objects.exists()
+
+
+@pytest.mark.django_db
+def test_assistant_ceo_can_do_everything(ceo, wh, part1, seeded, no_llm):
+    """CEO toàn quyền: lập phiếu kho + báo cáo điều hành + làm báo giá."""
+    c = APIClient(); c.force_authenticate(ceo)
+    assert 'phiếu nhập kho nháp' in c.post('/api/v1/analytics/assistant/query/',
+        {'query': 'nhập kho 5 x 001002'}, format='json').data['text'].lower()
+    assert 'Tổng quan' in c.post('/api/v1/analytics/assistant/query/',
+        {'query': 'báo cáo điều hành'}, format='json').data['text']
+    assert 'báo giá nháp' in c.post('/api/v1/analytics/assistant/query/',
+        {'query': 'làm báo giá cho ACME: 2 x 001002'}, format='json').data['text'].lower()
+
+
+@pytest.mark.django_db
 def test_assistant_contract_blocked_if_quote_not_approved(sale, seeded, no_llm):
     """Báo giá chưa duyệt → không soạn được hợp đồng."""
     from apps.crm.models import Contract, Quote, QuoteStatus

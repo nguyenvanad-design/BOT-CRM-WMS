@@ -86,8 +86,12 @@ READ_TOOLS: frozenset[str] = frozenset({
 # intent cần role tối thiểu. Customer KHÔNG bao giờ tới được đây (permission chặn).
 INTERNAL_ROLES: frozenset[str] = frozenset(ALL_ROLES - {Role.CUSTOMER})
 
+# Phạm vi BOT NỘI BỘ theo phòng ban (KHÁC quyền API/màn hình — chỉ áp cho chatbot):
+#  - Sales: sale + cấp trên (manager/CEO/admin) — manager giám sát mảng sales.
+#  - WMS:   warehouse + CEO/admin. Manager KHÔNG lập phiếu kho qua bot
+#           (việc kho để nhân viên kho; chỉ CEO/admin toàn quyền liên phòng ban).
 SALES_ROLES: frozenset[str] = frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN})
-WAREHOUSE_ROLES: frozenset[str] = frozenset({Role.WAREHOUSE, Role.MANAGER, Role.CEO, Role.ADMIN})
+WAREHOUSE_ROLES: frozenset[str] = frozenset({Role.WAREHOUSE, Role.CEO, Role.ADMIN})
 
 ASSISTANT_INTENT_ROLES: dict[str, frozenset[str]] = {
     # Đọc nghiệp vụ tài chính/điều hành — manager/CEO/admin
@@ -97,7 +101,7 @@ ASSISTANT_INTENT_ROLES: dict[str, frozenset[str]] = {
     'dormant_customers':  MANAGER_ROLES,
     'ceo_report':         MANAGER_ROLES,
     'evaluate_plan':      MANAGER_ROLES,
-    # Ghi nghiệp vụ — theo phòng ban
+    # Ghi nghiệp vụ — theo phòng ban (manager giám sát sales, KHÔNG làm kho)
     'create_quote':       SALES_ROLES,
     'create_contract':    SALES_ROLES,
     'wms_inbound':        WAREHOUSE_ROLES,
