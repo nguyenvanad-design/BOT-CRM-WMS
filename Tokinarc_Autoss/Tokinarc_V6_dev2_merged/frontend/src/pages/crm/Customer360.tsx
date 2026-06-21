@@ -240,6 +240,18 @@ export function Customer360Page() {
                   {e.next_action && (
                     <p className="text-xs mt-1"><span className="text-txt-2">Bước tiếp: </span>{e.next_action}</p>
                   )}
+                  {(e.recording_url || e.recap_file_url) && (
+                    <div className="flex gap-3 mt-1">
+                      {e.recording_url && (
+                        <a href={e.recording_url} target="_blank" rel="noreferrer"
+                          className="text-[11px] text-flame hover:underline">🎧 Nghe ghi âm</a>
+                      )}
+                      {e.recap_file_url && (
+                        <a href={e.recap_file_url} target="_blank" rel="noreferrer"
+                          className="text-[11px] text-flame hover:underline">📄 File recap</a>
+                      )}
+                    </div>
+                  )}
                   {e.who && <p className="text-[10px] text-txt-2 mt-0.5">— {e.who}</p>}
                 </li>
               )

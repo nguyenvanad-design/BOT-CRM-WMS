@@ -118,18 +118,35 @@ class QuoteSerializer(serializers.ModelSerializer):
 
 
 # ── Visit ─────────────────────────────────────────────────────────────────
+def _file_info(obj):
+    """Tóm tắt FileObject cho FE (tên + link tải)."""
+    if not obj:
+        return None
+    return {'id': str(obj.id), 'filename': obj.filename,
+            'download_url': f"/api/v1/storage/files/{obj.id}/download/"}
+
+
 class VisitSerializer(serializers.ModelSerializer):
     owner_username = serializers.CharField(source='owner.username', read_only=True)
     customer_name  = serializers.CharField(source='customer.name', read_only=True)
+    recording_info  = serializers.SerializerMethodField()
+    recap_file_info = serializers.SerializerMethodField()
 
     class Meta:
         model = Visit
         fields = [
             'id', 'customer', 'customer_name', 'opportunity', 'visit_date', 'purpose',
             'summary', 'next_action', 'gps', 'owner', 'owner_username',
+            'recording', 'recap_file', 'recap_text', 'recording_info', 'recap_file_info',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'owner', 'created_at', 'updated_at']
+
+    def get_recording_info(self, obj):
+        return _file_info(obj.recording)
+
+    def get_recap_file_info(self, obj):
+        return _file_info(obj.recap_file)
 
 
 # ── Ticket ────────────────────────────────────────────────────────────────

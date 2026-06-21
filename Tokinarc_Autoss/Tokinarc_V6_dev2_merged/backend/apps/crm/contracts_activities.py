@@ -70,15 +70,27 @@ class ActivitySerializer(serializers.ModelSerializer):
     customer_name        = serializers.CharField(source='customer.name', read_only=True)
     owner_username       = serializers.CharField(source='owner.username', read_only=True)
     activity_type_display = serializers.CharField(source='get_activity_type_display', read_only=True)
+    recording_info  = serializers.SerializerMethodField()
+    recap_file_info = serializers.SerializerMethodField()
 
     class Meta:
         model = Activity
         fields = [
             'id', 'customer', 'customer_name', 'opportunity',
             'activity_type', 'activity_type_display',
-            'content', 'activity_date', 'owner', 'owner_username', 'created_at',
+            'content', 'activity_date', 'owner', 'owner_username',
+            'recording', 'recap_file', 'recap_text', 'recording_info', 'recap_file_info',
+            'created_at',
         ]
         read_only_fields = ['id', 'owner', 'created_at']
+
+    def get_recording_info(self, obj):
+        from .serializers_ext import _file_info
+        return _file_info(obj.recording)
+
+    def get_recap_file_info(self, obj):
+        from .serializers_ext import _file_info
+        return _file_info(obj.recap_file)
 
 
 class ActivityViewSet(viewsets.ModelViewSet):

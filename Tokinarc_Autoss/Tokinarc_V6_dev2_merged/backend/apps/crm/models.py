@@ -299,6 +299,16 @@ class Visit(BaseModel):
     summary    = models.TextField(blank=True)
     next_action = models.CharField(max_length=200, blank=True)
     gps        = models.JSONField(default=dict, blank=True)   # {lat, lng} check-in
+    # Ghi âm buổi gặp + recap (sau khi sale đi họp về)
+    recording  = models.ForeignKey(
+        'storage.FileObject', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+',   # file ghi âm (audio)
+    )
+    recap_file = models.ForeignKey(
+        'storage.FileObject', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+',   # file recap (Word/PDF)
+    )
+    recap_text = models.TextField(blank=True)   # văn bản recap từ ghi âm
     owner      = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='visits',
@@ -440,6 +450,16 @@ class Activity(BaseModel):
     )
     content       = models.TextField(blank=True)
     activity_date = models.DateTimeField(default=timezone.now, db_index=True)
+    # Ghi âm cuộc gọi/tiếp xúc + recap
+    recording  = models.ForeignKey(
+        'storage.FileObject', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+',   # file ghi âm (audio)
+    )
+    recap_file = models.ForeignKey(
+        'storage.FileObject', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+',   # file recap (Word/PDF)
+    )
+    recap_text = models.TextField(blank=True)   # văn bản recap từ ghi âm
     owner         = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='activities',
     )

@@ -344,6 +344,8 @@ export interface TimelineEvent {
   next_action?: string
   status?: string
   amount_vnd?: number
+  recording_url?: string | null
+  recap_file_url?: string | null
   who?: string
 }
 

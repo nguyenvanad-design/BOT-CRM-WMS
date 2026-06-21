@@ -200,6 +200,35 @@ class TestCustomerAPI:
         r = client.get(f'/api/v1/crm/customers/{c.id}/timeline/')
         assert r.status_code == 404
 
+    def test_visit_recording_and_recap(self, api, sale_user):
+        """Tạo Visit kèm file ghi âm + văn bản recap → lưu & hiện trên timeline."""
+        import datetime as dt
+
+        from apps.crm.models import Visit
+        from apps.storage.models import FileObject
+        c = CustomerFactory(owner=sale_user, code='KH-0052')
+        audio = FileObject.objects.create(
+            kind='visit_recording', filename='ghiam.m4a', mime_type='audio/mp4',
+            size_bytes=1024, path='visit_recording/aa/x.m4a', sha256='a' * 64)
+
+        # Tạo visit qua API kèm recording + recap_text
+        r = api.post('/api/v1/crm/visits/', {
+            'customer': str(c.id), 'visit_date': '2026-06-20', 'purpose': 'Demo',
+            'recording': str(audio.id), 'recap_text': 'Khách chốt mua 10 bộ',
+        }, format='json')
+        assert r.status_code == 201
+        assert r.data['recap_text'] == 'Khách chốt mua 10 bộ'
+        assert r.data['recording_info']['filename'] == 'ghiam.m4a'
+
+        v = Visit.objects.get(customer=c)
+        assert v.recording_id == audio.id
+
+        # Timeline hiện recap (ưu tiên recap_text) + link ghi âm
+        t = api.get(f'/api/v1/crm/customers/{c.id}/timeline/')
+        ev = t.data['results'][0]
+        assert ev['detail'] == 'Khách chốt mua 10 bộ'
+        assert ev['recording_url'] and str(audio.id) in ev['recording_url']
+
     def test_audit_log_on_create(self, api, sale_user):
         from apps.common.models import AuditLog
         r = api.post('/api/v1/crm/customers/', {

@@ -2,7 +2,7 @@
  * Tokinarc frontend — src/pages/crm/forms/VisitForm.tsx
  * Tạo báo cáo viếng thăm. POST /crm/visits/ (owner do backend gán).
  */
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MapPin } from 'lucide-react'
@@ -12,26 +12,33 @@ import { useCustomerOptions, useOpportunityOptions } from '@/lib/useCustomerOpti
 import { Modal } from '@/components/Modal'
 import { Button } from '@/components/ui'
 import { FieldRow, TextInput, TextArea, SelectInput } from '@/components/form'
+import { FileUploadField } from '@/components/FileUploadField'
+import type { UploadedFile } from '@/lib/upload'
 
 interface Form {
   customer: string; opportunity: string; visit_date: string; purpose: string
-  summary: string; next_action: string
+  summary: string; next_action: string; recap_text: string
 }
 const today = () => new Date().toISOString().slice(0, 10)
-const EMPTY = (): Form => ({ customer: '', opportunity: '', visit_date: today(), purpose: '', summary: '', next_action: '' })
+const EMPTY = (): Form => ({ customer: '', opportunity: '', visit_date: today(), purpose: '', summary: '', next_action: '', recap_text: '' })
 
 export function VisitForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const { options: customers, isLoading } = useCustomerOptions()
   const { opps } = useOpportunityOptions()
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<Form>({ defaultValues: EMPTY() })
+  const [recording, setRecording] = useState<UploadedFile | null>(null)
+  const [recapFile, setRecapFile] = useState<UploadedFile | null>(null)
   const selectedCust = watch('customer')
   const oppOptions = opps.filter((o) => o.customer === selectedCust).map((o) => ({ value: o.id, label: o.title }))
 
-  useEffect(() => { if (open) reset(EMPTY()) }, [open, reset])
+  useEffect(() => { if (open) { reset(EMPTY()); setRecording(null); setRecapFile(null) } }, [open, reset])
 
   const save = useMutation({
-    mutationFn: (d: Form) => api.post('/crm/visits/', { ...d, opportunity: d.opportunity || null }),
+    mutationFn: (d: Form) => api.post('/crm/visits/', {
+      ...d, opportunity: d.opportunity || null,
+      recording: recording?.id ?? null, recap_file: recapFile?.id ?? null,
+    }),
     onSuccess: () => {
       toast.success('Đã ghi nhận visit')
       qc.invalidateQueries({ queryKey: ['visits'] })
@@ -68,6 +75,15 @@ export function VisitForm({ open, onClose }: { open: boolean; onClose: () => voi
           {...register('purpose', { required: 'Bắt buộc' })} />
         <TextArea label="Tóm tắt" {...register('summary')} />
         <TextInput label="Hành động tiếp theo" full {...register('next_action')} />
+
+        {/* Ghi âm buổi gặp + recap (sau khi đi họp về) */}
+        <FieldRow>
+          <FileUploadField label="File ghi âm" kind="visit_recording" accept="audio/*"
+            value={recording} onChange={setRecording} />
+          <FileUploadField label="File recap (Word/PDF)" kind="visit_recap"
+            accept=".doc,.docx,.pdf,.txt" value={recapFile} onChange={setRecapFile} />
+        </FieldRow>
+        <TextArea label="Recap (văn bản)" {...register('recap_text')} />
       </form>
     </Modal>
   )

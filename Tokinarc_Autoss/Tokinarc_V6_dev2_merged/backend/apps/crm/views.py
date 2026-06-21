@@ -165,19 +165,26 @@ class CustomerViewSet(viewsets.ModelViewSet):
         def _iso(d):
             return d.isoformat() if d else ''
 
-        for v in Visit.objects.filter(customer=customer).select_related('owner')[:50]:
+        def _dl(fid):
+            return f"/api/v1/storage/files/{fid}/download/" if fid else None
+
+        for v in (Visit.objects.filter(customer=customer)
+                  .select_related('owner', 'recording', 'recap_file')[:50]):
             events.append({
                 'date': _iso(v.visit_date), 'kind': 'visit', 'type': 'meeting',
                 'title': v.purpose or 'Viếng thăm',
-                'detail': v.summary, 'next_action': v.next_action,
+                'detail': v.recap_text or v.summary, 'next_action': v.next_action,
+                'recording_url': _dl(v.recording_id), 'recap_file_url': _dl(v.recap_file_id),
                 'who': v.owner.username if v.owner_id else '',
             })
         for a in (Activity.objects.filter(customer=customer)
-                  .select_related('owner')[:50]):
+                  .select_related('owner', 'recording', 'recap_file')[:50]):
             events.append({
                 'date': _iso(a.activity_date), 'kind': 'activity', 'type': a.activity_type,
                 'title': a.get_activity_type_display(),
-                'detail': a.content, 'who': a.owner.username if a.owner_id else '',
+                'detail': a.recap_text or a.content,
+                'recording_url': _dl(a.recording_id), 'recap_file_url': _dl(a.recap_file_id),
+                'who': a.owner.username if a.owner_id else '',
             })
         for q in Quote.objects.filter(customer=customer).select_related('owner')[:50]:
             events.append({
