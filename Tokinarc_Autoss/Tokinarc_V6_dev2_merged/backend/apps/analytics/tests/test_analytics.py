@@ -141,3 +141,34 @@ def test_assistant_manager_evaluate_plan(manager, seeded, no_llm):
                {'query': 'đánh giá kế hoạch pipeline'}, format='json')
     assert r.status_code == 200
     assert 'kế hoạch' in r.data['text'].lower()
+
+
+@pytest.mark.django_db
+def test_assistant_create_contract_from_approved_quote(sale, seeded, no_llm):
+    """Sale soạn hợp đồng từ báo giá ĐÃ DUYỆT → tạo Contract nháp THẬT."""
+    from apps.crm.models import Contract, Quote, QuoteStatus
+    q = Quote.objects.create(code='BG-0007', customer=seeded, owner=sale,
+                             total_vnd=5_000_000, status=QuoteStatus.APPROVED)
+    c = APIClient(); c.force_authenticate(sale)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'soạn hợp đồng từ báo giá BG-0007'}, format='json')
+    assert r.status_code == 200
+    assert 'hợp đồng nháp' in r.data['text'].lower()
+    ct = Contract.objects.get(quote=q)
+    assert ct.status == 'draft'
+    assert int(ct.value_vnd) == 5_000_000
+    assert ct.owner == sale
+
+
+@pytest.mark.django_db
+def test_assistant_contract_blocked_if_quote_not_approved(sale, seeded, no_llm):
+    """Báo giá chưa duyệt → không soạn được hợp đồng."""
+    from apps.crm.models import Contract, Quote, QuoteStatus
+    Quote.objects.create(code='BG-0008', customer=seeded, owner=sale,
+                         total_vnd=3_000_000, status=QuoteStatus.DRAFT)
+    c = APIClient(); c.force_authenticate(sale)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'soạn hợp đồng từ báo giá BG-0008'}, format='json')
+    assert r.status_code == 200
+    assert 'phải' in r.data['text'].lower() and 'duyệt' in r.data['text'].lower()
+    assert not Contract.objects.filter(quote__code='BG-0008').exists()

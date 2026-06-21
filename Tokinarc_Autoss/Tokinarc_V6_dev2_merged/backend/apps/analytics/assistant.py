@@ -145,7 +145,7 @@ _INTENT_SCHEMA = (
     "Bạn là bộ phân loại ý định cho trợ lý NỘI BỘ công ty phân phối súng hàn Tokinarc. "
     "Cho câu hỏi/yêu cầu tiếng Việt, TRẢ VỀ DUY NHẤT một JSON, không giải thích, dạng: "
     '{"intent": "...", "customer_name": "", "period": "", "months": 3, '
-    '"items": [{"part_no": "", "qty": 1}]}. '
+    '"items": [{"part_no": "", "qty": 1}], "quote_code": ""}. '
     "intent ∈ [revenue, customer_debt, top_customers, dormant_customers, ceo_report, "
     "evaluate_plan, create_quote, create_contract, wms_inbound, wms_outbound, "
     "lookup_doc, unknown]. "
@@ -154,7 +154,8 @@ _INTENT_SCHEMA = (
     "months: số tháng cho dormant_customers (mặc định 3). "
     "items: danh sách mã phụ tùng + số lượng khi LÀM BÁO GIÁ (create_quote); "
     "rỗng nếu không phải báo giá. "
-    "ceo_report = xin tóm tắt điều hành; evaluate_plan = đánh giá kế hoạch/pipeline."
+    "ceo_report = xin tóm tắt điều hành; evaluate_plan = đánh giá kế hoạch/pipeline. "
+    "quote_code: mã báo giá (VD BG-0007) khi SOẠN HỢP ĐỒNG từ báo giá đã duyệt."
 )
 
 
@@ -183,10 +184,11 @@ def _llm_intent(question: str) -> dict | None:
 
 def _keyword_intent(q: str) -> dict:
     ql = q.lower()
-    if any(k in ql for k in ('báo giá', 'bao gia', 'tạo báo giá', 'lập báo giá', 'làm báo giá')):
-        return {'intent': 'create_quote', 'items': _parse_items(q)}
+    # Hợp đồng trước báo giá: câu "soạn hợp đồng từ báo giá BG-x" chứa cả 2 từ khóa.
     if any(k in ql for k in ('hợp đồng', 'hop dong', 'soạn hợp đồng', 'lập hợp đồng')):
         return {'intent': 'create_contract'}
+    if any(k in ql for k in ('báo giá', 'bao gia', 'tạo báo giá', 'lập báo giá', 'làm báo giá')):
+        return {'intent': 'create_quote', 'items': _parse_items(q)}
     if any(k in ql for k in ('nhập kho', 'nhap kho', 'phiếu nhập', 'phieu nhap', 'nhận hàng')):
         return {'intent': 'wms_inbound'}
     if any(k in ql for k in ('xuất kho', 'xuat kho', 'phiếu xuất', 'phieu xuat', 'giao hàng')):
@@ -331,6 +333,45 @@ def tool_create_quote(user, customer_name: str, items: list[dict]) -> str:
             f"Báo giá đang ở trạng thái *Nháp* — vào màn Báo giá để gửi & trình duyệt.")
 
 
+def tool_create_contract(user, customer_name: str, quote_code: str) -> str:
+    """Soạn HỢP ĐỒNG NHÁP: ưu tiên từ báo giá đã duyệt (quote_code), hoặc cho 1 KH."""
+    from apps.accounts.roles import is_manager
+    from apps.crm.contracts_activities import _next_contract_code
+    from apps.crm.models import Contract, Quote, QuoteStatus
+
+    # Từ báo giá đã duyệt
+    if quote_code:
+        qs = Quote.objects.filter(code__iexact=quote_code)
+        if not is_manager(user):
+            qs = qs.filter(owner_id=user.id)
+        quote = qs.first()
+        if not quote:
+            return f"Không tìm thấy báo giá **{quote_code}** (trong phạm vi của bạn)."
+        if quote.status not in (QuoteStatus.APPROVED, QuoteStatus.CONVERTED):
+            return (f"Báo giá {quote.code} đang *{quote.get_status_display()}* — "
+                    f"phải **đã duyệt** mới soạn hợp đồng được.")
+        ct = Contract.objects.create(
+            customer=quote.customer, quote=quote, owner=user,
+            code=_next_contract_code(), value_vnd=quote.total_vnd,
+            title=f"Hợp đồng theo báo giá {quote.code}",
+        )
+        return (f"✅ Đã soạn **hợp đồng nháp {ct.code}** cho **{quote.customer.name}** "
+                f"từ báo giá {quote.code}, giá trị **{_vnd(ct.value_vnd)}**.\n"
+                f"Vào màn Hợp đồng để bổ sung điều khoản & trình duyệt.")
+
+    # Tạo trực tiếp cho 1 KH (chưa có giá trị)
+    if not customer_name:
+        return ("Cần **mã báo giá đã duyệt** (VD: BG-0007) hoặc **tên khách hàng** "
+                "để soạn hợp đồng. VD: \"soạn hợp đồng từ báo giá BG-0007\".")
+    cust = _resolve_customer(customer_name, user)
+    if not cust:
+        return f"Không tìm thấy khách hàng khớp \"{customer_name}\" (trong phạm vi của bạn)."
+    ct = Contract.objects.create(customer=cust, owner=user, code=_next_contract_code(),
+                                 title=f"Hợp đồng — {cust.name}")
+    return (f"✅ Đã soạn **hợp đồng nháp {ct.code}** cho **{cust.name}** (chưa có giá trị).\n"
+            f"Vào màn Hợp đồng để nhập giá trị, điều khoản & trình duyệt.")
+
+
 def answer(question: str, user) -> str:
     """Điểm vào chính: yêu cầu + user → trả lời/hành động (role-gated, data thật)."""
     from apps.accounts.roles import can_use_intent, role_of
@@ -361,8 +402,13 @@ def answer(question: str, user) -> str:
         cust_name = intent.get('customer_name') or _detect_customer(question)
         items = intent.get('items') or _parse_items(question)
         return tool_create_quote(user, cust_name, items)
-    if name in ('create_contract', 'wms_inbound', 'wms_outbound', 'lookup_doc'):
-        return "Chức năng này đang được hoàn thiện (Phase tiếp theo). Hiện đã có: báo giá, báo cáo CEO, đánh giá kế hoạch."
+    if name == 'create_contract':
+        cust_name = intent.get('customer_name') or _detect_customer(question)
+        m = re.search(r'\bBG[-\s]?(\d+)\b', question, re.I)
+        quote_code = f"BG-{int(m.group(1)):04d}" if m else (intent.get('quote_code') or '')
+        return tool_create_contract(user, cust_name, quote_code)
+    if name in ('wms_inbound', 'wms_outbound', 'lookup_doc'):
+        return "Chức năng này đang được hoàn thiện (Phase tiếp theo). Hiện đã có: báo giá, soạn hợp đồng, báo cáo CEO, đánh giá kế hoạch."
 
     return ("Em là **trợ lý nội bộ Tokinarc**. Tùy quyền của anh/chị, em có thể: "
             "**làm báo giá** (VD: \"làm báo giá cho Công ty ABC: 5 x 001002\"), "
