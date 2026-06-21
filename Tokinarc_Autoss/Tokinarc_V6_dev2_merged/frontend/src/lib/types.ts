@@ -335,6 +335,18 @@ export interface Opportunity {
 export type QuoteStatus =
   | 'draft' | 'sent' | 'pending_ceo' | 'approved' | 'rejected' | 'converted'
 
+export interface TimelineEvent {
+  date: string
+  kind: 'visit' | 'activity' | 'quote' | 'order' | 'ticket'
+  type: string
+  title: string
+  detail?: string
+  next_action?: string
+  status?: string
+  amount_vnd?: number
+  who?: string
+}
+
 export interface QuoteLine {
   id?: string
   part_no: string

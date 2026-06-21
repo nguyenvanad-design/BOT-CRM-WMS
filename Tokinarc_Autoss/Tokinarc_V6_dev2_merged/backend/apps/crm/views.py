@@ -147,6 +147,61 @@ class CustomerViewSet(viewsets.ModelViewSet):
         ser = Customer360Serializer(payload)
         return Response(ser.data)
 
+    # ── /timeline/ — lịch sử làm việc với khách hàng ─────────────────────────
+    @action(detail=True, methods=['get'], url_path='timeline')
+    def timeline(self, request, pk=None):
+        """Dòng thời gian tương tác: Visit + Activity + Báo giá + Đơn + Ticket.
+
+        Gộp từ nhiều bảng, sắp xếp giảm dần theo thời gian. Tôn trọng ownership
+        (sale chỉ xem KH của mình — get_object đã kiểm tra object permission).
+        """
+        from apps.sales.models import SalesOrder
+
+        from .models import Activity, Quote, Ticket, Visit
+
+        customer = self.get_object()
+        events: list[dict] = []
+
+        def _iso(d):
+            return d.isoformat() if d else ''
+
+        for v in Visit.objects.filter(customer=customer).select_related('owner')[:50]:
+            events.append({
+                'date': _iso(v.visit_date), 'kind': 'visit', 'type': 'meeting',
+                'title': v.purpose or 'Viếng thăm',
+                'detail': v.summary, 'next_action': v.next_action,
+                'who': v.owner.username if v.owner_id else '',
+            })
+        for a in (Activity.objects.filter(customer=customer)
+                  .select_related('owner')[:50]):
+            events.append({
+                'date': _iso(a.activity_date), 'kind': 'activity', 'type': a.activity_type,
+                'title': a.get_activity_type_display(),
+                'detail': a.content, 'who': a.owner.username if a.owner_id else '',
+            })
+        for q in Quote.objects.filter(customer=customer).select_related('owner')[:50]:
+            events.append({
+                'date': _iso(q.created_at), 'kind': 'quote', 'type': q.status,
+                'title': f"Báo giá {q.code}", 'status': q.status,
+                'amount_vnd': int(q.total_vnd or 0),
+                'who': q.owner.username if q.owner_id else '',
+            })
+        for o in SalesOrder.objects.filter(customer=customer)[:50]:
+            events.append({
+                'date': _iso(o.issued_date), 'kind': 'order', 'type': o.status,
+                'title': f"Đơn hàng {o.code}", 'status': o.status,
+                'amount_vnd': int(o.total_vnd or 0), 'who': '',
+            })
+        for t in Ticket.objects.filter(customer=customer)[:50]:
+            events.append({
+                'date': _iso(t.created_at), 'kind': 'ticket', 'type': t.status,
+                'title': f"Ticket {t.code}: {t.title}", 'status': t.status,
+                'detail': t.description, 'who': '',
+            })
+
+        events.sort(key=lambda e: e['date'], reverse=True)
+        return Response({'results': events[:80], 'count': len(events)})
+
     # ── Helpers ─────────────────────────────────────────────────────────────
     def _ip(self) -> str | None:
         xff = self.request.META.get('HTTP_X_FORWARDED_FOR')

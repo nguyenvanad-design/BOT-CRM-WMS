@@ -6,7 +6,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Building2, Phone, Mail, Star, Pencil } from 'lucide-react'
+import {
+  ArrowLeft, Building2, Phone, Mail, Star, Pencil,
+  MapPin, FileText, Package, Ticket as TicketIcon, Activity as ActivityIcon,
+} from 'lucide-react'
 import { CustomerForm } from '@/pages/crm/forms/CustomerForm'
 import { api, apiError } from '@/lib/api'
 import { fetchAll } from '@/lib/list'
@@ -15,13 +18,21 @@ import {
   OPP_STAGE_LABEL, OPP_STAGE_TONE, QUOTE_STATUS_LABEL, QUOTE_STATUS_TONE,
   compactVnd, formatVnd, formatDate,
 } from '@/lib/crm'
-import type { Customer360, Opportunity, Quote } from '@/lib/types'
+import type { Customer360, Opportunity, Quote, TimelineEvent } from '@/lib/types'
 import {
   Card, SectionTitle, StatCard, Tag, TableCard, Th, Td, RowMsg,
 } from '@/components/ui'
 
 const CHANNEL_LABEL: Record<string, string> = {
   zalo: 'Zalo', phone: 'Điện thoại', email: 'Email', other: 'Khác',
+}
+
+const KIND_META: Record<TimelineEvent['kind'], { icon: typeof MapPin; tone: string; label: string }> = {
+  visit:    { icon: MapPin,       tone: 'text-blue-400',  label: 'Viếng thăm' },
+  activity: { icon: ActivityIcon, tone: 'text-flame',     label: 'Hoạt động' },
+  quote:    { icon: FileText,     tone: 'text-amber-400', label: 'Báo giá' },
+  order:    { icon: Package,      tone: 'text-green-400', label: 'Đơn hàng' },
+  ticket:   { icon: TicketIcon,   tone: 'text-purple-400', label: 'Ticket' },
 }
 
 export function Customer360Page() {
@@ -42,6 +53,12 @@ export function Customer360Page() {
   const quotes = useQuery({
     queryKey: ['customer-360', id, 'quotes'],
     queryFn: () => fetchAll<Quote>('/crm/quotes/'),
+    enabled: !!id,
+  })
+  const timeline = useQuery({
+    queryKey: ['customer-360', id, 'timeline'],
+    queryFn: async () =>
+      (await api.get<{ results: TimelineEvent[] }>(`/crm/customers/${id}/timeline/`)).data.results,
     enabled: !!id,
   })
 
@@ -189,6 +206,46 @@ export function Customer360Page() {
             ))}
           </tbody>
         </TableCard>
+      </Card>
+
+      {/* Lịch sử làm việc (gộp Visit + Activity + Báo giá + Đơn + Ticket) */}
+      <Card className="mt-4">
+        <SectionTitle>Lịch sử làm việc</SectionTitle>
+        {timeline.isLoading && <p className="text-xs text-txt-2 py-4 text-center">Đang tải…</p>}
+        {timeline.isError && (
+          <p className="text-xs text-danger py-4 text-center">Lỗi: {apiError(timeline.error)}</p>
+        )}
+        {timeline.data && timeline.data.length === 0 && (
+          <p className="text-xs text-txt-2 py-4 text-center">Chưa có tương tác nào.</p>
+        )}
+        {timeline.data && timeline.data.length > 0 && (
+          <ol className="relative border-l border-line ml-2 space-y-4 py-1">
+            {timeline.data.map((e, i) => {
+              const meta = KIND_META[e.kind]
+              const Icon = meta.icon
+              return (
+                <li key={i} className="ml-4">
+                  <span className="absolute -left-[9px] w-4 h-4 rounded-full bg-ink-2 border border-line grid place-items-center">
+                    <Icon size={10} className={meta.tone} />
+                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-txt-2 tabular-nums">{formatDate(e.date)}</span>
+                    <Tag tone="gray">{meta.label}</Tag>
+                    <span className="text-sm font-medium">{e.title}</span>
+                    {e.amount_vnd ? (
+                      <span className="text-sm text-flame tabular-nums">{compactVnd(e.amount_vnd)}</span>
+                    ) : null}
+                  </div>
+                  {e.detail && <p className="text-xs text-txt-2 mt-1 whitespace-pre-line">{e.detail}</p>}
+                  {e.next_action && (
+                    <p className="text-xs mt-1"><span className="text-txt-2">Bước tiếp: </span>{e.next_action}</p>
+                  )}
+                  {e.who && <p className="text-[10px] text-txt-2 mt-0.5">— {e.who}</p>}
+                </li>
+              )
+            })}
+          </ol>
+        )}
       </Card>
     </Wrap>
   )

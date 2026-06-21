@@ -175,6 +175,31 @@ class TestCustomerAPI:
         assert r.data['open_orders'] == 0
         assert r.data['debt_vnd'] in ('0', 0)
 
+    def test_timeline_endpoint(self, api, sale_user):
+        """Lịch sử làm việc gộp Visit + Activity, sắp giảm dần theo thời gian."""
+        import datetime as dt
+
+        from apps.crm.models import Activity, Visit
+        c = CustomerFactory(owner=sale_user, code='KH-0050')
+        Visit.objects.create(customer=c, owner=sale_user, visit_date=dt.date(2026, 6, 10),
+                             purpose='Demo súng hàn', summary='Khách quan tâm',
+                             next_action='Gửi báo giá')
+        Activity.objects.create(customer=c, owner=sale_user, activity_type='call',
+                                content='Gọi chốt lịch', activity_date=dt.datetime(2026, 6, 15, 9, 0))
+        r = api.get(f'/api/v1/crm/customers/{c.id}/timeline/')
+        assert r.status_code == 200
+        assert r.data['count'] == 2
+        kinds = [e['kind'] for e in r.data['results']]
+        assert kinds == ['activity', 'visit']   # 15/06 trước 10/06
+        assert r.data['results'][0]['title'] == 'Gọi điện'
+
+    def test_timeline_respects_ownership(self, sale_user, other_sale):
+        """Sale khác không xem được timeline KH không thuộc mình (404)."""
+        c = CustomerFactory(owner=sale_user, code='KH-0051')
+        client = APIClient(); client.force_authenticate(other_sale)
+        r = client.get(f'/api/v1/crm/customers/{c.id}/timeline/')
+        assert r.status_code == 404
+
     def test_audit_log_on_create(self, api, sale_user):
         from apps.common.models import AuditLog
         r = api.post('/api/v1/crm/customers/', {
