@@ -1,7 +1,7 @@
 /**
- * Tokinarc frontend — src/pages/crm/ImportCustomersModal.tsx
- * Import KH cũ từ Excel/CSV: tải file mẫu → chọn file → Xem trước (dry-run) →
- * Import. Chỉ manager/CEO/admin (backend cũng chặn). POST /crm/customers/import/.
+ * Tokinarc frontend — src/pages/crm/ImportModal.tsx
+ * Modal import dữ liệu cũ từ Excel/CSV (dùng chung: KH, Lead, Hợp đồng, Đơn).
+ * Tải file mẫu → chọn file → Xem trước (dry-run) → Import. Chỉ manager/CEO/admin.
  */
 import { useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -12,15 +12,22 @@ import { Modal } from '@/components/Modal'
 import { Button } from '@/components/ui'
 
 interface Preview {
-  dry_run: boolean
   total_rows: number
   will_create: number
   skipped_existing: number
   errors: { row: number; message: string }[]
-  preview: { code: string; name: string; segment: string }[]
 }
 
-export function ImportCustomersModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export interface ImportSpec {
+  title: string
+  importUrl: string         // vd '/crm/customers/import/' hoặc '/crm/import/leads/'
+  templateUrl: string
+  templateFilename: string
+  invalidateKey: string     // queryKey gốc cần làm mới sau import
+  hint?: string
+}
+
+export function ImportModal({ open, onClose, spec }: { open: boolean; onClose: () => void; spec: ImportSpec }) {
   const qc = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -33,10 +40,10 @@ export function ImportCustomersModal({ open, onClose }: { open: boolean; onClose
   const downloadTemplate = async () => {
     setBusy('tpl')
     try {
-      const res = await api.get('/crm/customers/import-template/', { responseType: 'blob' })
+      const res = await api.get(spec.templateUrl, { responseType: 'blob' })
       const url = URL.createObjectURL(res.data as Blob)
       const a = document.createElement('a')
-      a.href = url; a.download = 'mau_import_khach_hang.xlsx'; a.click()
+      a.href = url; a.download = spec.templateFilename; a.click()
       URL.revokeObjectURL(url)
     } catch (e) { toast.error(apiError(e)) } finally { setBusy(null) }
   }
@@ -46,20 +53,20 @@ export function ImportCustomersModal({ open, onClose }: { open: boolean; onClose
     setBusy(dry ? 'dry' : 'run')
     try {
       const fd = new FormData(); fd.append('file', file)
-      const url = `/crm/customers/import/${dry ? '?dry_run=1' : ''}`
-      const res = await api.post(url, fd)
+      const sep = spec.importUrl.includes('?') ? '&' : '?'
+      const res = await api.post(`${spec.importUrl}${dry ? sep + 'dry_run=1' : ''}`, fd)
       if (dry) {
         setPreview(res.data)
       } else {
-        toast.success(`Đã import ${res.data.created} KH (bỏ qua ${res.data.skipped_existing} trùng).`)
-        qc.invalidateQueries({ queryKey: ['customers'] })
+        toast.success(`Đã import ${res.data.created} bản ghi (bỏ qua ${res.data.skipped_existing} trùng).`)
+        qc.invalidateQueries({ queryKey: [spec.invalidateKey] })
         close()
       }
     } catch (e) { toast.error(apiError(e)) } finally { setBusy(null) }
   }
 
   return (
-    <Modal open={open} onClose={close} title="Import khách hàng cũ"
+    <Modal open={open} onClose={close} title={spec.title}
       icon={<Upload size={18} className="text-flame" />}
       footer={
         <>
@@ -67,15 +74,15 @@ export function ImportCustomersModal({ open, onClose }: { open: boolean; onClose
           <Button variant="ghost" onClick={() => submit(true)} disabled={!file || busy !== null}>
             {busy === 'dry' ? <Loader2 size={14} className="animate-spin" /> : null} Xem trước
           </Button>
-          <Button onClick={() => submit(false)} disabled={!file || busy !== null || (preview?.will_create === 0)}>
+          <Button onClick={() => submit(false)} disabled={!file || busy !== null || preview?.will_create === 0}>
             {busy === 'run' ? <Loader2 size={14} className="animate-spin" /> : null} Import
           </Button>
         </>
       }>
       <div className="space-y-3">
         <p className="text-xs text-txt-2">
-          Tải file mẫu, điền dữ liệu KH cũ, rồi tải lên. Hỗ trợ <b>.xlsx</b> và <b>.csv</b>.
-          Mỗi dòng = 1 khách hàng (+ 1 người liên hệ chính tùy chọn). KH trùng mã sẽ được bỏ qua.
+          Tải file mẫu, điền dữ liệu cũ, rồi tải lên. Hỗ trợ <b>.xlsx</b> và <b>.csv</b>.
+          Bản ghi trùng mã sẽ được bỏ qua. {spec.hint}
         </p>
 
         <button onClick={downloadTemplate} disabled={busy !== null}
@@ -108,14 +115,9 @@ export function ImportCustomersModal({ open, onClose }: { open: boolean; onClose
               <div className="text-xs text-danger">
                 <div className="flex items-center gap-1 mb-1"><AlertTriangle size={13} /> {preview.errors.length} dòng lỗi:</div>
                 <ul className="space-y-0.5 max-h-28 overflow-y-auto">
-                  {preview.errors.slice(0, 20).map((er, i) => (
-                    <li key={i}>• Dòng {er.row}: {er.message}</li>
-                  ))}
+                  {preview.errors.slice(0, 20).map((er, i) => (<li key={i}>• Dòng {er.row}: {er.message}</li>))}
                 </ul>
               </div>
-            )}
-            {preview.will_create > 0 && (
-              <p className="text-[11px] text-txt-2">Bấm <b>Import</b> để ghi {preview.will_create} KH vào hệ thống.</p>
             )}
           </div>
         )}

@@ -9,7 +9,10 @@ from rest_framework.routers import DefaultRouter
 
 from .contacts import ContactViewSet
 from .contracts_activities import ActivityViewSet, ContractViewSet
-from .imports import CustomerImportTemplateView, CustomerImportView
+from .imports import (
+    CustomerImportTemplateView, CustomerImportView,
+    EntityImportTemplateView, EntityImportView,
+)
 from .receivables import ReceivablesView
 from .views import CustomerViewSet
 from .views_ext import (
@@ -32,6 +35,10 @@ urlpatterns = [
     path('customers/import/', CustomerImportView.as_view(), name='customer-import'),
     path('customers/import-template/', CustomerImportTemplateView.as_view(),
          name='customer-import-template'),
+    # Phase 2: leads / contracts / orders
+    path('import/<slug:entity>/', EntityImportView.as_view(), name='entity-import'),
+    path('import/<slug:entity>/template/', EntityImportTemplateView.as_view(),
+         name='entity-import-template'),
 ] + router.urls + [
     path('receivables/', ReceivablesView.as_view(), name='receivables'),
 ]

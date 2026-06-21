@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { Radar, ArrowRight, Plus } from 'lucide-react'
+import { Radar, ArrowRight, Plus, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
@@ -15,13 +15,17 @@ import {
   PageHeader, SearchInput, Tag, Button, TableCard, Th, Td, RowMsg, Pagination,
 } from '@/components/ui'
 import { useDebounced } from '@/lib/useDebounced'
+import { useAuth, isManager } from '@/lib/auth/store'
 import { LeadForm } from '@/pages/crm/forms/LeadForm'
+import { ImportModal } from '@/pages/crm/ImportModal'
 
 export function LeadsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const canImport = isManager(useAuth((s) => s.user?.role))
   const [editing, setEditing] = useState<Lead | null>(null)
   const debounced = useDebounced(search, 350, () => setPage(1))
 
@@ -55,6 +59,9 @@ export function LeadsPage() {
         actions={
           <>
             <SearchInput value={search} onChange={setSearch} placeholder="Tìm tên, công ty…" />
+            {canImport && (
+              <Button variant="ghost" onClick={() => setImportOpen(true)}><Upload size={14} /> Import</Button>
+            )}
             <Button onClick={openCreate}><Plus size={14} /> Tạo Lead</Button>
           </>
         }
@@ -110,6 +117,14 @@ export function LeadsPage() {
       )}
 
       <LeadForm open={formOpen} onClose={() => setFormOpen(false)} editing={editing} />
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} spec={{
+        title: 'Import Lead cũ',
+        importUrl: '/crm/import/leads/',
+        templateUrl: '/crm/import/leads/template/',
+        templateFilename: 'mau_import_leads.xlsx',
+        invalidateKey: 'leads',
+        hint: 'Mỗi dòng = 1 lead. Trùng theo tên + SĐT sẽ bỏ qua.',
+      }} />
     </div>
   )
 }

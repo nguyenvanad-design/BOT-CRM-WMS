@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ScrollText, Plus } from 'lucide-react'
+import { ScrollText, Plus, Upload } from 'lucide-react'
 import { apiError } from '@/lib/api'
 import { fetchAll } from '@/lib/list'
 import { compactVnd, formatVnd, formatDate, CONTRACT_STATUS_LABEL, CONTRACT_STATUS_TONE } from '@/lib/crm'
@@ -12,10 +12,14 @@ import type { Contract } from '@/lib/types'
 import {
   PageHeader, StatCard, Button, Tag, TableCard, Th, Td, RowMsg,
 } from '@/components/ui'
+import { useAuth, isManager } from '@/lib/auth/store'
 import { ContractForm } from '@/pages/crm/forms/ContractForm'
+import { ImportModal } from '@/pages/crm/ImportModal'
 
 export function ContractsPage() {
   const [formOpen, setFormOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const canImport = isManager(useAuth((s) => s.user?.role))
   const [editing, setEditing] = useState<Contract | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
@@ -30,7 +34,14 @@ export function ContractsPage() {
     <div className="max-w-6xl">
       <PageHeader icon={<ScrollText size={20} className="text-flame" />} title="Hợp đồng"
         subtitle={data ? `${data.count} hợp đồng` : undefined}
-        actions={<Button onClick={() => { setEditing(null); setFormOpen(true) }}><Plus size={14} /> Tạo HĐ</Button>} />
+        actions={
+          <>
+            {canImport && (
+              <Button variant="ghost" onClick={() => setImportOpen(true)}><Upload size={14} /> Import</Button>
+            )}
+            <Button onClick={() => { setEditing(null); setFormOpen(true) }}><Plus size={14} /> Tạo HĐ</Button>
+          </>
+        } />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <StatCard label="Hiệu lực" tone="ok" value={isLoading ? '…' : count('active')} />
@@ -63,6 +74,14 @@ export function ContractsPage() {
       </TableCard>
 
       <ContractForm open={formOpen} onClose={() => setFormOpen(false)} editing={editing} />
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} spec={{
+        title: 'Import Hợp đồng cũ',
+        importUrl: '/crm/import/contracts/',
+        templateUrl: '/crm/import/contracts/template/',
+        templateFilename: 'mau_import_hop_dong.xlsx',
+        invalidateKey: 'contracts',
+        hint: 'Cột customer_code = mã KH đã có. Trùng mã HĐ sẽ bỏ qua.',
+      }} />
     </div>
   )
 }

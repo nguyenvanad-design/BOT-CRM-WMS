@@ -251,6 +251,49 @@ class TestCustomerAPI:
         assert r.status_code == 200
         assert 'spreadsheet' in r['Content-Type']
 
+    # ── Phase 2: leads / contracts / orders ──
+    def test_import_leads(self, manager):
+        from apps.crm.models import Lead
+        client = APIClient(); client.force_authenticate(manager)
+        csv = "name,company,phone,status\nAnh Hung,XYZ,0907,new\n,KhongTen,0908,new\n"
+        r = client.post('/api/v1/crm/import/leads/', {'file': self._csv(csv)}, format='multipart')
+        assert r.status_code == 200
+        assert r.data['created'] == 1 and len(r.data['errors']) == 1
+        assert Lead.objects.filter(name='Anh Hung', owner=manager).exists()
+
+    def test_import_contracts_resolves_customer(self, manager, sale_user):
+        from apps.crm.models import Contract
+        CustomerFactory(owner=sale_user, code='KH-8001', name='ACME')
+        client = APIClient(); client.force_authenticate(manager)
+        csv = ("code,customer_code,title,value_vnd,status\n"
+               "HD-9001,KH-8001,HD khung,500.000.000,active\n"
+               "HD-9002,KH-XXXX,Sai KH,1000,active\n")    # KH không tồn tại → lỗi
+        r = client.post('/api/v1/crm/import/contracts/', {'file': self._csv(csv)}, format='multipart')
+        assert r.data['created'] == 1 and len(r.data['errors']) == 1
+        ct = Contract.objects.get(code='HD-9001')
+        assert int(ct.value_vnd) == 500_000_000 and ct.customer.code == 'KH-8001'
+
+    def test_import_orders(self, manager, sale_user):
+        from apps.sales.models import SalesOrder
+        CustomerFactory(owner=sale_user, code='KH-8101', name='ACME2')
+        client = APIClient(); client.force_authenticate(manager)
+        csv = ("code,customer_code,issued_date,total_vnd,paid_vnd,status\n"
+               "DH-9001,KH-8101,2024-03-20,120000000,120000000,completed\n"
+               "DH-9002,KH-8101,2024-03-21,1000,5000,completed\n")   # paid>total → lỗi
+        r = client.post('/api/v1/crm/import/orders/', {'file': self._csv(csv)}, format='multipart')
+        assert r.data['created'] == 1 and len(r.data['errors']) == 1
+        assert SalesOrder.objects.filter(code='DH-9001').exists()
+
+    def test_import_entity_blocked_for_sale(self, api):
+        r = api.post('/api/v1/crm/import/leads/',
+                     {'file': self._csv('name\nAnh A\n')}, format='multipart')
+        assert r.status_code == 403
+
+    def test_import_entity_unknown_404(self, manager):
+        client = APIClient(); client.force_authenticate(manager)
+        r = client.get('/api/v1/crm/import/khong_co/template/')
+        assert r.status_code == 404
+
     def test_visit_recording_and_recap(self, api, sale_user):
         """Tạo Visit kèm file ghi âm + văn bản recap → lưu & hiện trên timeline."""
         import datetime as dt

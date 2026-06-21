@@ -16,7 +16,7 @@ import type { Customer, Paginated } from '@/lib/types'
 import { Button } from '@/components/ui'
 import { useAuth, isManager } from '@/lib/auth/store'
 import { CustomerForm } from '@/pages/crm/forms/CustomerForm'
-import { ImportCustomersModal } from '@/pages/crm/ImportCustomersModal'
+import { ImportModal } from '@/pages/crm/ImportModal'
 
 async function fetchCustomers(search: string, page: number) {
   const res = await api.get<Paginated<Customer>>('/crm/customers/', {
@@ -125,7 +125,14 @@ export function CustomersPage() {
       )}
 
       <CustomerForm open={formOpen} onClose={() => setFormOpen(false)} />
-      <ImportCustomersModal open={importOpen} onClose={() => setImportOpen(false)} />
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} spec={{
+        title: 'Import khách hàng cũ',
+        importUrl: '/crm/customers/import/',
+        templateUrl: '/crm/customers/import-template/',
+        templateFilename: 'mau_import_khach_hang.xlsx',
+        invalidateKey: 'customers',
+        hint: 'Mỗi dòng = 1 KH (+ 1 người liên hệ chính tùy chọn).',
+      }} />
     </div>
   )
 }
