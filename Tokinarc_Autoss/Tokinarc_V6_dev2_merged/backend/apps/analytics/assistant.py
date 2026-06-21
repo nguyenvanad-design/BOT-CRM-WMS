@@ -142,13 +142,19 @@ def _gemini_model() -> str:
 
 
 _INTENT_SCHEMA = (
-    "Bạn là bộ phân loại ý định cho trợ lý CRM nội bộ. Cho câu hỏi tiếng Việt, "
-    "TRẢ VỀ DUY NHẤT một JSON, không giải thích, dạng: "
-    '{"intent": "...", "customer_name": "", "period": "", "months": 3}. '
-    "intent ∈ [revenue, customer_debt, top_customers, dormant_customers, unknown]. "
+    "Bạn là bộ phân loại ý định cho trợ lý NỘI BỘ công ty phân phối súng hàn Tokinarc. "
+    "Cho câu hỏi/yêu cầu tiếng Việt, TRẢ VỀ DUY NHẤT một JSON, không giải thích, dạng: "
+    '{"intent": "...", "customer_name": "", "period": "", "months": 3, '
+    '"items": [{"part_no": "", "qty": 1}]}. '
+    "intent ∈ [revenue, customer_debt, top_customers, dormant_customers, ceo_report, "
+    "evaluate_plan, create_quote, create_contract, wms_inbound, wms_outbound, "
+    "lookup_doc, unknown]. "
     "period ∈ [today, month, year, all] (chỉ cho revenue). "
-    "customer_name: tên KH nếu hỏi công nợ 1 KH cụ thể, ngược lại để rỗng. "
-    "months: số tháng cho dormant_customers (mặc định 3)."
+    "customer_name: tên KH nếu liên quan 1 KH cụ thể (công nợ / báo giá / hợp đồng). "
+    "months: số tháng cho dormant_customers (mặc định 3). "
+    "items: danh sách mã phụ tùng + số lượng khi LÀM BÁO GIÁ (create_quote); "
+    "rỗng nếu không phải báo giá. "
+    "ceo_report = xin tóm tắt điều hành; evaluate_plan = đánh giá kế hoạch/pipeline."
 )
 
 
@@ -177,6 +183,20 @@ def _llm_intent(question: str) -> dict | None:
 
 def _keyword_intent(q: str) -> dict:
     ql = q.lower()
+    if any(k in ql for k in ('báo giá', 'bao gia', 'tạo báo giá', 'lập báo giá', 'làm báo giá')):
+        return {'intent': 'create_quote', 'items': _parse_items(q)}
+    if any(k in ql for k in ('hợp đồng', 'hop dong', 'soạn hợp đồng', 'lập hợp đồng')):
+        return {'intent': 'create_contract'}
+    if any(k in ql for k in ('nhập kho', 'nhap kho', 'phiếu nhập', 'phieu nhap', 'nhận hàng')):
+        return {'intent': 'wms_inbound'}
+    if any(k in ql for k in ('xuất kho', 'xuat kho', 'phiếu xuất', 'phieu xuat', 'giao hàng')):
+        return {'intent': 'wms_outbound'}
+    if any(k in ql for k in ('báo cáo ceo', 'bao cao ceo', 'tóm tắt điều hành', 'tom tat dieu hanh',
+                             'báo cáo điều hành', 'executive')):
+        return {'intent': 'ceo_report'}
+    if any(k in ql for k in ('đánh giá kế hoạch', 'danh gia ke hoach', 'pipeline', 'dự báo', 'du bao',
+                             'forecast', 'kế hoạch kinh doanh')):
+        return {'intent': 'evaluate_plan'}
     if any(k in ql for k in ('công nợ', 'cong no', 'còn nợ', 'no bao nhieu', 'nợ', 'phải thu')):
         # Thử bắt tên KH sau từ khóa (đơn giản): cụm chữ hoa hoặc sau "của"
         m = re.search(r'(?:của|cua)\s+([\w\sÀ-ỹ]+?)(?:\s+còn|\s+nợ|\?|$)', q, re.I)
@@ -207,10 +227,122 @@ def _detect_customer(q: str) -> str:
     return ''
 
 
-def answer(question: str) -> str:
-    """Điểm vào chính: câu hỏi → câu trả lời (số liệu thật từ DB)."""
+def _parse_items(q: str) -> list[dict]:
+    """Trích (mã phụ tùng, số lượng) từ câu tự do — fallback khi không có LLM.
+
+    Bắt mẫu: "5 x 001002", "10 cái 002001", "001002 x3", "2 001003".
+    """
+    items: list[dict] = []
+    seen = set()
+    # qty trước mã: "5 x 001002" / "10 cái 002001" / "2 001003"
+    for m in re.finditer(r'(\d+)\s*(?:x|cái|cai|chiếc|chiec|pcs|\*)?\s*([0-9]{4,}[A-Za-z0-9\-]*)', q):
+        qty, pn = int(m.group(1)), m.group(2)
+        if pn not in seen:
+            items.append({'part_no': pn, 'qty': max(1, qty)}); seen.add(pn)
+    # mã trước qty: "001002 x3"
+    for m in re.finditer(r'([0-9]{4,}[A-Za-z0-9\-]*)\s*(?:x|\*)\s*(\d+)', q):
+        pn, qty = m.group(1), int(m.group(2))
+        if pn not in seen:
+            items.append({'part_no': pn, 'qty': max(1, qty)}); seen.add(pn)
+    return items
+
+
+# ── Tool điều hành (đọc) ────────────────────────────────────────────────────
+def tool_ceo_report() -> str:
+    """Báo cáo điều hành cho CEO (tóm tắt toàn phòng ban, số liệu thật)."""
+    return executive_summary()['summary']
+
+
+def tool_evaluate_plan() -> str:
+    """Đánh giá kế hoạch kinh doanh từ pipeline forecast (số liệu thật)."""
+    from . import services
+    rows = services.pipeline_forecast()
+    if not rows:
+        return "Chưa có cơ hội nào trong pipeline để đánh giá kế hoạch."
+    total_w = sum(float(r['weighted_vnd'] or 0) for r in rows)
+    total_cnt = sum(int(r.get('count', 0) or 0) for r in rows)
+    lines = [f"• {r['stage']}: {r.get('count', 0)} cơ hội — dự báo có trọng số "
+             f"{_vnd(r['weighted_vnd'])}" for r in rows]
+    body = '\n'.join(lines)
+    return (f"**Đánh giá kế hoạch (pipeline)**\n"
+            f"{total_cnt} cơ hội đang mở; **dự báo doanh thu có trọng số "
+            f"(weighted): {_vnd(total_w)}**.\n{body}\n"
+            f"_Weighted = giá trị cơ hội × xác suất theo giai đoạn._")
+
+
+# ── Tool ghi: làm báo giá nháp ──────────────────────────────────────────────
+def _resolve_customer(name: str, user):
+    """Tìm KH theo tên/mã. Non-manager chỉ thấy KH của mình (khớp ownership)."""
+    from apps.accounts.roles import is_manager
+    from apps.crm.models import Customer
+    if not name:
+        return None
+    qs = Customer.objects.filter(deleted_at__isnull=True)
+    if not is_manager(user):
+        qs = qs.filter(owner_id=user.id)
+    return (qs.filter(name__icontains=name).first()
+            or qs.filter(code__icontains=name).first())
+
+
+def tool_create_quote(user, customer_name: str, items: list[dict]) -> str:
+    """Tạo BÁO GIÁ NHÁP (draft) cho user, lấy giá từ catalog. Cần duyệt sau."""
+    from apps.catalog.models import Part
+    from apps.crm.models import Quote, QuoteLine
+    from apps.crm.views_ext import _next_code
+
+    if not customer_name:
+        return "Cần cho biết **tên khách hàng** để lập báo giá. VD: \"làm báo giá cho Công ty ABC: 5 x 001002\"."
+    cust = _resolve_customer(customer_name, user)
+    if not cust:
+        return (f"Không tìm thấy khách hàng khớp \"{customer_name}\" (trong phạm vi của bạn). "
+                f"Kiểm tra lại tên/mã KH.")
+    if not items:
+        return (f"Đã xác định KH **{cust.name}** nhưng chưa có dòng hàng. "
+                f"Nêu mã phụ tùng + số lượng, VD: \"5 x 001002, 10 cái 002001\".")
+
+    quote = Quote.objects.create(customer=cust, owner=user, code=_next_code(Quote, 'BG'))
+    found, missing = [], []
+    for it in items:
+        pn = str(it.get('part_no', '')).strip()
+        qty = max(1, int(it.get('qty', 1) or 1))
+        if not pn:
+            continue
+        part = Part.objects.filter(tokin_part_no=pn).first()
+        if not part:
+            missing.append(pn); continue
+        QuoteLine.objects.create(
+            quote=quote, part_no=pn, part_name=part.display_name_vi or '',
+            qty=qty, unit_price_vnd=part.price_vnd or 0,
+        )
+        found.append((pn, part.display_name_vi or pn, qty, int(part.price_vnd or 0)))
+
+    if not found:
+        quote.delete()
+        return (f"Không tạo được báo giá: không tìm thấy mã phụ tùng nào hợp lệ "
+                f"({', '.join(missing)}).")
+    quote.recompute_total()
+    quote.save(update_fields=['total_vnd'])
+
+    rows = '\n'.join(f"• {n} (`{pn}`) × {qty} = {_vnd(p * qty)}" for pn, n, qty, p in found)
+    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
+    lvl = " — giá trị lớn, sẽ cần CEO duyệt cấp 2" if quote.requires_l2() else ""
+    return (f"✅ Đã tạo **báo giá nháp {quote.code}** cho **{cust.name}**:\n{rows}\n"
+            f"**Tổng: {_vnd(quote.total_vnd)}**{lvl}.{note}\n"
+            f"Báo giá đang ở trạng thái *Nháp* — vào màn Báo giá để gửi & trình duyệt.")
+
+
+def answer(question: str, user) -> str:
+    """Điểm vào chính: yêu cầu + user → trả lời/hành động (role-gated, data thật)."""
+    from apps.accounts.roles import can_use_intent, role_of
+
     intent = _llm_intent(question) or _keyword_intent(question)
     name = intent.get('intent', 'unknown')
+    role = role_of(user)
+
+    # Gate role theo intent (trừ unknown — chỉ trả hướng dẫn)
+    if name != 'unknown' and not can_use_intent(role, name):
+        return (f"Xin lỗi, vai trò **{role}** không có quyền dùng chức năng này. "
+                f"Liên hệ quản lý nếu cần.")
 
     if name == 'revenue':
         return tool_revenue(intent.get('period') or 'month')
@@ -221,10 +353,21 @@ def answer(question: str) -> str:
         return tool_top_customers()
     if name == 'dormant_customers':
         return tool_dormant_customers(int(intent.get('months') or 3))
+    if name == 'ceo_report':
+        return tool_ceo_report()
+    if name == 'evaluate_plan':
+        return tool_evaluate_plan()
+    if name == 'create_quote':
+        cust_name = intent.get('customer_name') or _detect_customer(question)
+        items = intent.get('items') or _parse_items(question)
+        return tool_create_quote(user, cust_name, items)
+    if name in ('create_contract', 'wms_inbound', 'wms_outbound', 'lookup_doc'):
+        return "Chức năng này đang được hoàn thiện (Phase tiếp theo). Hiện đã có: báo giá, báo cáo CEO, đánh giá kế hoạch."
 
-    return ("Em là trợ lý CRM nội bộ. Em trả lời được về: **doanh thu** (hôm nay/"
-            "tháng/năm), **công nợ** khách hàng, **top khách hàng**, và **khách "
-            "chưa mua** lâu. Anh/chị thử hỏi cụ thể hơn nhé.")
+    return ("Em là **trợ lý nội bộ Tokinarc**. Tùy quyền của anh/chị, em có thể: "
+            "**làm báo giá** (VD: \"làm báo giá cho Công ty ABC: 5 x 001002\"), "
+            "xem **doanh thu**/**công nợ**/**top khách hàng**, **báo cáo CEO**, "
+            "**đánh giá kế hoạch** (pipeline). Anh/chị nói rõ yêu cầu nhé.")
 
 
 # ── Executive summary (tổng hợp liên phòng ban) ─────────────────────────────

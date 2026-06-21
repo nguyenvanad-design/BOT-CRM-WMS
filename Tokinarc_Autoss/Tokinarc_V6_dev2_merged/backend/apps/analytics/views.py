@@ -7,7 +7,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.roles import MANAGER_ROLES
+from apps.accounts.roles import INTERNAL_ROLES, MANAGER_ROLES
 
 from . import assistant, services
 
@@ -18,6 +18,15 @@ class IsManagerOrAdmin(BasePermission):
     def has_permission(self, request, view):
         u = request.user
         return bool(u and u.is_authenticated and getattr(u, 'role', '') in MANAGER_ROLES)
+
+
+class IsInternalStaff(BasePermission):
+    """Bot nội bộ: mọi nhân viên (role != customer). Khách KHÔNG vào được."""
+    message = "Chỉ nhân viên nội bộ dùng được trợ lý này."
+
+    def has_permission(self, request, view):
+        u = request.user
+        return bool(u and u.is_authenticated and getattr(u, 'role', '') in INTERNAL_ROLES)
 
 
 class _Base(APIView):
@@ -56,13 +65,16 @@ class PipelineForecastView(_Base):
         return Response(services.pipeline_forecast())
 
 
-class AssistantQueryView(_Base):
-    """Trợ lý CRM nội bộ (manager+). POST {query} → {text}."""
+class AssistantQueryView(APIView):
+    """Trợ lý NỘI BỘ (mọi nhân viên; mỗi intent tự gate role bên trong).
+    POST {query} → {text}. Có thể tạo báo giá/hợp đồng/phiếu kho theo quyền."""
+    permission_classes = [IsInternalStaff]
+
     def post(self, request):
         q = (request.data.get('query') or '').strip()
         if not q:
             return Response({'detail': 'Thiếu câu hỏi.'}, status=400)
-        return Response({'text': assistant.answer(q), 'success': True})
+        return Response({'text': assistant.answer(q, request.user), 'success': True})
 
 
 class AssistantSummaryView(_Base):

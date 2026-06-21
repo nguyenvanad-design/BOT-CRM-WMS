@@ -64,3 +64,80 @@ def test_debt_aging(manager, seeded):
     assert r.status_code == 200
     # chỉ HD-9001 còn nợ
     assert r.data['count'] == 1
+
+
+# ─── Bot nội bộ (assistant) — tích hợp CRM theo role ────────────────────────
+@pytest.fixture
+def no_llm(monkeypatch):
+    """Tắt gọi Gemini thật trong test → ép dùng keyword/template."""
+    from apps.analytics import assistant
+    monkeypatch.setattr(assistant, '_gemini_key', lambda: '')
+
+
+@pytest.fixture
+def customer(db):
+    return User.objects.create(username='kh1', role=Role.CUSTOMER)
+
+
+@pytest.fixture
+def ceo(db):
+    return User.objects.create(username='ceo1', role=Role.CEO)
+
+
+@pytest.mark.django_db
+def test_assistant_customer_blocked(customer):
+    """Khách hàng KHÔNG vào được bot nội bộ (permission)."""
+    c = APIClient(); c.force_authenticate(customer)
+    r = c.post('/api/v1/analytics/assistant/query/', {'query': 'doanh thu tháng này'}, format='json')
+    assert r.status_code == 403
+
+
+@pytest.mark.django_db
+def test_assistant_sale_create_quote(sale, seeded, no_llm):
+    """Sale nhờ bot làm báo giá → tạo Quote nháp THẬT, owner = sale, giá từ catalog."""
+    from apps.catalog.models import Part
+    from apps.crm.models import Quote
+    Part.objects.create(tokin_part_no='001002', category='tip',
+                        display_name_vi='Bép hàn 0.8', price_vnd=120000)
+
+    c = APIClient(); c.force_authenticate(sale)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'làm báo giá cho ACME: 2 x 001002'}, format='json')
+    assert r.status_code == 200
+    assert 'báo giá nháp' in r.data['text'].lower()
+
+    q = Quote.objects.get(owner=sale)
+    assert q.status == 'draft'
+    assert q.customer.name == 'ACME'
+    assert int(q.total_vnd) == 240000   # 2 × 120.000
+    assert q.lines.count() == 1
+
+
+@pytest.mark.django_db
+def test_assistant_sale_blocked_ceo_report(sale, seeded, no_llm):
+    """Sale KHÔNG được dùng báo cáo CEO → trả thông báo từ chối (không 403)."""
+    c = APIClient(); c.force_authenticate(sale)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'cho tôi báo cáo CEO'}, format='json')
+    assert r.status_code == 200
+    assert 'không có quyền' in r.data['text'].lower()
+
+
+@pytest.mark.django_db
+def test_assistant_manager_ceo_report(manager, seeded, no_llm):
+    """Manager xin báo cáo điều hành → có nội dung tóm tắt (số liệu thật)."""
+    c = APIClient(); c.force_authenticate(manager)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'tóm tắt điều hành'}, format='json')
+    assert r.status_code == 200
+    assert 'Tổng quan' in r.data['text']
+
+
+@pytest.mark.django_db
+def test_assistant_manager_evaluate_plan(manager, seeded, no_llm):
+    """Manager đánh giá kế hoạch (pipeline) → không lỗi, có tiêu đề đánh giá."""
+    c = APIClient(); c.force_authenticate(manager)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'đánh giá kế hoạch pipeline'}, format='json')
+    assert r.status_code == 200
+    assert 'kế hoạch' in r.data['text'].lower()

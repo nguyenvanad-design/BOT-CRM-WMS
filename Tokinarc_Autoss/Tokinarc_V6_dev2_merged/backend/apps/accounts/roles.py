@@ -81,6 +81,38 @@ READ_TOOLS: frozenset[str] = frozenset({
     'get_purchasing_summary',
 })
 
+# ─── Bot nội bộ (analytics/assistant) — quyền theo intent ────────────────────
+# Bot nội bộ KHÁC bot khách: chỉ nhân viên (role != customer) dùng được, và mỗi
+# intent cần role tối thiểu. Customer KHÔNG bao giờ tới được đây (permission chặn).
+INTERNAL_ROLES: frozenset[str] = frozenset(ALL_ROLES - {Role.CUSTOMER})
+
+SALES_ROLES: frozenset[str] = frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN})
+WAREHOUSE_ROLES: frozenset[str] = frozenset({Role.WAREHOUSE, Role.MANAGER, Role.CEO, Role.ADMIN})
+
+ASSISTANT_INTENT_ROLES: dict[str, frozenset[str]] = {
+    # Đọc nghiệp vụ tài chính/điều hành — manager/CEO/admin
+    'revenue':            MANAGER_ROLES,
+    'customer_debt':      MANAGER_ROLES,
+    'top_customers':      MANAGER_ROLES,
+    'dormant_customers':  MANAGER_ROLES,
+    'ceo_report':         MANAGER_ROLES,
+    'evaluate_plan':      MANAGER_ROLES,
+    # Ghi nghiệp vụ — theo phòng ban
+    'create_quote':       SALES_ROLES,
+    'create_contract':    SALES_ROLES,
+    'wms_inbound':        WAREHOUSE_ROLES,
+    'wms_outbound':       WAREHOUSE_ROLES,
+    # Tra cứu tài liệu/sản phẩm Tokin — mọi nhân viên
+    'lookup_doc':         INTERNAL_ROLES,
+}
+
+
+def can_use_intent(role: str, intent: str) -> bool:
+    """True nếu role được phép dùng intent của bot nội bộ."""
+    required = ASSISTANT_INTENT_ROLES.get(intent)
+    return bool(required) and role in required
+
+
 # Read tool NHẠY CẢM — đọc nhưng cần role tối thiểu (khớp analytics IsManagerOrAdmin).
 # Tool đọc KHÔNG có trong dict này = mọi role nội bộ đọc được (vd get_inventory).
 # Customer luôn bị chặn các tool nội bộ ở guardrail (xem tool_guardrail.py).
