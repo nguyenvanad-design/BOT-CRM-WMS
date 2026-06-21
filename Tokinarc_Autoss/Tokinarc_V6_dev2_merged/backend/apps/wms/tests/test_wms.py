@@ -83,6 +83,57 @@ def auth(wh_user):
     return c
 
 
+# ─── Scan-entry: quét điện thoại để nhập dữ liệu ─────────────────────────────
+@pytest.mark.django_db
+def test_scan_entry_receive_adds_stock(auth, part):
+    b = BinFactory(full_code='HCM-A-R01-B05')
+    r = auth.post('/api/v1/wms/inventory/scan-entry/',
+                  {'code': '002001', 'bin_code': 'HCM-A-R01-B05', 'qty': 10, 'mode': 'receive'},
+                  format='json')
+    assert r.status_code == 200
+    assert r.data['qty_on_hand'] == 10
+    # quét lần 2 cộng dồn
+    r2 = auth.post('/api/v1/wms/inventory/scan-entry/',
+                   {'code': '002001', 'bin_code': 'HCM-A-R01-B05', 'qty': 5, 'mode': 'receive'},
+                   format='json')
+    assert r2.data['qty_on_hand'] == 15
+    assert InventoryItem.objects.get(bin=b, part=part).qty_on_hand == 15
+
+
+@pytest.mark.django_db
+def test_scan_entry_count_sets_stock(auth, part):
+    BinFactory(full_code='HCM-A-R01-B06')
+    auth.post('/api/v1/wms/inventory/scan-entry/',
+              {'code': '002001', 'bin_code': 'HCM-A-R01-B06', 'qty': 100, 'mode': 'receive'},
+              format='json')
+    # kiểm kê: đếm thực tế chỉ còn 80 → set tồn = 80
+    r = auth.post('/api/v1/wms/inventory/scan-entry/',
+                  {'code': '002001', 'bin_code': 'HCM-A-R01-B06', 'qty': 80, 'mode': 'count'},
+                  format='json')
+    assert r.status_code == 200
+    assert r.data['qty_on_hand'] == 80
+
+
+@pytest.mark.django_db
+def test_scan_entry_unknown_part_or_bin(auth, part):
+    BinFactory(full_code='HCM-A-R01-B07')
+    assert auth.post('/api/v1/wms/inventory/scan-entry/',
+                     {'code': 'XXXX', 'bin_code': 'HCM-A-R01-B07', 'qty': 1},
+                     format='json').status_code == 404
+    assert auth.post('/api/v1/wms/inventory/scan-entry/',
+                     {'code': '002001', 'bin_code': 'KHONG-CO', 'qty': 1},
+                     format='json').status_code == 404
+
+
+@pytest.mark.django_db
+def test_scan_entry_blocked_for_customer(customer_user, part):
+    BinFactory(full_code='HCM-A-R01-B08')
+    c = APIClient(); c.force_authenticate(customer_user)
+    r = c.post('/api/v1/wms/inventory/scan-entry/',
+               {'code': '002001', 'bin_code': 'HCM-A-R01-B08', 'qty': 1}, format='json')
+    assert r.status_code in (403, 401)
+
+
 # ─── Constraint: part XOR torch ──────────────────────────────────────────────
 @pytest.mark.django_db
 def test_inventory_requires_exactly_one_of_part_torch(part, torch):

@@ -139,6 +139,60 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
             reason=d['reason'], user=request.user, note=d['note'])
         return Response(InventoryItemSerializer(item).data)
 
+    @action(detail=False, methods=['post'], url_path='scan-entry')
+    def scan_entry(self, request):
+        """Quét mã bằng điện thoại để NHẬP DỮ LIỆU tồn kho.
+
+        Body: {code, bin_code, qty, mode, warehouse?}
+          - mode='receive' → +qty vào ô (nhập kho nhanh).
+          - mode='count'   → set tồn = qty (kiểm kê).
+        code = mã phụ tùng (tokin_part_no); bin_code = full_code của ô.
+        """
+        code = str(request.data.get('code', '')).strip()
+        bin_code = str(request.data.get('bin_code', '')).strip()
+        mode = str(request.data.get('mode', 'receive')).strip().lower()
+        wh = str(request.data.get('warehouse', '')).strip()
+        try:
+            qty = int(request.data.get('qty'))
+        except (TypeError, ValueError):
+            return Response({'detail': 'Số lượng không hợp lệ.'}, status=400)
+
+        if not code or not bin_code:
+            return Response({'detail': 'Thiếu mã phụ tùng hoặc mã ô (bin).'}, status=400)
+        if mode not in ('receive', 'count'):
+            return Response({'detail': "mode phải là 'receive' hoặc 'count'."}, status=400)
+        if mode == 'receive' and qty <= 0:
+            return Response({'detail': 'Số lượng nhập phải > 0.'}, status=400)
+        if mode == 'count' and qty < 0:
+            return Response({'detail': 'Số đếm không được âm.'}, status=400)
+
+        part = Part.objects.filter(pk=code).first()
+        if part is None:
+            return Response({'detail': f'Không tìm thấy phụ tùng mã "{code}".'}, status=404)
+        bin_qs = Bin.objects.filter(full_code=bin_code)
+        if wh:
+            bin_qs = bin_qs.filter(zone__warehouse__code=wh)
+        bin_obj = bin_qs.first()
+        if bin_obj is None:
+            return Response({'detail': f'Không tìm thấy ô (bin) mã "{bin_code}".'}, status=404)
+
+        if mode == 'receive':
+            item = services.receive_stock(bin_obj=bin_obj, part=part, qty=qty,
+                                          user=request.user, ref_id='scan')
+            msg = f'Đã nhập +{qty} vào {bin_obj.full_code}.'
+        else:
+            item = services.adjust_stock(bin_obj=bin_obj, part=part, new_qty=qty,
+                                         reason='adjust', user=request.user,
+                                         note='Kiểm kê (quét)')
+            msg = f'Đã cập nhật tồn = {qty} tại {bin_obj.full_code}.'
+
+        return Response({
+            'detail': msg, 'mode': mode,
+            'part_no': part.tokin_part_no, 'part_name': part.display_name_vi,
+            'bin_code': bin_obj.full_code, 'qty_on_hand': item.qty_on_hand,
+            'item': InventoryItemSerializer(item).data,
+        })
+
     @action(detail=False, methods=['post'], url_path='transfer')
     def transfer(self, request):
         ser = TransferSerializer(data=request.data)
