@@ -200,6 +200,57 @@ class TestCustomerAPI:
         r = client.get(f'/api/v1/crm/customers/{c.id}/timeline/')
         assert r.status_code == 404
 
+    def _csv(self, text: str):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return SimpleUploadedFile('kh.csv', text.encode('utf-8'), content_type='text/csv')
+
+    def test_import_dry_run(self, manager):
+        """dry_run: kiểm tra không ghi DB, báo số tạo được + lỗi."""
+        client = APIClient(); client.force_authenticate(manager)
+        csv = ("code,name,segment,contact_name,contact_phone\n"
+               "KH-7001,Cong ty A,factory,Anh Tuan,0901\n"
+               "KH-7002,Cong ty B,dealer,,\n"
+               "X-7003,Sai ma,,,\n"           # lỗi: mã không bắt đầu KH
+               ",Thieu ma,,,\n")              # lỗi: thiếu mã
+        r = client.post('/api/v1/crm/customers/import/?dry_run=1',
+                        {'file': self._csv(csv)}, format='multipart')
+        assert r.status_code == 200
+        assert r.data['will_create'] == 2
+        assert len(r.data['errors']) == 2
+        assert not Customer.objects.filter(code='KH-7001').exists()   # chưa ghi
+
+    def test_import_creates_customers_and_contacts(self, manager):
+        client = APIClient(); client.force_authenticate(manager)
+        csv = ("code,name,segment,contact_name,contact_phone\n"
+               "KH-7101,Cong ty A,factory,Anh Tuan,0901\n"
+               "KH-7102,Cong ty B,dealer,,\n")
+        r = client.post('/api/v1/crm/customers/import/',
+                        {'file': self._csv(csv)}, format='multipart')
+        assert r.status_code == 200
+        assert r.data['created'] == 2
+        a = Customer.objects.get(code='KH-7101')
+        assert a.segment == 'factory' and a.owner == manager
+        assert a.contacts.filter(is_primary=True, full_name='Anh Tuan').exists()
+
+    def test_import_skips_existing(self, manager, sale_user):
+        CustomerFactory(owner=sale_user, code='KH-7201', name='Da co')
+        client = APIClient(); client.force_authenticate(manager)
+        csv = "code,name\nKH-7201,Trung ma\nKH-7202,Moi\n"
+        r = client.post('/api/v1/crm/customers/import/',
+                        {'file': self._csv(csv)}, format='multipart')
+        assert r.data['created'] == 1 and r.data['skipped_existing'] == 1
+
+    def test_import_blocked_for_sale(self, api):
+        r = api.post('/api/v1/crm/customers/import/',
+                     {'file': self._csv('code,name\nKH-7301,X\n')}, format='multipart')
+        assert r.status_code == 403
+
+    def test_import_template_download(self, manager):
+        client = APIClient(); client.force_authenticate(manager)
+        r = client.get('/api/v1/crm/customers/import-template/')
+        assert r.status_code == 200
+        assert 'spreadsheet' in r['Content-Type']
+
     def test_visit_recording_and_recap(self, api, sale_user):
         """Tạo Visit kèm file ghi âm + văn bản recap → lưu & hiện trên timeline."""
         import datetime as dt

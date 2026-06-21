@@ -9,6 +9,7 @@ from rest_framework.routers import DefaultRouter
 
 from .contacts import ContactViewSet
 from .contracts_activities import ActivityViewSet, ContractViewSet
+from .imports import CustomerImportTemplateView, CustomerImportView
 from .receivables import ReceivablesView
 from .views import CustomerViewSet
 from .views_ext import (
@@ -26,6 +27,11 @@ router.register(r'tickets', TicketViewSet, basename='ticket')
 router.register(r'contracts', ContractViewSet, basename='contract')
 router.register(r'activities', ActivityViewSet, basename='activity')
 
-urlpatterns = router.urls + [
+# Đặt TRƯỚC router để 'customers/import/' không bị nuốt bởi 'customers/<pk>/'.
+urlpatterns = [
+    path('customers/import/', CustomerImportView.as_view(), name='customer-import'),
+    path('customers/import-template/', CustomerImportTemplateView.as_view(),
+         name='customer-import-template'),
+] + router.urls + [
     path('receivables/', ReceivablesView.as_view(), name='receivables'),
 ]

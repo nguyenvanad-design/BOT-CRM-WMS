@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { Search, Users, Plus } from 'lucide-react'
+import { Search, Users, Plus, Upload } from 'lucide-react'
 import { api, apiError } from '@/lib/api'
 import {
   SEGMENT_LABEL, CUSTOMER_STATUS_LABEL, CUSTOMER_STATUS_TONE,
@@ -14,7 +14,9 @@ import {
 import { TAG_CLASS } from '@/lib/crm'
 import type { Customer, Paginated } from '@/lib/types'
 import { Button } from '@/components/ui'
+import { useAuth, isManager } from '@/lib/auth/store'
 import { CustomerForm } from '@/pages/crm/forms/CustomerForm'
+import { ImportCustomersModal } from '@/pages/crm/ImportCustomersModal'
 
 async function fetchCustomers(search: string, page: number) {
   const res = await api.get<Paginated<Customer>>('/crm/customers/', {
@@ -29,6 +31,8 @@ export function CustomersPage() {
   const [debounced, setDebounced] = useState('')
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const canImport = isManager(useAuth((s) => s.user?.role))
 
   // debounce search 350ms
   useDebounce(search, 350, (v) => { setDebounced(v); setPage(1) })
@@ -61,6 +65,11 @@ export function CustomersPage() {
                          focus:border-flame transition-colors"
             />
           </div>
+          {canImport && (
+            <Button variant="ghost" onClick={() => setImportOpen(true)}>
+              <Upload size={14} /> Import
+            </Button>
+          )}
           <Button onClick={() => setFormOpen(true)}><Plus size={14} /> Thêm KH</Button>
         </div>
       </div>
@@ -116,6 +125,7 @@ export function CustomersPage() {
       )}
 
       <CustomerForm open={formOpen} onClose={() => setFormOpen(false)} />
+      <ImportCustomersModal open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   )
 }
