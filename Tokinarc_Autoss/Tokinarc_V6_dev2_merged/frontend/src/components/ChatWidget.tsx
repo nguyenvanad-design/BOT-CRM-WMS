@@ -1,23 +1,42 @@
 /**
  * Tokinarc frontend — src/components/ChatWidget.tsx
- * Thanh chat AI DÁN ĐÁY khung nội dung (giống mockup): tiêu đề + gợi ý nhanh +
- * ô nhập + nút Hỏi. Khi có hội thoại, tin nhắn hiện trong vùng cuộn phía trên
- * ô nhập (thu gọn được). Gọi chatbot service thật (POST /chatbot/api/v2/query).
+ * Thanh chat TRỢ LÝ NỘI BỘ dán đáy (KHÁC bot khách). Gọi Django assistant thật
+ * (POST /analytics/assistant/query/, JWT+role). Tùy role, làm được: báo giá,
+ * soạn hợp đồng, phiếu nhập/xuất kho, báo cáo CEO, đánh giá kế hoạch, tra cứu.
  */
 import { useEffect, useRef, useState } from 'react'
 import { MessageCircle, Send, Loader2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { askAssistant } from '@/lib/assistant'
 import { apiError } from '@/lib/api'
+import { useAuth, isManager } from '@/lib/auth/store'
+import type { Role } from '@/lib/types'
 
 interface Msg { role: 'user' | 'bot' | 'error'; text: string }
 
-const SUGGESTIONS = [
-  'Doanh thu hôm nay?',
-  'Dong Nai Steel còn nợ bao nhiêu?',
-  'Khách nào chưa mua 3 tháng?',
-]
+/** Gợi ý theo vai trò — chỉ gợi việc role đó được phép làm. */
+function suggestionsFor(role?: Role): string[] {
+  if (isManager(role)) return [
+    'Báo cáo điều hành',
+    'Đánh giá kế hoạch pipeline',
+    'Doanh thu tháng này?',
+    'Khách nào chưa mua 3 tháng?',
+  ]
+  if (role === 'warehouse') return [
+    'Nhập kho 100 x 001002',
+    'Xuất kho 20 x 001002',
+    'Tra cứu phụ tùng 001002',
+  ]
+  if (role === 'sales') return [
+    'Làm báo giá cho Công ty ABC: 5 x 001002',
+    'Soạn hợp đồng từ báo giá BG-0007',
+    'Tra cứu phụ tùng 001002',
+  ]
+  return ['Tra cứu phụ tùng 001002', 'Tra cứu súng hàn']
+}
 
 export function ChatWidget() {
+  const role = useAuth((s) => s.user?.role)
+  const SUGGESTIONS = suggestionsFor(role)
   const [input, setInput] = useState('')
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [busy, setBusy] = useState(false)
@@ -78,7 +97,7 @@ export function ChatWidget() {
       <div className="px-4 py-3">
         <div className="flex items-center gap-2 mb-2">
           <MessageCircle size={15} className="text-flame" />
-          <span className="text-sm font-semibold flex-1">Trợ lý CRM</span>
+          <span className="text-sm font-semibold flex-1">Trợ lý nội bộ</span>
           {hasMsgs && (
             <>
               <button onClick={() => setExpanded((v) => !v)}

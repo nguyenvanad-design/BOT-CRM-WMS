@@ -207,6 +207,16 @@ def test_assistant_warehouse_outbound(warehouse_user, wh, part1, no_llm):
 
 
 @pytest.mark.django_db
+def test_assistant_lookup_doc(warehouse_user, part1, no_llm):
+    """Mọi nhân viên tra cứu phụ tùng Tokin → trả spec/giá từ catalog."""
+    c = APIClient(); c.force_authenticate(warehouse_user)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'tra cứu phụ tùng 001002'}, format='json')
+    assert r.status_code == 200
+    assert 'Bép hàn 0.8' in r.data['text'] and '001002' in r.data['text']
+
+
+@pytest.mark.django_db
 def test_assistant_sale_blocked_wms(sale, wh, part1, no_llm):
     """Sale KHÔNG có quyền lập phiếu kho → từ chối."""
     c = APIClient(); c.force_authenticate(sale)

@@ -216,6 +216,10 @@ def _keyword_intent(q: str) -> dict:
         else:
             period = 'month'
         return {'intent': 'revenue', 'period': period}
+    if any(k in ql for k in ('tra cứu', 'tra cuu', 'thông tin', 'thong tin', 'thông số',
+                             'thong so', 'spec', 'tài liệu', 'tai lieu', 'phụ tùng', 'phu tung',
+                             'súng hàn', 'sung han')):
+        return {'intent': 'lookup_doc'}
     return {'intent': 'unknown'}
 
 
@@ -452,6 +456,41 @@ def tool_wms_outbound(user, items: list[dict], customer_name: str = '') -> str:
             f"Vào màn Xuất kho để soạn hàng (pick) & giao.")
 
 
+# ── Tool đọc: tra cứu tài liệu/sản phẩm Tokin (catalog) ─────────────────────
+def tool_lookup_doc(question: str) -> str:
+    """Tra cứu phụ tùng/súng hàn Tokin từ catalog (mã hoặc tên). Đọc DB thật."""
+    from apps.catalog.models import Part
+
+    codes = re.findall(r'\b[0-9]{4,}[A-Za-z0-9\-]*\b', question)
+    part = None
+    for cpn in codes:
+        part = Part.objects.filter(tokin_part_no=cpn).first()
+        if part:
+            break
+    if not part:
+        # tìm theo tên: lấy cụm chữ có nghĩa cuối câu
+        kw = re.sub(r'(tra cứu|tìm|cho tôi|thông tin|tài liệu|sản phẩm|về|part|phụ tùng)', '',
+                    question, flags=re.I).strip()
+        if len(kw) >= 2:
+            part = Part.objects.filter(display_name_vi__icontains=kw).first()
+    if not part:
+        return ("Không tìm thấy phụ tùng khớp. Cho mình **mã** (VD 001002) hoặc "
+                "**tên** chính xác hơn nhé.")
+
+    spec = []
+    if part.wire_size_mm:  spec.append(f"dây {part.wire_size_mm}mm")
+    if part.thread_type:   spec.append(f"ren {part.thread_type}")
+    if part.material:      spec.append(part.material)
+    spec_s = ", ".join(spec) or "—"
+    price = _vnd(part.price_vnd) if part.price_vnd else "liên hệ"
+    torches = part.applicable_torches or part.torch_models or []
+    t_s = (", ".join(map(str, torches[:6])) + ("…" if len(torches) > 6 else "")) if torches else "—"
+    return (f"**{part.display_name_vi}** (`{part.tokin_part_no}`)\n"
+            f"• Nhóm: {part.category or '—'} | Spec: {spec_s}\n"
+            f"• Giá: **{price}** / {part.price_unit}\n"
+            f"• Dùng cho súng: {t_s}")
+
+
 def answer(question: str, user) -> str:
     """Điểm vào chính: yêu cầu + user → trả lời/hành động (role-gated, data thật)."""
     from apps.accounts.roles import can_use_intent, role_of
@@ -495,7 +534,7 @@ def answer(question: str, user) -> str:
         cust_name = intent.get('customer_name') or _detect_customer(question)
         return tool_wms_outbound(user, items, cust_name)
     if name == 'lookup_doc':
-        return "Tra cứu tài liệu nội bộ đang được hoàn thiện (Phase tiếp theo)."
+        return tool_lookup_doc(question)
 
     return ("Em là **trợ lý nội bộ Tokinarc**. Tùy quyền của anh/chị, em có thể: "
             "**làm báo giá** (VD: \"làm báo giá cho Công ty ABC: 5 x 001002\"), "
