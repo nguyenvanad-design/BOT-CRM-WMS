@@ -17,6 +17,7 @@ Quy tắc:
 """
 from __future__ import annotations
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -168,7 +169,13 @@ class QuoteViewSet(viewsets.ModelViewSet):
         return _own_filter(Quote.objects.all(), self.request.user)
 
     def perform_create(self, serializer):
-        obj = serializer.save(owner=self.request.user, code=_next_code(Quote, 'BG'))
+        # Hạn hiệu lực mặc định = hôm nay + QUOTE_VALID_DAYS (nếu chưa nhập).
+        extra = {'owner': self.request.user, 'code': _next_code(Quote, 'BG')}
+        if not serializer.validated_data.get('valid_until'):
+            from datetime import timedelta
+            days = getattr(settings, 'QUOTE_VALID_DAYS', 30)
+            extra['valid_until'] = timezone.now().date() + timedelta(days=days)
+        obj = serializer.save(**extra)
         _audit(self.request, 'create', 'Quote', obj.id, {'total_vnd': str(obj.total_vnd)})
 
     @action(detail=True, methods=['post'])
@@ -254,12 +261,19 @@ class QuoteViewSet(viewsets.ModelViewSet):
                f"Báo giá {quote.code} bị từ chối" + (f": {reason}" if reason else "."), link='/quotes')
         return Response(QuoteSerializer(quote).data)
 
+    @staticmethod
+    def _is_expired(quote) -> bool:
+        return bool(quote.valid_until and quote.valid_until < timezone.now().date())
+
     @action(detail=True, methods=['post'], url_path='to-contract')
     def to_contract(self, request, pk=None):
         quote = self.get_object()
         if quote.status != QuoteStatus.APPROVED:
             return Response({'detail': 'Chỉ báo giá đã duyệt mới chuyển hợp đồng.'},
                             status=400)
+        if self._is_expired(quote):
+            return Response({'detail': f'Báo giá đã hết hạn ({quote.valid_until}). '
+                             'Cần làm lại báo giá mới.', 'code': 'QUOTE_EXPIRED'}, status=400)
         # Loose link: tạo mã hợp đồng, gắn vào quote. SalesOrder thật do sales app
         # tạo qua flow riêng (tránh circular import crm→sales).
         order_code = _next_code_simple('HD', Quote, 'contract_order_code')
@@ -282,6 +296,9 @@ class QuoteViewSet(viewsets.ModelViewSet):
         quote = self.get_object()
         if quote.status != QuoteStatus.APPROVED:
             return Response({'detail': 'Chỉ báo giá đã duyệt mới tạo đơn hàng.'}, status=400)
+        if self._is_expired(quote):
+            return Response({'detail': f'Báo giá đã hết hạn ({quote.valid_until}). '
+                             'Cần làm lại báo giá mới.', 'code': 'QUOTE_EXPIRED'}, status=400)
         if quote.contract_order_code:
             return Response({'detail': f'Báo giá đã gắn đơn/HĐ {quote.contract_order_code}.'},
                             status=400)

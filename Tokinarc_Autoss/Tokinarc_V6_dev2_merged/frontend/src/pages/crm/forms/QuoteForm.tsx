@@ -18,11 +18,11 @@ import { FieldRow, TextInput, TextArea, SelectInput } from '@/components/form'
 
 interface LineForm { part_no: string; part_name: string; qty: number; unit_price_vnd: number }
 interface Form {
-  customer: string; due_date: string; notes: string; lines: LineForm[]
+  customer: string; due_date: string; valid_until: string; notes: string; lines: LineForm[]
 }
 
 const EMPTY_LINE: LineForm = { part_no: '', part_name: '', qty: 1, unit_price_vnd: 0 }
-const EMPTY: Form = { customer: '', due_date: '', notes: '', lines: [{ ...EMPTY_LINE }] }
+const EMPTY: Form = { customer: '', due_date: '', valid_until: '', notes: '', lines: [{ ...EMPTY_LINE }] }
 
 /** Tổng tạm tính phía client (server tính lại chính thức). */
 function LiveTotal({ control }: { control: Control<Form> }) {
@@ -47,6 +47,7 @@ export function QuoteForm({ open, onClose, editing }: {
     reset(editing ? {
       customer: editing.customer,
       due_date: editing.due_date ?? '',
+      valid_until: editing.valid_until ?? '',
       notes: editing.notes,
       lines: editing.lines.length
         ? editing.lines.map((l) => ({
@@ -62,6 +63,7 @@ export function QuoteForm({ open, onClose, editing }: {
       const payload = {
         customer: data.customer,
         due_date: data.due_date || null,
+        valid_until: data.valid_until || null,
         notes: data.notes,
         lines: data.lines.map((l) => ({
           part_no: l.part_no, part_name: l.part_name,
@@ -104,7 +106,11 @@ export function QuoteForm({ open, onClose, editing }: {
             options={customers}
             {...register('customer', { required: 'Chọn khách hàng' })}
           />
-          <TextInput label="Hạn báo giá" type="date" {...register('due_date')} />
+          <TextInput label="Ngày dự kiến chốt" type="date" {...register('due_date')} />
+        </FieldRow>
+        <FieldRow>
+          <TextInput label="Hạn hiệu lực giá" type="date" {...register('valid_until')} />
+          <div />
         </FieldRow>
 
         {/* Line items */}

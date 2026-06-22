@@ -220,6 +220,7 @@ class QuoteStatus(models.TextChoices):
     APPROVED    = 'approved',    'Đã duyệt'
     REJECTED    = 'rejected',    'Từ chối'
     CONVERTED   = 'converted',   'Đã chuyển hợp đồng'
+    EXPIRED     = 'expired',     'Hết hạn'
 
 
 class Quote(BaseModel, SoftDeleteMixin):
@@ -236,7 +237,8 @@ class Quote(BaseModel, SoftDeleteMixin):
         max_length=20, choices=QuoteStatus.choices,
         default=QuoteStatus.DRAFT, db_index=True,
     )
-    due_date  = models.DateField(null=True, blank=True)
+    due_date  = models.DateField(null=True, blank=True)   # ngày dự kiến chốt
+    valid_until = models.DateField(null=True, blank=True)  # hạn hiệu lực giá báo
     total_vnd = models.DecimalField(max_digits=15, decimal_places=0, default=0)
     owner     = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,

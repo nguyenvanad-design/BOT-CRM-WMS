@@ -337,7 +337,7 @@ export interface Opportunity {
 }
 
 export type QuoteStatus =
-  | 'draft' | 'sent' | 'pending_ceo' | 'approved' | 'rejected' | 'converted'
+  | 'draft' | 'sent' | 'pending_ceo' | 'approved' | 'rejected' | 'converted' | 'expired'
 
 export interface TimelineEvent {
   date: string
@@ -371,6 +371,7 @@ export interface Quote {
   status: QuoteStatus
   status_display: string
   due_date: string | null
+  valid_until?: string | null
   total_vnd: string
   requires_l2: boolean
   owner: string
