@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/v1/crm/',       include('apps.crm.urls')),
     path('api/v1/wms/',       include('apps.wms.urls')),
     path('api/v1/sales/',     include('apps.sales.urls')),
+    path('api/v1/purchasing/', include('apps.purchasing.urls')),
     path('api/v1/analytics/', include('apps.analytics.urls')),
     path('api/v1/storage/',   include('apps.storage.urls')),
     path('api/v1/',           include('apps.common.urls')),

@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.crm',
     'apps.wms',
     'apps.sales',
+    'apps.purchasing',
     'apps.analytics',
     'apps.storage',
     'apps.learning',
