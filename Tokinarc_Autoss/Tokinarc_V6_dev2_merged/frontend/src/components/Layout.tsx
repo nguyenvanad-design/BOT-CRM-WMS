@@ -13,7 +13,7 @@ import {
   ShoppingCart, Building, Undo2,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { useAuth, isWmsControl } from '@/lib/auth/store'
+import { useAuth, isWmsControl, isManager } from '@/lib/auth/store'
 import { ChatWidget } from '@/components/ChatWidget'
 import { NotificationBell } from '@/components/NotificationBell'
 
@@ -22,13 +22,13 @@ const ROLE_LABEL: Record<string, string> = {
   warehouse: 'NV Kho', wh_manager: 'Quản lý kho', service: 'Dịch vụ', customer: 'Khách',
 }
 
-interface NavItem { to: string; icon: ReactNode; label: string; badge?: number; ctrl?: boolean }
+interface NavItem { to: string; icon: ReactNode; label: string; badge?: number; ctrl?: boolean; mgr?: boolean }
 interface NavGroup { group: string; items: NavItem[] }
 
 const CRM_NAV: NavGroup[] = [
   { group: 'Tổng quan', items: [
     { to: '/dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
-    { to: '/forecast', icon: <TrendingUp size={16} />, label: 'Forecast' },
+    { to: '/forecast', icon: <TrendingUp size={16} />, label: 'Forecast', mgr: true },
   ]},
   { group: 'Khách hàng', items: [
     { to: '/customers', icon: <Building2 size={16} />, label: 'Khách hàng' },
@@ -41,8 +41,8 @@ const CRM_NAV: NavGroup[] = [
     { to: '/quotes', icon: <FileText size={16} />, label: 'Báo giá' },
     { to: '/orders', icon: <ShoppingCart size={16} />, label: 'Đơn bán' },
     { to: '/contracts', icon: <ScrollText size={16} />, label: 'Hợp đồng' },
-    { to: '/invoices', icon: <FileText size={16} />, label: 'Hóa đơn (MISA)' },
-    { to: '/receivables', icon: <Wallet size={16} />, label: 'Công nợ' },
+    { to: '/invoices', icon: <FileText size={16} />, label: 'Hóa đơn (MISA)', mgr: true },
+    { to: '/receivables', icon: <Wallet size={16} />, label: 'Công nợ', mgr: true },
   ]},
   { group: 'Hoạt động', items: [
     { to: '/visits', icon: <MapPin size={16} />, label: 'Visit Report' },
@@ -130,6 +130,8 @@ export function Layout() {
 
   const role = user?.role
   const canCtrl = isWmsControl(role)
+  const canMgr = isManager(role)
+  const navVisible = (it: NavItem) => (!it.ctrl || canCtrl) && (!it.mgr || canMgr)
   const visibleModules = MODULES.filter((m) => !m.roles || (role && m.roles.includes(role)))
   const moduleKey = loc.pathname.startsWith('/wms') ? 'wms'
     : loc.pathname.startsWith('/purchasing') ? 'mua'
@@ -178,12 +180,12 @@ export function Layout() {
         </div>
 
         <nav className="flex-1 p-2">
-          {current.nav.map((g) => (
+          {current.nav.filter((g) => g.items.some(navVisible)).map((g) => (
             <div key={g.group}>
               <div className="text-[10px] uppercase tracking-wide text-txt-2 font-semibold px-2.5 pt-3 pb-1">
                 {g.group}
               </div>
-              {g.items.filter((it) => !it.ctrl || canCtrl).map((it) => (
+              {g.items.filter(navVisible).map((it) => (
                 <SideLink key={it.to} to={it.to} icon={it.icon} badge={it.badge} onClick={closeDrawer}>
                   {it.label}
                 </SideLink>
