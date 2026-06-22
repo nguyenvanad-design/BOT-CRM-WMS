@@ -86,13 +86,16 @@ class LeadViewSet(viewsets.ModelViewSet):
         lead = self.get_object()
         if lead.converted_customer_id:
             return Response({'detail': 'Lead đã được chuyển.'}, status=400)
+        notes = lead.notes
+        if lead.referred_by:
+            notes = (f"Người giới thiệu: {lead.referred_by}\n{notes}").strip()
         with transaction.atomic():
             cust = Customer.objects.create(
                 code=_next_code(Customer, 'KH'),
                 name=lead.company or lead.name,
                 status=CustomerStatus.POTENTIAL,
                 owner=request.user,
-                notes=lead.notes,
+                notes=notes,
             )
             # Giữ lại SĐT/email: tạo người liên hệ đầu tiên cho KH.
             if lead.name or lead.phone or lead.email:

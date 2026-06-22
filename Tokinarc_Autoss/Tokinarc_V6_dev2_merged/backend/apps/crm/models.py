@@ -144,6 +144,7 @@ class Lead(BaseModel, SoftDeleteMixin):
     email     = models.EmailField(blank=True)
     source    = models.CharField(max_length=40, blank=True, db_index=True)  # LeadSource
     campaign  = models.CharField(max_length=80, blank=True)   # chiến dịch QC cụ thể
+    referred_by = models.CharField(max_length=120, blank=True, db_index=True)  # người giới thiệu
     status    = models.CharField(
         max_length=20, choices=LeadStatus.choices,
         default=LeadStatus.NEW, db_index=True,

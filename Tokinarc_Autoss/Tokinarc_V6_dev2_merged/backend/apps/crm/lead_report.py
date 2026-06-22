@@ -66,6 +66,17 @@ class LeadSourceReportView(APIView):
             'conversion_pct': round(r['converted'] * 100 / r['total'], 1) if r['total'] else 0.0,
         } for r in camp]
 
+        ref = (qs.exclude(referred_by='')
+               .values('referred_by')
+               .annotate(total=Count('id'),
+                         converted=Count('id', filter=Q(status='converted')))
+               .order_by('-total')[:50])
+        by_referrer = [{
+            'referred_by': r['referred_by'],
+            'total': r['total'], 'converted': r['converted'],
+            'conversion_pct': round(r['converted'] * 100 / r['total'], 1) if r['total'] else 0.0,
+        } for r in ref]
+
         total_leads = qs.count()
         total_conv = qs.filter(status='converted').count()
         return Response({
@@ -76,4 +87,5 @@ class LeadSourceReportView(APIView):
             },
             'by_source': by_source,
             'by_campaign': by_campaign,
+            'by_referrer': by_referrer,
         })

@@ -17,12 +17,13 @@ import { FieldRow, TextInput, TextArea, SelectInput } from '@/components/form'
 
 interface Form {
   name: string; company: string; phone: string; email: string
-  source: string; campaign: string; status: string; score: number; notes: string
+  source: string; campaign: string; referred_by: string
+  status: string; score: number; notes: string
 }
 
 const EMPTY: Form = {
   name: '', company: '', phone: '', email: '',
-  source: '', campaign: '', status: 'new', score: 0, notes: '',
+  source: '', campaign: '', referred_by: '', status: 'new', score: 0, notes: '',
 }
 
 export function LeadForm({ open, onClose, editing }: {
@@ -36,6 +37,7 @@ export function LeadForm({ open, onClose, editing }: {
     reset(editing ? {
       name: editing.name, company: editing.company, phone: editing.phone,
       email: editing.email, source: editing.source, campaign: editing.campaign ?? '',
+      referred_by: editing.referred_by ?? '',
       status: editing.status, score: editing.score, notes: editing.notes,
     } : EMPTY)
   }, [open, editing, reset])
@@ -86,8 +88,13 @@ export function LeadForm({ open, onClose, editing }: {
         <FieldRow>
           <TextInput label="Chiến dịch" placeholder="VD: METALEX 2026, FB-Tet…"
             {...register('campaign')} />
+          <TextInput label="Người giới thiệu" placeholder="VD: Anh Tuấn - Cty ABC"
+            {...register('referred_by')} />
+        </FieldRow>
+        <FieldRow>
           <TextInput label="Điểm (0-100)" type="number" min={0} max={100}
             {...register('score', { valueAsNumber: true })} />
+          <div />
         </FieldRow>
         <TextArea label="Ghi chú" {...register('notes')} />
       </form>

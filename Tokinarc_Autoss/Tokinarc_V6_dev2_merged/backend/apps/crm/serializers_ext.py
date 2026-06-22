@@ -27,7 +27,7 @@ class LeadSerializer(serializers.ModelSerializer):
         model = Lead
         fields = [
             'id', 'name', 'company', 'phone', 'email', 'source', 'source_display',
-            'campaign', 'status', 'score', 'owner', 'owner_username',
+            'campaign', 'referred_by', 'status', 'score', 'owner', 'owner_username',
             'converted_customer', 'notes', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'owner', 'converted_customer',

@@ -6,10 +6,23 @@ from apps.accounts.models import Role, User
 from apps.crm.models import Lead
 
 
-def _lead(owner, source, status='new', campaign=''):
+def _lead(owner, source, status='new', campaign='', referred_by=''):
     return Lead.objects.create(name='L', phone='09', source=source, status=status,
-                               campaign=campaign, owner=owner,
+                               campaign=campaign, referred_by=referred_by, owner=owner,
                                created_by=owner, updated_by=owner)
+
+
+@pytest.mark.django_db
+def test_referrer_report_groups_by_referrer():
+    mgr = User.objects.create(username='lr_ref', role=Role.MANAGER)
+    _lead(mgr, 'referral', 'converted', referred_by='Anh Tuấn ABC')
+    _lead(mgr, 'referral', 'new', referred_by='Anh Tuấn ABC')
+    _lead(mgr, 'referral', 'new', referred_by='Chị Lan XYZ')
+    c = APIClient(); c.force_authenticate(mgr)
+    r = c.get('/api/v1/crm/lead-sources/')
+    assert r.status_code == 200
+    top = next(x for x in r.data['by_referrer'] if x['referred_by'] == 'Anh Tuấn ABC')
+    assert top['total'] == 2 and top['converted'] == 1 and top['conversion_pct'] == 50.0
 
 
 @pytest.mark.django_db

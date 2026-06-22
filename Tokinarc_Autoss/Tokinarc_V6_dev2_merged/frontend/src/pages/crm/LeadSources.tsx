@@ -9,12 +9,13 @@ import { PieChart } from 'lucide-react'
 import { api, apiError } from '@/lib/api'
 import { PageHeader, StatCard, TableCard, Th, Td, RowMsg } from '@/components/ui'
 
-interface Row { source?: string; source_label: string; campaign?: string; total: number; converted: number; conversion_pct: number }
+interface Row { source?: string; source_label: string; campaign?: string; referred_by?: string; total: number; converted: number; conversion_pct: number }
 interface Report {
   days: number
   summary: { total: number; converted: number; conversion_pct: number }
   by_source: Row[]
   by_campaign: Row[]
+  by_referrer: Row[]
 }
 
 export function LeadSourcesPage() {
@@ -82,6 +83,25 @@ export function LeadSourcesPage() {
                 <tr key={i} className="border-b border-line/50 last:border-0">
                   <Td className="font-medium">{r.campaign}</Td>
                   <Td className="text-txt-2">{r.source_label}</Td>
+                  <Td className="text-right tabular-nums">{r.total}</Td>
+                  <Td className="text-right tabular-nums text-ok">{r.converted}</Td>
+                  <Td className="text-right tabular-nums">{r.conversion_pct}%</Td>
+                </tr>
+              ))}
+            </tbody>
+          </TableCard>
+
+          <div className="text-sm font-semibold mb-2 mt-5">🤝 Top người giới thiệu</div>
+          <TableCard>
+            <thead><tr className="border-b border-line">
+              <Th>Người giới thiệu</Th><Th className="text-right">Lead</Th>
+              <Th className="text-right">Thành KH</Th><Th className="text-right">Tỉ lệ</Th>
+            </tr></thead>
+            <tbody>
+              {data.by_referrer.length === 0 && <RowMsg colSpan={4}>Chưa có lead từ giới thiệu.</RowMsg>}
+              {data.by_referrer.map((r, i) => (
+                <tr key={i} className="border-b border-line/50 last:border-0">
+                  <Td className="font-medium">{r.referred_by}</Td>
                   <Td className="text-right tabular-nums">{r.total}</Td>
                   <Td className="text-right tabular-nums text-ok">{r.converted}</Td>
                   <Td className="text-right tabular-nums">{r.conversion_pct}%</Td>

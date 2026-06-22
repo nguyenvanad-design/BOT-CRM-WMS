@@ -305,6 +305,7 @@ export interface Lead {
   source: string
   source_display?: string
   campaign?: string
+  referred_by?: string
   status: LeadStatus
   score: number
   owner: string
