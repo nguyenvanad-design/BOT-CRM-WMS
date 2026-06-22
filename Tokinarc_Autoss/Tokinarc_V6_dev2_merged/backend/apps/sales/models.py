@@ -109,3 +109,31 @@ class Payment(BaseModel):
     class Meta:
         db_table = 'sales_payment'
         ordering = ['-paid_at']
+
+
+class InvoiceStatus(models.TextChoices):
+    DRAFT     = 'draft',     'Nháp'
+    ISSUED    = 'issued',    'Đã xuất'
+    CANCELLED = 'cancelled', 'Hủy'
+
+
+class Invoice(BaseModel, SoftDeleteMixin):
+    """Hóa đơn VAT, sinh từ đơn bán. total = subtotal + thuế."""
+    code        = models.CharField(max_length=20, unique=True)   # 'INV-2026-001'
+    order       = models.ForeignKey(SalesOrder, on_delete=models.PROTECT, related_name='invoices')
+    customer    = models.ForeignKey('crm.Customer', on_delete=models.PROTECT, related_name='invoices')
+    issue_date  = models.DateField()
+    subtotal_vnd = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    tax_pct     = models.DecimalField(max_digits=5, decimal_places=2, default=8)   # VAT %
+    tax_vnd     = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    total_vnd   = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    status      = models.CharField(max_length=20, choices=InvoiceStatus.choices,
+                                   default=InvoiceStatus.ISSUED, db_index=True)
+    notes       = models.TextField(blank=True)
+
+    class Meta:
+        db_table = 'sales_invoice'
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return f"{self.code} ({self.total_vnd})"

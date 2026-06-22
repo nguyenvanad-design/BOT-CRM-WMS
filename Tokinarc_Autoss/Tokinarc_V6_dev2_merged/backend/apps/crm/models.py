@@ -61,6 +61,7 @@ class Customer(BaseModel, SoftDeleteMixin):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='owned_customers',
     )
+    credit_limit_vnd = models.DecimalField(max_digits=15, decimal_places=0, default=0)  # 0 = không giới hạn
     notes     = models.TextField(blank=True)
 
     class Meta:

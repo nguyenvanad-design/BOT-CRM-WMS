@@ -175,6 +175,13 @@ class TestCustomerAPI:
         assert r.data['open_orders'] == 0
         assert r.data['debt_vnd'] in ('0', 0)
 
+    def test_credit_limit_in_360(self, api, sale_user):
+        c = CustomerFactory(owner=sale_user, code='KH-CL1', credit_limit_vnd=5_000_000)
+        r = api.get(f'/api/v1/crm/customers/{c.id}/360/')
+        assert r.status_code == 200
+        assert int(r.data['credit_limit_vnd']) == 5_000_000
+        assert r.data['credit_over'] is False   # chưa có nợ
+
     def test_timeline_endpoint(self, api, sale_user):
         """Lịch sử làm việc gộp Visit + Activity, sắp giảm dần theo thời gian."""
         import datetime as dt

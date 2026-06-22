@@ -137,6 +137,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
             if m and (last_activity is None or m > last_activity):
                 last_activity = m
 
+        limit = int(customer.credit_limit_vnd or 0)
         payload = {
             'customer':      customer,
             'open_orders':   open_orders,
@@ -145,7 +146,11 @@ class CustomerViewSet(viewsets.ModelViewSet):
             'last_activity': last_activity,
         }
         ser = Customer360Serializer(payload)
-        return Response(ser.data)
+        data = ser.data
+        data['credit_limit_vnd'] = limit
+        data['credit_over'] = bool(limit and debt_vnd > limit)   # vượt hạn mức?
+        data['credit_available'] = (limit - debt_vnd) if limit else None
+        return Response(data)
 
     # ── /timeline/ — lịch sử làm việc với khách hàng ─────────────────────────
     @action(detail=True, methods=['get'], url_path='timeline')

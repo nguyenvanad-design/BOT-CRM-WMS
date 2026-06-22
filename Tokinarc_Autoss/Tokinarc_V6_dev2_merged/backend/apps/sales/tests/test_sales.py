@@ -99,6 +99,21 @@ def test_customer_role_blocked(db):
 
 
 @pytest.mark.django_db
+def test_create_invoice_with_vat(db):
+    from apps.accounts.models import Role as R, User as U
+    from apps.sales.models import Invoice
+    mgr = U.objects.create(username='mg', role=R.MANAGER)
+    cust = CustomerFactory()
+    order = SalesOrder.objects.create(code='HD-INV-1', customer=cust, issued_date=dt.date(2026, 6, 1),
+                                      total_vnd=10_000_000, status='active', owner=mgr)
+    c = APIClient(); c.force_authenticate(mgr)
+    r = c.post(f'/api/v1/sales/orders/{order.id}/create-invoice/', {'tax_pct': 8}, format='json')
+    assert r.status_code == 201
+    assert int(r.data['tax_vnd']) == 800_000 and int(r.data['total_vnd']) == 10_800_000
+    assert Invoice.objects.filter(order=order).exists()
+
+
+@pytest.mark.django_db
 def test_ceo_can_access_sales_and_wms(db):
     """CEO phải đọc được đơn bán + WMS (regression: role-set từng sót ceo)."""
     ceo = User.objects.create(username='ceo1', role=Role.CEO)

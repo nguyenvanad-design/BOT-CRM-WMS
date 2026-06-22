@@ -7,7 +7,21 @@ from django.db import transaction
 from rest_framework import serializers
 
 from . import services
-from .models import Payment, SalesOrder, SalesOrderLine
+from .models import Invoice, Payment, SalesOrder, SalesOrderLine
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source='customer.name', read_only=True)
+    order_code = serializers.CharField(source='order.code', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = Invoice
+        fields = ['id', 'code', 'order', 'order_code', 'customer', 'customer_name',
+                  'issue_date', 'subtotal_vnd', 'tax_pct', 'tax_vnd', 'total_vnd',
+                  'status', 'status_display', 'notes', 'created_at']
+        read_only_fields = ['id', 'code', 'customer', 'subtotal_vnd', 'tax_vnd',
+                            'total_vnd', 'status', 'created_at']
 
 
 class SalesOrderLineSerializer(serializers.ModelSerializer):

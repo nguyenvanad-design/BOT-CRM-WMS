@@ -50,7 +50,7 @@ class CustomerDetailSerializer(serializers.ModelSerializer):
         model  = Customer
         fields = [
             'id', 'code', 'name', 'tax_code', 'segment', 'region',
-            'address', 'status', 'owner', 'owner_username',
+            'address', 'status', 'owner', 'owner_username', 'credit_limit_vnd',
             'contacts', 'notes', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']

@@ -14,10 +14,11 @@ from apps.accounts.roles import is_manager
 from apps.common.models import AuditLog
 
 from . import services
-from .models import Payment, SalesOrder
+from .models import Invoice, Payment, SalesOrder
 from .permissions import SalesPermission, role_of  # noqa: F401 (role_of dùng nơi khác)
 from .serializers import (
-    PaymentSerializer, SalesOrderDetailSerializer, SalesOrderListSerializer,
+    InvoiceSerializer, PaymentSerializer, SalesOrderDetailSerializer,
+    SalesOrderListSerializer,
 )
 
 
@@ -123,6 +124,34 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
         order.save(update_fields=['status'])
         return Response(SalesOrderDetailSerializer(order).data)
 
+    @action(detail=True, methods=['post'], url_path='create-invoice')
+    def create_invoice(self, request, pk=None):
+        """Xuất hóa đơn VAT từ đơn bán. Body tùy chọn {tax_pct} (mặc định 8%)."""
+        if not is_manager(request.user):
+            return Response({'detail': 'Chỉ quản lý/CEO/admin xuất hóa đơn.'}, status=403)
+        order = self.get_object()
+        if order.status in ('draft', 'cancelled'):
+            return Response({'detail': 'Đơn chưa hiệu lực, không xuất hóa đơn.', 'code': 'CONFLICT'},
+                            status=status.HTTP_409_CONFLICT)
+        from decimal import Decimal
+        try:
+            tax_pct = Decimal(str(request.data.get('tax_pct', 8)))
+        except Exception:  # noqa: BLE001
+            tax_pct = Decimal('8')
+        year = timezone.now().year
+        pre = f'INV-{year}-'
+        last = Invoice.objects.filter(code__startswith=pre).order_by('-code').first()
+        seq = (int(last.code.rsplit('-', 1)[-1]) + 1) if last else 1
+        subtotal = order.total_vnd or 0
+        tax = (subtotal * tax_pct / 100).quantize(Decimal('1'))
+        inv = Invoice.objects.create(
+            code=f'{pre}{seq:03d}', order=order, customer=order.customer,
+            issue_date=timezone.now().date(), subtotal_vnd=subtotal, tax_pct=tax_pct,
+            tax_vnd=tax, total_vnd=subtotal + tax, created_by=request.user, updated_by=request.user)
+        AuditLog.record(user=request.user, action='create', entity='sales.Invoice',
+                        entity_id=inv.id, diff={'code': inv.code})
+        return Response(InvoiceSerializer(inv).data, status=201)
+
     @action(detail=False, methods=['get'], url_path='debt-aging')
     def debt_aging(self, request):
         qs = (self.get_queryset()
@@ -163,3 +192,17 @@ class PaymentViewSet(viewsets.ModelViewSet):
             return Response({'detail': str(e), 'code': 'VALIDATION_FAILED'},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(PaymentSerializer(p).data, status=status.HTTP_201_CREATED)
+
+
+class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
+    """Hóa đơn (đọc). Tạo qua /orders/{id}/create-invoice/."""
+    serializer_class = InvoiceSerializer
+    permission_classes = [SalesPermission]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['order', 'customer', 'status']
+
+    def get_queryset(self):
+        qs = Invoice.objects.select_related('order', 'customer')
+        if not is_manager(self.request.user):
+            qs = qs.filter(order__owner_id=self.request.user.id)
+        return qs
