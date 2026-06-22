@@ -142,3 +142,48 @@ class Invoice(BaseModel, SoftDeleteMixin):
 
     def __str__(self) -> str:
         return f"{self.code} ({self.total_vnd})"
+
+
+class ReturnStatus(models.TextChoices):
+    DRAFT     = 'draft',     'Nháp'
+    RECEIVED  = 'received',  'Đã nhận lại'
+    CANCELLED = 'cancelled', 'Hủy'
+
+
+class ReturnOrder(BaseModel, SoftDeleteMixin):
+    """Trả hàng (RMA): khách trả → nhận lại kho (+tồn). Hoàn tiền do MISA xử lý."""
+    code        = models.CharField(max_length=20, unique=True)   # 'RMA-2026-001'
+    order       = models.ForeignKey(SalesOrder, null=True, blank=True, on_delete=models.SET_NULL,
+                                    related_name='returns')
+    customer    = models.ForeignKey('crm.Customer', on_delete=models.PROTECT, related_name='returns')
+    warehouse   = models.ForeignKey('wms.Warehouse', on_delete=models.PROTECT, related_name='returns')
+    status      = models.CharField(max_length=20, choices=ReturnStatus.choices,
+                                   default=ReturnStatus.DRAFT, db_index=True)
+    reason      = models.CharField(max_length=200, blank=True)
+    total_vnd   = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    owner       = models.ForeignKey('accounts.User', on_delete=models.PROTECT,
+                                    related_name='return_orders')
+    received_at = models.DateTimeField(null=True, blank=True)
+    notes       = models.TextField(blank=True)
+
+    class Meta:
+        db_table = 'sales_return'
+        ordering = ['-created_at']
+
+    def recompute_total(self):
+        agg = self.lines.aggregate(s=models.Sum('line_total'))
+        self.total_vnd = agg['s'] or 0
+
+
+class ReturnLine(models.Model):
+    ro          = models.ForeignKey(ReturnOrder, on_delete=models.CASCADE, related_name='lines')
+    part        = models.ForeignKey('catalog.Part', on_delete=models.PROTECT, db_column='part_no')
+    qty         = models.IntegerField()
+    unit_price  = models.DecimalField(max_digits=14, decimal_places=0, default=0)
+    line_total  = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    target_bin  = models.ForeignKey('wms.Bin', null=True, blank=True, on_delete=models.SET_NULL)
+    order_idx   = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'sales_return_line'
+        ordering = ['order_idx']

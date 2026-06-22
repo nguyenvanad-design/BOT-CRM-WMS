@@ -10,7 +10,7 @@ import {
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
   Package, AlertTriangle, Barcode, History, Inbox, PackageCheck,
   Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Boxes, Gauge,
-  ShoppingCart, Building,
+  ShoppingCart, Building, Undo2,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useAuth, isWmsControl } from '@/lib/auth/store'
@@ -51,6 +51,7 @@ const CRM_NAV: NavGroup[] = [
   { group: 'Dịch vụ', items: [
     { to: '/tickets', icon: <TicketIcon size={16} />, label: 'Service Ticket' },
     { to: '/warranty', icon: <ShieldCheck size={16} />, label: 'Bảo hành' },
+    { to: '/returns', icon: <Undo2 size={16} />, label: 'Trả hàng (RMA)' },
   ]},
   { group: 'Sản phẩm & AI', items: [
     { to: '/products', icon: <Wrench size={16} />, label: 'Sản phẩm' },

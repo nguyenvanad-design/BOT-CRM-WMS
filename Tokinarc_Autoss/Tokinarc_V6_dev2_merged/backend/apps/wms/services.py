@@ -50,8 +50,9 @@ def adjust_stock(*, bin_obj: Bin, part=None, torch=None, new_qty: int,
 
 @transaction.atomic
 def receive_stock(*, bin_obj: Bin, part=None, torch=None, qty: int,
-                  user=None, ref_id: str = '', lot_no: str = '', lot_expires=None) -> InventoryItem:
-    """Nhập kho: +qty vào bin, ghi movement inbound, gắn mốc FIFO + cập nhật Lot."""
+                  user=None, ref_id: str = '', lot_no: str = '', lot_expires=None,
+                  reason: str = MovementReason.INBOUND, ref_kind: str = 'inbound') -> InventoryItem:
+    """+qty vào bin, ghi movement (inbound mặc định / return khi trả hàng), FIFO + Lot."""
     from datetime import date
 
     from django.utils import timezone
@@ -68,7 +69,7 @@ def receive_stock(*, bin_obj: Bin, part=None, torch=None, qty: int,
     InventoryItem.objects.filter(pk=item.pk).update(**fields)
     StockMovement.objects.create(
         warehouse=_wh_of_bin(bin_obj), part=part, torch=torch, bin=bin_obj,
-        delta=qty, reason=MovementReason.INBOUND, ref_kind='inbound',
+        delta=qty, reason=reason, ref_kind=ref_kind,
         ref_id=ref_id, by_user=user, note=(f'lot {lot_no}' if lot_no else ''),
     )
     # Lot tracking: tạo/cộng lô (chỉ cho part có lô).

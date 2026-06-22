@@ -134,6 +134,31 @@ def test_invoice_misa_export_and_sync(db):
 
 
 @pytest.mark.django_db
+def test_rma_return_adds_stock(db):
+    from apps.accounts.models import Role as R, User as U
+    from apps.catalog.models import Part
+    from apps.wms.models import Bin, InventoryItem, Warehouse, Zone
+    mgr = U.objects.create(username='mg3', role=R.MANAGER)
+    kho = U.objects.create(username='k3', role=R.WAREHOUSE)
+    cust = CustomerFactory()
+    part = Part.objects.create(tokin_part_no='RMA-P', category='Tip', display_name_vi='Bép')
+    w = Warehouse.objects.create(code='HCM', name='K', is_active=True, is_default=True)
+    z = Zone.objects.create(warehouse=w, code='MIG', name='MIG')
+    Bin.objects.create(zone=z, rack='T1', bin_code='B01', full_code='HCM-MIG-T1-B01')
+    mc = APIClient(); mc.force_authenticate(mgr)
+    ro = mc.post('/api/v1/sales/returns/', {
+        'customer': str(cust.id), 'warehouse': str(w.id), 'reason': 'Lỗi',
+        'lines': [{'part': 'RMA-P', 'qty': 6, 'unit_price': 10000}],
+    }, format='json')
+    assert ro.status_code == 201 and int(ro.data['total_vnd']) == 60000
+    # NV kho nhận lại → cộng tồn
+    kc = APIClient(); kc.force_authenticate(kho)
+    r = kc.post(f"/api/v1/sales/returns/{ro.data['id']}/receive/")
+    assert r.status_code == 200 and r.data['status'] == 'received'
+    assert InventoryItem.objects.get(part=part).qty_on_hand == 6
+
+
+@pytest.mark.django_db
 def test_payment_export_misa(sale):
     cust = CustomerFactory(owner=sale)
     order = SalesOrder.objects.create(code='HD-EXP-1', customer=cust, issued_date=dt.date(2026, 6, 1),

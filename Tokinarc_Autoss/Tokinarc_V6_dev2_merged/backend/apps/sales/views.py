@@ -17,8 +17,8 @@ from . import services
 from .models import Invoice, Payment, SalesOrder
 from .permissions import SalesPermission, role_of  # noqa: F401 (role_of dùng nơi khác)
 from .serializers import (
-    InvoiceSerializer, PaymentSerializer, SalesOrderDetailSerializer,
-    SalesOrderListSerializer,
+    InvoiceSerializer, PaymentSerializer, ReturnOrderSerializer,
+    SalesOrderDetailSerializer, SalesOrderListSerializer,
 )
 
 
@@ -266,3 +266,56 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
         inv.synced_at = timezone.now()
         inv.save(update_fields=['misa_status', 'misa_ref', 'synced_at'])
         return Response(InvoiceSerializer(inv).data)
+
+
+class ReturnOrderViewSet(viewsets.ModelViewSet):
+    """Trả hàng (RMA): tạo → nhận lại kho (+tồn, reason=return). Hoàn tiền do MISA."""
+    serializer_class = ReturnOrderSerializer
+    permission_classes = [SalesPermission]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['status', 'customer', 'order']
+
+    def get_queryset(self):
+        from apps.accounts.roles import WMS_OP_ROLES, role_of
+        from .models import ReturnOrder
+        qs = ReturnOrder.objects.select_related('customer', 'warehouse', 'owner').prefetch_related('lines')
+        # Vai trò kho cần thấy mọi phiếu để nhận lại; sale chỉ thấy của mình.
+        if not is_manager(self.request.user) and role_of(self.request.user) not in WMS_OP_ROLES:
+            qs = qs.filter(owner_id=self.request.user.id)
+        return qs
+
+    def perform_create(self, serializer):
+        from .models import ReturnOrder
+        year = timezone.now().year
+        pre = f'RMA-{year}-'
+        last = ReturnOrder.objects.filter(code__startswith=pre).order_by('-code').first()
+        seq = (int(last.code.rsplit('-', 1)[-1]) + 1) if last else 1
+        serializer.save(code=f'{pre}{seq:03d}', owner=self.request.user,
+                        created_by=self.request.user, updated_by=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def receive(self, request, pk=None):
+        """Nhận hàng trả về kho → +tồn (movement reason=return). Vai trò kho."""
+        from apps.accounts.roles import WMS_OP_ROLES, role_of
+        from apps.wms.models import Bin
+        from apps.wms.models import MovementReason
+        from apps.wms import services as wms_services
+        from .models import ReturnStatus
+        if role_of(request.user) not in WMS_OP_ROLES:
+            return Response({'detail': 'Cần quyền kho để nhận hàng trả.'}, status=403)
+        ro = self.get_object()
+        if ro.status != ReturnStatus.DRAFT:
+            return Response({'detail': 'Phiếu trả đã xử lý.', 'code': 'CONFLICT'}, status=409)
+        default_bin = Bin.objects.filter(zone__warehouse=ro.warehouse).first()
+        for line in ro.lines.all():
+            bin_obj = line.target_bin or default_bin
+            if bin_obj is None:
+                return Response({'detail': f'Kho {ro.warehouse.code} chưa có ô để nhận.'}, status=400)
+            wms_services.receive_stock(bin_obj=bin_obj, part=line.part, qty=line.qty,
+                                       user=request.user, ref_id=ro.code,
+                                       reason=MovementReason.RETURN, ref_kind='return')
+        ro.status = ReturnStatus.RECEIVED
+        ro.received_at = timezone.now()
+        ro.save(update_fields=['status', 'received_at'])
+        from .serializers import ReturnOrderSerializer
+        return Response(ReturnOrderSerializer(ro).data)

@@ -7,7 +7,44 @@ from django.db import transaction
 from rest_framework import serializers
 
 from . import services
-from .models import Invoice, Payment, SalesOrder, SalesOrderLine
+from .models import (
+    Invoice, Payment, ReturnLine, ReturnOrder, SalesOrder, SalesOrderLine,
+)
+
+
+class ReturnLineSerializer(serializers.ModelSerializer):
+    part_name = serializers.CharField(source='part.display_name_vi', read_only=True)
+
+    class Meta:
+        model = ReturnLine
+        fields = ['id', 'part', 'part_name', 'qty', 'unit_price', 'line_total', 'target_bin', 'order_idx']
+        read_only_fields = ['id', 'line_total']
+
+
+class ReturnOrderSerializer(serializers.ModelSerializer):
+    lines = ReturnLineSerializer(many=True)
+    customer_name = serializers.CharField(source='customer.name', read_only=True)
+    warehouse_code = serializers.CharField(source='warehouse.code', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = ReturnOrder
+        fields = ['id', 'code', 'order', 'customer', 'customer_name', 'warehouse',
+                  'warehouse_code', 'status', 'status_display', 'reason', 'total_vnd',
+                  'owner', 'received_at', 'notes', 'lines', 'created_at']
+        read_only_fields = ['id', 'code', 'status', 'total_vnd', 'owner', 'received_at', 'created_at']
+
+    @transaction.atomic
+    def create(self, validated):
+        lines = validated.pop('lines', [])
+        ro = ReturnOrder.objects.create(**validated)
+        for idx, l in enumerate(lines):
+            lt = int(l['qty']) * int(l.get('unit_price', 0))
+            ReturnLine.objects.create(ro=ro, part=l['part'], qty=l['qty'],
+                                      unit_price=l.get('unit_price', 0), line_total=lt,
+                                      target_bin=l.get('target_bin'), order_idx=idx)
+        ro.recompute_total(); ro.save(update_fields=['total_vnd'])
+        return ro
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
