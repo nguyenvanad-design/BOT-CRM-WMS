@@ -20,6 +20,7 @@ import { ReceivablesPage } from '@/pages/crm/Receivables'
 import { InvoicesPage } from '@/pages/crm/Invoices'
 import { OrdersPage } from '@/pages/crm/Orders'
 import { ReturnsPage } from '@/pages/crm/Returns'
+import { MyActivityPage } from '@/pages/crm/MyActivity'
 import { VisitsPage } from '@/pages/crm/Visits'
 import { TicketsPage } from '@/pages/crm/Tickets'
 import { ProductsPage } from '@/pages/crm/Products'
@@ -86,6 +87,7 @@ export function App() {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="invoices" element={<InvoicesPage />} />
           <Route path="returns" element={<ReturnsPage />} />
+          <Route path="my-activity" element={<MyActivityPage />} />
           <Route path="visits" element={<VisitsPage />} />
           <Route path="tickets" element={<TicketsPage />} />
 

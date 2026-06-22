@@ -13,6 +13,7 @@ from .imports import (
     CustomerImportTemplateView, CustomerImportView,
     EntityImportTemplateView, EntityImportView,
 )
+from .activity_feed import MyActivityFeedView
 from .lead_intake import LeadIntakeView
 from .receivables import ReceivablesView
 from .views import CustomerViewSet
@@ -42,6 +43,8 @@ urlpatterns = [
          name='entity-import-template'),
     # Bot khách đẩy lead về CRM (ghi-1-chiều, xác thực X-Intake-Key).
     path('lead-intake/', LeadIntakeView.as_view(), name='lead-intake'),
+    # Nhật ký hoạt động của sale (gộp nhiều bảng theo thời gian).
+    path('my-activity/', MyActivityFeedView.as_view(), name='my-activity'),
 ] + router.urls + [
     path('receivables/', ReceivablesView.as_view(), name='receivables'),
 ]

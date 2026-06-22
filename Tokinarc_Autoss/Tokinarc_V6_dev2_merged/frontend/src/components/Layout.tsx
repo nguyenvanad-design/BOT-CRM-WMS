@@ -10,7 +10,7 @@ import {
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
   Package, AlertTriangle, Barcode, History, Inbox, PackageCheck,
   Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Boxes, Gauge,
-  ShoppingCart, Building, Undo2,
+  ShoppingCart, Building, Undo2, CalendarDays,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useAuth, isWmsControl, isManager } from '@/lib/auth/store'
@@ -45,6 +45,7 @@ const CRM_NAV: NavGroup[] = [
     { to: '/receivables', icon: <Wallet size={16} />, label: 'Công nợ', mgr: true },
   ]},
   { group: 'Hoạt động', items: [
+    { to: '/my-activity', icon: <CalendarDays size={16} />, label: 'Nhật ký của tôi' },
     { to: '/visits', icon: <MapPin size={16} />, label: 'Visit Report' },
     { to: '/activities', icon: <Phone size={16} />, label: 'Hoạt động' },
   ]},
