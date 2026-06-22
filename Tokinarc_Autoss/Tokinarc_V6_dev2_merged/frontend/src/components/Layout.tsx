@@ -12,7 +12,7 @@ import {
   Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { useAuth, isManager } from '@/lib/auth/store'
+import { useAuth } from '@/lib/auth/store'
 import { ChatWidget } from '@/components/ChatWidget'
 
 const ROLE_LABEL: Record<string, string> = {
@@ -96,10 +96,13 @@ const CEO_NAV: NavGroup[] = [
   ]},
 ]
 
+// Phạm vi module theo role (FE ẩn tab; backend vẫn là rào cứng).
+const WMS_ROLES = ['warehouse', 'manager', 'ceo', 'admin']
+const MGR_ROLES = ['manager', 'ceo', 'admin']
 const MODULES = [
-  { key: 'crm', label: 'CRM', nav: CRM_NAV, home: '/dashboard', managerOnly: false },
-  { key: 'wms', label: 'WMS', nav: WMS_NAV, home: '/wms/dashboard', managerOnly: false },
-  { key: 'ceo', label: 'CEO', nav: CEO_NAV, home: '/ceo/overview', managerOnly: true },
+  { key: 'crm', label: 'CRM', nav: CRM_NAV, home: '/dashboard', roles: null },
+  { key: 'wms', label: 'WMS', nav: WMS_NAV, home: '/wms/dashboard', roles: WMS_ROLES },
+  { key: 'ceo', label: 'CEO', nav: CEO_NAV, home: '/ceo/overview', roles: MGR_ROLES },
 ] as const
 
 export function Layout() {
@@ -108,8 +111,8 @@ export function Layout() {
   const loc = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const isMgr = isManager(user?.role)
-  const visibleModules = MODULES.filter((m) => !m.managerOnly || isMgr)
+  const role = user?.role
+  const visibleModules = MODULES.filter((m) => !m.roles || (role && m.roles.includes(role)))
   const moduleKey = loc.pathname.startsWith('/wms') ? 'wms'
     : loc.pathname.startsWith('/ceo') ? 'ceo' : 'crm'
   const current = MODULES.find((m) => m.key === moduleKey)!

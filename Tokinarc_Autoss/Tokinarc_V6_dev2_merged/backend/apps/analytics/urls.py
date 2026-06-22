@@ -2,7 +2,7 @@
 from django.urls import path
 from .views import (KpiOverviewView, RevenueMonthlyView, RevenueBySegmentView,
                     DebtAgingView, InventoryValueView, PipelineForecastView,
-                    AssistantQueryView, AssistantSummaryView)
+                    AssistantQueryView, AssistantSummaryView, SummaryExportView)
 urlpatterns = [
     path('kpi/overview/', KpiOverviewView.as_view()),
     path('revenue/monthly/', RevenueMonthlyView.as_view()),
@@ -12,4 +12,5 @@ urlpatterns = [
     path('forecast/pipeline/', PipelineForecastView.as_view()),
     path('assistant/query/', AssistantQueryView.as_view()),
     path('assistant/summary/', AssistantSummaryView.as_view()),
+    path('assistant/summary/export/', SummaryExportView.as_view()),
 ]

@@ -81,3 +81,42 @@ class AssistantSummaryView(_Base):
     """Tóm tắt điều hành toàn phòng ban (manager+). GET → {summary, metrics, generated_by}."""
     def get(self, request):
         return Response(assistant.executive_summary())
+
+
+class SummaryExportView(_Base):
+    """Xuất báo cáo điều hành ra Excel (manager+). GET → file .xlsx."""
+    def get(self, request):
+        import io
+        from datetime import date
+
+        from django.http import HttpResponse
+        from openpyxl import Workbook
+
+        data = assistant.executive_summary()
+        m = data['metrics']
+        wb = Workbook(); ws = wb.active; ws.title = 'BaoCaoDieuHanh'
+        ws.append(['Báo cáo điều hành Tokinarc', date.today().isoformat()])
+        ws.append([])
+        labels = {
+            'revenue_month': 'Doanh thu tháng (₫)', 'collected_month': 'Đã thu tháng (₫)',
+            'debt_total': 'Công nợ phải thu (₫)', 'overdue': 'Quá hạn (₫)',
+            'pipeline_weighted': 'Pipeline weighted (₫)', 'customers': 'Số khách hàng',
+            'dormant_customers': 'KH chưa mua >3 tháng', 'open_leads': 'Lead đang mở',
+            'open_opportunities': 'Cơ hội đang mở', 'open_tickets': 'Ticket đang mở',
+            'urgent_tickets': 'Ticket khẩn', 'inventory_value': 'Giá trị tồn kho (₫)',
+            'sku_count': 'Số SKU', 'low_stock': 'Mặt hàng sắp hết',
+            'top_customer': 'KH lớn nhất', 'top_customer_revenue': 'Doanh số KH lớn nhất (₫)',
+        }
+        ws.append(['Chỉ số', 'Giá trị'])
+        for k, lbl in labels.items():
+            ws.append([lbl, m.get(k)])
+        ws.append([])
+        ws.append(['Tóm tắt'])
+        for line in (data['summary'] or '').split('\n'):
+            ws.append([line])
+        buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+        resp = HttpResponse(
+            buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        resp['Content-Disposition'] = f'attachment; filename="bao_cao_dieu_hanh_{date.today().isoformat()}.xlsx"'
+        return resp

@@ -207,6 +207,37 @@ def test_assistant_warehouse_outbound(warehouse_user, wh, part1, no_llm):
 
 
 @pytest.mark.django_db
+def test_assistant_customer_orders(sale, seeded, no_llm):
+    """Sale hỏi 'đơn của ACME' → liệt kê đơn (seeded có HD-9001/9002)."""
+    c = APIClient(); c.force_authenticate(sale)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'đơn của ACME'}, format='json')
+    assert r.status_code == 200
+    assert 'HD-9001' in r.data['text']
+
+
+@pytest.mark.django_db
+def test_assistant_stock_lookup(warehouse_user, part1, no_llm):
+    """Nhân viên hỏi tồn 1 mã → trả tổng tồn + theo ô."""
+    from apps.wms.models import Bin, InventoryItem, Warehouse, Zone
+    wh = Warehouse.objects.create(code='HCM', name='Kho', is_active=True, is_default=True)
+    z = Zone.objects.create(warehouse=wh, code='A', name='A')
+    b = Bin.objects.create(zone=z, rack='R01', bin_code='B01', full_code='HCM-A-R01-B01')
+    InventoryItem.objects.create(bin=b, part=part1, qty_on_hand=42)
+    c = APIClient(); c.force_authenticate(warehouse_user)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'tồn 001002'}, format='json')
+    assert r.status_code == 200 and '42' in r.data['text']
+
+
+@pytest.mark.django_db
+def test_summary_export_xlsx(manager, seeded, no_llm):
+    c = APIClient(); c.force_authenticate(manager)
+    r = c.get('/api/v1/analytics/assistant/summary/export/')
+    assert r.status_code == 200 and 'spreadsheet' in r['Content-Type']
+
+
+@pytest.mark.django_db
 def test_assistant_lookup_doc(warehouse_user, part1, no_llm):
     """Mọi nhân viên tra cứu phụ tùng Tokin → trả spec/giá từ catalog."""
     c = APIClient(); c.force_authenticate(warehouse_user)

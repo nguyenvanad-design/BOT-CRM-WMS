@@ -199,6 +199,10 @@ def _keyword_intent(q: str) -> dict:
     if any(k in ql for k in ('đánh giá kế hoạch', 'danh gia ke hoach', 'pipeline', 'dự báo', 'du bao',
                              'forecast', 'kế hoạch kinh doanh')):
         return {'intent': 'evaluate_plan'}
+    if any(k in ql for k in ('đơn của', 'don cua', 'đơn hàng của', 'don hang cua', 'mua gì', 'lịch sử mua')):
+        return {'intent': 'customer_orders'}
+    if any(k in ql for k in ('tồn', 'ton kho', 'còn hàng', 'con hang', 'kho còn', 'số lượng tồn')):
+        return {'intent': 'stock_lookup'}
     if any(k in ql for k in ('công nợ', 'cong no', 'còn nợ', 'no bao nhieu', 'nợ', 'phải thu')):
         # Thử bắt tên KH sau từ khóa (đơn giản): cụm chữ hoa hoặc sau "của"
         m = re.search(r'(?:của|cua)\s+([\w\sÀ-ỹ]+?)(?:\s+còn|\s+nợ|\?|$)', q, re.I)
@@ -491,6 +495,42 @@ def tool_lookup_doc(question: str) -> str:
             f"• Dùng cho súng: {t_s}")
 
 
+# ── Tool đọc sâu: đơn của KH, tồn của mã ────────────────────────────────────
+def tool_customer_orders(user, customer_name: str) -> str:
+    from apps.sales.models import SalesOrder
+    if not customer_name:
+        return "Cần tên khách hàng. VD: \"đơn của Công ty ABC\"."
+    cust = _resolve_customer(customer_name, user)
+    if not cust:
+        return f"Không tìm thấy khách hàng \"{customer_name}\" (trong phạm vi của bạn)."
+    rows = (SalesOrder.objects.filter(customer=cust).order_by('-issued_date')[:8])
+    if not rows:
+        return f"**{cust.name}** chưa có đơn hàng nào."
+    lines = []
+    for o in rows:
+        debt = (o.total_vnd or 0) - (o.paid_vnd or 0)
+        tail = f" — còn nợ {_vnd(debt)}" if debt > 0 else " — đã thanh toán"
+        lines.append(f"• {o.code} ({o.get_status_display()}): {_vnd(o.total_vnd)}{tail}")
+    return f"Đơn hàng của **{cust.name}** (gần nhất):\n" + "\n".join(lines)
+
+
+def tool_stock_lookup(question: str) -> str:
+    from apps.catalog.models import Part
+    from apps.wms.models import InventoryItem
+    codes = re.findall(r'\b[0-9]{4,}[A-Za-z0-9\-]*\b', question)
+    part = next((Part.objects.filter(pk=c).first() for c in codes
+                 if Part.objects.filter(pk=c).exists()), None)
+    if not part:
+        return "Cho mình **mã phụ tùng** để tra tồn. VD: \"tồn 001002\"."
+    rows = (InventoryItem.objects.filter(part=part)
+            .select_related('bin', 'bin__zone__warehouse')[:20])
+    total = sum(r.qty_on_hand for r in rows)
+    if total == 0:
+        return f"**{part.display_name_vi}** (`{part.tokin_part_no}`): hết hàng (tồn 0)."
+    by = "\n".join(f"• {r.bin.full_code}: {r.qty_on_hand}" for r in rows if r.qty_on_hand)
+    return f"Tồn **{part.display_name_vi}** (`{part.tokin_part_no}`): **{total}**\n{by}"
+
+
 def answer(question: str, user) -> str:
     """Điểm vào chính: yêu cầu + user → trả lời/hành động (role-gated, data thật)."""
     from apps.accounts.roles import can_use_intent, role_of
@@ -533,6 +573,11 @@ def answer(question: str, user) -> str:
         items = intent.get('items') or _parse_items(question)
         cust_name = intent.get('customer_name') or _detect_customer(question)
         return tool_wms_outbound(user, items, cust_name)
+    if name == 'customer_orders':
+        cust_name = intent.get('customer_name') or _detect_customer(question)
+        return tool_customer_orders(user, cust_name)
+    if name == 'stock_lookup':
+        return tool_stock_lookup(question)
     if name == 'lookup_doc':
         return tool_lookup_doc(question)
 

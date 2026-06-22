@@ -22,6 +22,19 @@ const CHATBOT_TARGET = process.env.VITE_CHATBOT_TARGET || 'http://localhost:8080
 export default defineConfig({
   plugins: [react()],
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
+  build: {
+    rollupOptions: {
+      output: {
+        // Tách vendor lớn ra chunk riêng → giảm bundle chính, cache tốt hơn.
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['recharts'],
+          query: ['@tanstack/react-query'],
+          scan: ['@zxing/library'],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

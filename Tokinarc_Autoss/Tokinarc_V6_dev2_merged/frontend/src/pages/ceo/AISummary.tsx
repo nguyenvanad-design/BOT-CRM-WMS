@@ -6,10 +6,21 @@
 import { useQuery } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Bot, RefreshCw, Sparkles } from 'lucide-react'
+import { Bot, RefreshCw, Sparkles, Download } from 'lucide-react'
+import { toast } from 'sonner'
 import { getExecSummary } from '@/lib/analytics'
-import { apiError } from '@/lib/api'
+import { api, apiError } from '@/lib/api'
 import { PageHeader, Card, Button, Tag } from '@/components/ui'
+
+async function exportSummary() {
+  try {
+    const res = await api.get('/analytics/assistant/summary/export/', { responseType: 'blob' })
+    const url = URL.createObjectURL(res.data as Blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'bao_cao_dieu_hanh.xlsx'; a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) { toast.error(apiError(e)) }
+}
 
 export function CeoAISummaryPage() {
   const q = useQuery({
@@ -25,9 +36,12 @@ export function CeoAISummaryPage() {
         title="AI Summary — Tóm tắt điều hành"
         subtitle="Tổng hợp hoạt động tất cả phòng ban từ số liệu thật"
         actions={
-          <Button variant="ghost" onClick={() => q.refetch()} disabled={q.isFetching}>
-            <RefreshCw size={14} className={q.isFetching ? 'animate-spin' : ''} /> Làm mới
-          </Button>
+          <>
+            <Button variant="ghost" onClick={exportSummary}><Download size={14} /> Tải Excel</Button>
+            <Button variant="ghost" onClick={() => q.refetch()} disabled={q.isFetching}>
+              <RefreshCw size={14} className={q.isFetching ? 'animate-spin' : ''} /> Làm mới
+            </Button>
+          </>
         }
       />
 
