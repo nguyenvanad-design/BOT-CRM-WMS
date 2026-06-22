@@ -17,6 +17,7 @@ import { OpportunityDetailPage } from '@/pages/crm/OpportunityDetail'
 import { PipelinePage } from '@/pages/crm/Pipeline'
 import { QuotesPage } from '@/pages/crm/Quotes'
 import { ReceivablesPage } from '@/pages/crm/Receivables'
+import { InvoicesPage } from '@/pages/crm/Invoices'
 import { VisitsPage } from '@/pages/crm/Visits'
 import { TicketsPage } from '@/pages/crm/Tickets'
 import { ProductsPage } from '@/pages/crm/Products'
@@ -80,6 +81,7 @@ export function App() {
           <Route path="pipeline" element={<PipelinePage />} />
           <Route path="quotes" element={<QuotesPage />} />
           <Route path="receivables" element={<ReceivablesPage />} />
+          <Route path="invoices" element={<InvoicesPage />} />
           <Route path="visits" element={<VisitsPage />} />
           <Route path="tickets" element={<TicketsPage />} />
 

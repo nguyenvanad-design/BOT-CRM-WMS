@@ -40,6 +40,7 @@ const CRM_NAV: NavGroup[] = [
     { to: '/pipeline', icon: <Filter size={16} />, label: 'Pipeline' },
     { to: '/quotes', icon: <FileText size={16} />, label: 'Báo giá' },
     { to: '/contracts', icon: <ScrollText size={16} />, label: 'Hợp đồng' },
+    { to: '/invoices', icon: <FileText size={16} />, label: 'Hóa đơn (MISA)' },
     { to: '/receivables', icon: <Wallet size={16} />, label: 'Công nợ' },
   ]},
   { group: 'Hoạt động', items: [
