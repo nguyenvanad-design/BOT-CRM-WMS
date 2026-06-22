@@ -16,7 +16,10 @@ from __future__ import annotations
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from apps.wms.models import Bin, InventoryItem, SerialNumber, Warehouse, Zone
+from apps.wms.models import (
+    Bin, InboundLine, InventoryItem, Lot, PickListItem, SerialNumber,
+    StockMovement, Warehouse, Zone,
+)
 
 BINS_PER_RACK = 4
 
@@ -93,9 +96,11 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--warehouse', default='HCM')
         parser.add_argument('--no-relocate', action='store_true')
+        parser.add_argument('--purge-old', action='store_true',
+                            help='Xóa các zone KHÔNG thuộc taxonomy mới (vd A/B/C) sau khi dời hàng.')
 
     @transaction.atomic
-    def handle(self, *, warehouse, no_relocate, **kw):
+    def handle(self, *, warehouse, no_relocate, purge_old, **kw):
         wh, _ = Warehouse.objects.get_or_create(
             code=warehouse, defaults={'name': f'Kho {warehouse}', 'is_active': True,
                                       'is_default': True})
@@ -165,3 +170,19 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f'Đã dời {moved} dòng tồn + {s_moved} serial về đúng zone/tầng.'))
+
+        if purge_old:
+            new_codes = {z[0] for z in ZONES}
+            old_zones = Zone.objects.filter(warehouse=wh).exclude(code__in=new_codes)
+            old_bins = Bin.objects.filter(zone__in=old_zones)
+            # Gỡ/xóa các tham chiếu chặn xóa bin (dev: xóa lịch sử kho ở bin cũ).
+            SerialNumber.objects.filter(bin__in=old_bins).update(bin=None)
+            InboundLine.objects.filter(target_bin__in=old_bins).update(target_bin=None)
+            PickListItem.objects.filter(bin__in=old_bins).delete()
+            StockMovement.objects.filter(bin__in=old_bins).delete()
+            Lot.objects.filter(bin__in=old_bins).delete()
+            InventoryItem.objects.filter(bin__in=old_bins).delete()   # còn sót
+            names = list(old_zones.values_list('code', flat=True))
+            old_zones.delete()   # cascade xóa bin
+            self.stdout.write(self.style.WARNING(
+                f'Đã XÓA {len(names)} zone cũ: {", ".join(names) or "—"}.'))
