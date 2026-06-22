@@ -7,3 +7,6 @@ DATABASES['default'] = {
     'ENGINE': 'django.db.backends.sqlite3',
     'NAME':   str(BASE_DIR / 'devlocal.sqlite3'),
 }
+
+# Lead intake từ bot khách — khóa dev cố định (chỉ dùng local).
+LEAD_INTAKE_KEY = 'dev-lead-intake-key'

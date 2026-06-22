@@ -130,3 +130,10 @@ REDIS_URL_RATELIMIT = os.getenv('REDIS_URL_RATELIMIT', 'redis://redis:6379/1')
 # ─── CRM — duyệt báo giá 2 cấp ──────────────────────────────────────────────
 # Báo giá có total_vnd ≥ ngưỡng này cần duyệt cấp 2 (CEO) sau cấp 1 (manager).
 QUOTE_L2_THRESHOLD_VND = int(os.getenv('QUOTE_L2_THRESHOLD_VND', '100000000'))
+
+# ─── Lead intake từ BOT KHÁCH (ghi-1-chiều) ─────────────────────────────────
+# Bot khách gọi POST /api/v1/crm/lead-intake/ kèm header X-Intake-Key = giá trị này.
+# Rỗng = TẮT cổng intake (mọi request bị 401). Đặt qua env ở production.
+LEAD_INTAKE_KEY   = os.getenv('LEAD_INTAKE_KEY', '')
+# Username nhận lead mặc định; rỗng = sale đầu tiên (rồi admin) trong DB.
+LEAD_INTAKE_OWNER = os.getenv('LEAD_INTAKE_OWNER', '')
