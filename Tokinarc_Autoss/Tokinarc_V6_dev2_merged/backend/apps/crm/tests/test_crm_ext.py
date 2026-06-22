@@ -74,6 +74,23 @@ def test_lead_convert_creates_customer(api):
     assert r.data['customer_code'].startswith('KH-')
 
 
+@pytest.mark.django_db
+def test_lead_convert_carries_phone_into_contact(api):
+    """Convert phải mang SĐT/email/ghi chú sang KH (tạo Contact chính)."""
+    from apps.crm.models import Contact, Customer
+    lead = api.post('/api/v1/crm/leads/',
+                    {'name': 'Mr. Văn', 'phone': '0918461177',
+                     'email': 'van@abc.vn', 'notes': 'tvr mua 20 tip'},
+                    format='json').data
+    r = api.post(f"/api/v1/crm/leads/{lead['id']}/convert/")
+    assert r.status_code == 200
+    cust = Customer.objects.get(code=r.data['customer_code'])
+    assert cust.notes == 'tvr mua 20 tip'
+    ct = Contact.objects.get(customer=cust)
+    assert ct.full_name == 'Mr. Văn' and ct.phone == '0918461177'
+    assert ct.email == 'van@abc.vn' and ct.is_primary is True
+
+
 # ─── Opportunity ─────────────────────────────────────────────────────────
 @pytest.mark.django_db
 def test_create_and_move_opportunity(api, sale):

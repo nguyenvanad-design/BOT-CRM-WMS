@@ -79,20 +79,34 @@ class LeadViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def convert(self, request, pk=None):
-        """Chuyển Lead → Customer (tạo nhanh, link ngược)."""
-        from .models import Customer, CustomerStatus
+        """Chuyển Lead → Customer (mang theo SĐT/email/ghi chú + tạo người liên hệ)."""
+        from django.db import transaction
+
+        from .models import Contact, Customer, CustomerStatus
         lead = self.get_object()
         if lead.converted_customer_id:
             return Response({'detail': 'Lead đã được chuyển.'}, status=400)
-        cust = Customer.objects.create(
-            code=_next_code(Customer, 'KH'),
-            name=lead.company or lead.name,
-            status=CustomerStatus.POTENTIAL,
-            owner=request.user,
-        )
-        lead.converted_customer = cust
-        lead.status = 'converted'
-        lead.save(update_fields=['converted_customer', 'status'])
+        with transaction.atomic():
+            cust = Customer.objects.create(
+                code=_next_code(Customer, 'KH'),
+                name=lead.company or lead.name,
+                status=CustomerStatus.POTENTIAL,
+                owner=request.user,
+                notes=lead.notes,
+            )
+            # Giữ lại SĐT/email: tạo người liên hệ đầu tiên cho KH.
+            if lead.name or lead.phone or lead.email:
+                Contact.objects.create(
+                    customer=cust,
+                    full_name=lead.name or (lead.company or 'Liên hệ'),
+                    phone=lead.phone,
+                    email=lead.email,
+                    is_primary=True,
+                    created_by=request.user, updated_by=request.user,
+                )
+            lead.converted_customer = cust
+            lead.status = 'converted'
+            lead.save(update_fields=['converted_customer', 'status'])
         _audit(request, 'convert', 'Lead', lead.id, {'customer': str(cust.id)})
         return Response({'customer_id': str(cust.id), 'customer_code': cust.code})
 
