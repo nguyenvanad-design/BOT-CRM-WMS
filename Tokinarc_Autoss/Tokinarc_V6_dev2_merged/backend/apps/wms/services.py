@@ -23,6 +23,24 @@ class InsufficientStock(Exception):
     pass
 
 
+class CountLockError(Exception):
+    """Ô/mã đang trong phiên kiểm kê mở → tạm khóa xuất/nhập (tránh lệch số)."""
+    pass
+
+
+def assert_not_locked_by_count(bin_obj, part=None, torch=None) -> None:
+    """Raise CountLockError nếu (bin, part/torch) thuộc phiên kiểm kê đang mở."""
+    from .models import CycleCountLine
+    q = CycleCountLine.objects.filter(session__status='open', bin=bin_obj)
+    if part is not None:
+        q = q.filter(part=part)
+    if torch is not None:
+        q = q.filter(torch=torch)
+    if q.exists():
+        raise CountLockError(
+            f"Ô {bin_obj.full_code} đang kiểm kê — tạm khóa xuất/nhập đến khi áp dụng xong.")
+
+
 def _wh_of_bin(bin_obj: Bin):
     return bin_obj.zone.warehouse
 
@@ -59,6 +77,7 @@ def receive_stock(*, bin_obj: Bin, part=None, torch=None, qty: int,
 
     if qty <= 0:
         raise ValueError("qty nhập phải > 0.")
+    assert_not_locked_by_count(bin_obj, part, torch)
     item, _ = InventoryItem.objects.select_for_update().get_or_create(
         bin=bin_obj, part=part, torch=torch, defaults={'qty_on_hand': 0},
     )
@@ -91,6 +110,7 @@ def issue_stock(*, bin_obj: Bin, part=None, torch=None, qty: int,
     """Xuất kho: -qty khỏi bin (kiểm tra tồn khả dụng), movement reason=outbound."""
     if qty <= 0:
         raise ValueError("qty xuất phải > 0.")
+    assert_not_locked_by_count(bin_obj, part, torch)
     item = (InventoryItem.objects.select_for_update()
             .filter(bin=bin_obj, part=part, torch=torch).first())
     if item is None or item.available_qty < qty:
@@ -187,6 +207,7 @@ def confirm_pick_and_ship(outbound: OutboundOrder, user=None) -> None:
     for line in outbound.lines.all():
         shipped_this = 0
         for pick in line.picks.filter(is_picked=False):
+            assert_not_locked_by_count(pick.bin, line.part, line.torch)
             item = InventoryItem.objects.select_for_update().get(
                 bin=pick.bin, part=line.part, torch=line.torch)
             InventoryItem.objects.filter(pk=item.pk).update(

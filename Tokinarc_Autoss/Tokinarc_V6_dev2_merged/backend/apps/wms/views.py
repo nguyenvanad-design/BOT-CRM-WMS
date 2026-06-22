@@ -188,25 +188,25 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
         if bin_obj is None:
             return Response({'detail': f'Không tìm thấy ô (bin) mã "{bin_code}".'}, status=404)
 
-        if mode == 'receive':
-            item = services.receive_stock(bin_obj=bin_obj, part=part, torch=torch, qty=qty,
-                                          user=request.user, ref_id='scan',
-                                          lot_no=str(request.data.get('lot_no', '')).strip(),
-                                          lot_expires=request.data.get('lot_expires') or None)
-            msg = f'Đã nhập +{qty} vào {bin_obj.full_code}.'
-        elif mode == 'issue':
-            try:
+        try:
+            if mode == 'receive':
+                item = services.receive_stock(bin_obj=bin_obj, part=part, torch=torch, qty=qty,
+                                              user=request.user, ref_id='scan',
+                                              lot_no=str(request.data.get('lot_no', '')).strip(),
+                                              lot_expires=request.data.get('lot_expires') or None)
+                msg = f'Đã nhập +{qty} vào {bin_obj.full_code}.'
+            elif mode == 'issue':
                 item = services.issue_stock(bin_obj=bin_obj, part=part, torch=torch, qty=qty,
                                             user=request.user, ref_id='scan')
-            except services.InsufficientStock as e:
-                return Response({'detail': str(e), 'code': 'CONFLICT'},
-                                status=status.HTTP_409_CONFLICT)
-            msg = f'Đã xuất -{qty} khỏi {bin_obj.full_code}.'
-        else:
-            item = services.adjust_stock(bin_obj=bin_obj, part=part, torch=torch, new_qty=qty,
-                                         reason='adjust', user=request.user,
-                                         note='Kiểm kê (quét)')
-            msg = f'Đã cập nhật tồn = {qty} tại {bin_obj.full_code}.'
+                msg = f'Đã xuất -{qty} khỏi {bin_obj.full_code}.'
+            else:
+                item = services.adjust_stock(bin_obj=bin_obj, part=part, torch=torch, new_qty=qty,
+                                             reason='adjust', user=request.user,
+                                             note='Kiểm kê (quét)')
+                msg = f'Đã cập nhật tồn = {qty} tại {bin_obj.full_code}.'
+        except (services.InsufficientStock, services.CountLockError) as e:
+            return Response({'detail': str(e), 'code': 'CONFLICT'},
+                            status=status.HTTP_409_CONFLICT)
 
         obj = part or torch
         return Response({
@@ -513,6 +513,8 @@ class OutboundViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_409_CONFLICT)
         try:
             services.confirm_pick_and_ship(outbound, user=request.user)
+        except services.CountLockError as e:
+            return Response({'detail': str(e), 'code': 'CONFLICT'}, status=409)
         except ValueError as e:
             return Response({'detail': str(e), 'code': 'VALIDATION_FAILED'}, status=400)
         _publish('OrderShipped', {'outbound': outbound.code,
@@ -598,7 +600,7 @@ class OutboundViewSet(viewsets.ModelViewSet):
         try:
             services.issue_stock(bin_obj=bin_obj, part=line.part, torch=line.torch,
                                  qty=qty, user=request.user, ref_id=outbound.code)
-        except services.InsufficientStock as e:
+        except (services.InsufficientStock, services.CountLockError) as e:
             return Response({'detail': str(e), 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
         line.qty_picked += qty
