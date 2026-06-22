@@ -29,4 +29,5 @@ urlpatterns = [
     path('api/v1/sales/',     include('apps.sales.urls')),
     path('api/v1/analytics/', include('apps.analytics.urls')),
     path('api/v1/storage/',   include('apps.storage.urls')),
+    path('api/v1/',           include('apps.common.urls')),
 ]

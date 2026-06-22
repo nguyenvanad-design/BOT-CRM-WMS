@@ -289,6 +289,21 @@ def test_quote_to_order_creates_salesorder(sale):
 
 # ─── N2.5 Reject quote ───────────────────────────────────────────────────
 @pytest.mark.django_db
+def test_notification_on_pending_ceo(manager, ceo, sale, settings):
+    """Báo giá vượt ngưỡng → manager duyệt cấp 1 → CEO nhận thông báo."""
+    from apps.common.models import Notification
+    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
+    cust = CustomerFactory(owner=sale)
+    q = _make_quote(sale, cust, unit_price=150_000_000)
+    mc = APIClient(); mc.force_authenticate(manager)
+    mc.post(f"/api/v1/crm/quotes/{q['id']}/approve/")
+    assert Notification.objects.filter(user=ceo, kind='quote_approval', is_read=False).exists()
+    # CEO xem được qua API
+    cc = APIClient(); cc.force_authenticate(ceo)
+    assert cc.get('/api/v1/notifications/unread/').data['count'] >= 1
+
+
+@pytest.mark.django_db
 def test_reject_quote_with_reason(manager, sale):
     from apps.crm.models import Quote, QuoteStatus
     cust = CustomerFactory(owner=sale)

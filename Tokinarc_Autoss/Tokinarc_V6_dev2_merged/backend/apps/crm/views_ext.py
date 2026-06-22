@@ -24,8 +24,8 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.roles import is_ceo, is_manager, role_of
-from apps.common.models import AuditLog
+from apps.accounts.roles import CEO_ROLES, MANAGER_ROLES, is_ceo, is_manager, role_of
+from apps.common.models import AuditLog, notify, notify_roles
 
 from .models import (
     Lead, Opportunity, OppStage, Quote, QuoteStatus, Ticket, Visit,
@@ -179,11 +179,15 @@ class QuoteViewSet(viewsets.ModelViewSet):
             quote.status = QuoteStatus.PENDING_CEO
             fields = ['status', 'l1_approved_by', 'l1_approved_at', 'updated_at']
             _audit(request, 'approve_l1', 'Quote', quote.id, {'next': 'pending_ceo'})
+            notify_roles(CEO_ROLES, 'quote_approval',
+                         f"Báo giá {quote.code} ({quote.customer.name}) chờ CEO duyệt cấp 2.",
+                         link='/quotes', exclude_user=request.user)
         else:
             quote.status = QuoteStatus.APPROVED
             quote.approved_by = request.user
             fields = ['status', 'l1_approved_by', 'l1_approved_at', 'approved_by', 'updated_at']
             _audit(request, 'approve', 'Quote', quote.id, {'level': 1})
+            notify(quote.owner, 'quote_approved', f"Báo giá {quote.code} đã được duyệt.", link='/quotes')
         quote.save(update_fields=fields)
         return Response(QuoteSerializer(quote).data)
 
@@ -209,6 +213,8 @@ class QuoteViewSet(viewsets.ModelViewSet):
         quote.save(update_fields=['status', 'l2_approved_by', 'l2_approved_at',
                                   'approved_by', 'updated_at'])
         _audit(request, 'approve', 'Quote', quote.id, {'level': 2})
+        notify(quote.owner, 'quote_approved',
+               f"Báo giá {quote.code} đã được CEO duyệt (cấp 2).", link='/quotes')
         return Response(QuoteSerializer(quote).data)
 
     @action(detail=True, methods=['post'])
@@ -227,6 +233,8 @@ class QuoteViewSet(viewsets.ModelViewSet):
             quote.notes = (quote.notes + f"\n[Từ chối] {reason}").strip()
         quote.save(update_fields=['status', 'notes', 'updated_at'])
         _audit(request, 'reject', 'Quote', quote.id, {'reason': reason})
+        notify(quote.owner, 'quote_rejected',
+               f"Báo giá {quote.code} bị từ chối" + (f": {reason}" if reason else "."), link='/quotes')
         return Response(QuoteSerializer(quote).data)
 
     @action(detail=True, methods=['post'], url_path='to-contract')

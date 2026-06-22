@@ -121,3 +121,41 @@ class AuditLog(models.Model):
             action=action, entity=entity, entity_id=str(entity_id),
             diff=diff or {}, via=via, ip=ip, user_agent=user_agent[:200],
         )
+
+
+# ─── Notification (thông báo trong app) ──────────────────────────────────────
+class Notification(models.Model):
+    """Thông báo gửi tới 1 user (báo giá chờ duyệt, hàng sắp hết, công nợ...)."""
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                   related_name='notifications')
+    kind       = models.CharField(max_length=40, db_index=True)   # quote_approval/stock_low/...
+    message    = models.CharField(max_length=300)
+    link       = models.CharField(max_length=200, blank=True)     # route FE, vd '/quotes'
+    is_read    = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'common_notification'
+        ordering = ['-created_at']
+        indexes  = [models.Index(fields=['user', 'is_read', '-created_at'])]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}: {self.message[:40]}"
+
+
+def notify(user, kind: str, message: str, link: str = '') -> None:
+    """Tạo 1 thông báo cho user (bỏ qua nếu user None)."""
+    if user is not None and getattr(user, 'id', None):
+        Notification.objects.create(user=user, kind=kind, message=message[:300], link=link)
+
+
+def notify_roles(roles, kind: str, message: str, link: str = '', exclude_user=None) -> int:
+    """Tạo thông báo cho mọi user thuộc các role (trừ exclude_user)."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    qs = User.objects.filter(role__in=list(roles), is_active=True)
+    if exclude_user is not None and getattr(exclude_user, 'id', None):
+        qs = qs.exclude(id=exclude_user.id)
+    objs = [Notification(user=u, kind=kind, message=message[:300], link=link) for u in qs]
+    Notification.objects.bulk_create(objs)
+    return len(objs)

@@ -14,6 +14,7 @@ import {
 import { useState, type ReactNode } from 'react'
 import { useAuth } from '@/lib/auth/store'
 import { ChatWidget } from '@/components/ChatWidget'
+import { NotificationBell } from '@/components/NotificationBell'
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin', ceo: 'CEO', manager: 'Quản lý', sales: 'Sale',
@@ -180,6 +181,7 @@ export function Layout() {
             <Menu size={20} />
           </button>
           <div className="flex-1" />
+          <NotificationBell />
           <div className="text-right leading-tight">
             <div className="text-sm font-medium truncate max-w-[40vw]">{user?.display_name || user?.username}</div>
             <div className="text-xs text-txt-2">{ROLE_LABEL[user?.role ?? ''] ?? user?.role}</div>
