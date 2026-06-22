@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ClipboardCheck, Plus, ScanLine, CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
+import { useAuth, isWmsControl } from '@/lib/auth/store'
 import { PageHeader, Card, Button, Tag, TableCard, Th, Td, RowMsg } from '@/components/ui'
 
 interface CCLine { id: string; bin_code: string; part_name: string; system_qty: number; counted_qty: number; diff: number }
@@ -15,6 +16,7 @@ interface CC { id: string; code: string; warehouse_code: string; status: string;
 
 export function WmsCycleCountPage() {
   const qc = useQueryClient()
+  const canApply = isWmsControl(useAuth((s) => s.user?.role))
   const [openId, setOpenId] = useState<string | null>(null)
   const [code, setCode] = useState(''); const [bin, setBin] = useState(''); const [counted, setCounted] = useState('')
 
@@ -83,9 +85,12 @@ export function WmsCycleCountPage() {
             <div className="flex items-center justify-between mb-3">
               <div><span className="font-mono text-flame">{cc.code}</span> · kho {cc.warehouse_code} ·{' '}
                 <Tag tone={cc.status === 'applied' ? 'ok' : 'warn'}>{cc.status}</Tag></div>
-              {cc.status === 'open' && (
+              {cc.status === 'open' && canApply && (
                 <Button variant="success" onClick={() => apply.mutate()} disabled={apply.isPending || cc.lines.length === 0}>
                   <CheckCheck size={14} /> Áp dụng</Button>
+              )}
+              {cc.status === 'open' && !canApply && (
+                <span className="text-[11px] text-txt-2">Chờ Quản lý kho duyệt</span>
               )}
             </div>
             {cc.status === 'open' && (

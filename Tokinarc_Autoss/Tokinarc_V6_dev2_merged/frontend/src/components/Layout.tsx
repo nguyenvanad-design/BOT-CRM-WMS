@@ -18,7 +18,7 @@ import { NotificationBell } from '@/components/NotificationBell'
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin', ceo: 'CEO', manager: 'Quản lý', sales: 'Sale',
-  warehouse: 'Kho', service: 'Dịch vụ', customer: 'Khách',
+  warehouse: 'NV Kho', wh_manager: 'Quản lý kho', service: 'Dịch vụ', customer: 'Khách',
 }
 
 interface NavItem { to: string; icon: ReactNode; label: string; badge?: number }
@@ -100,7 +100,7 @@ const CEO_NAV: NavGroup[] = [
 ]
 
 // Phạm vi module theo role (FE ẩn tab; backend vẫn là rào cứng).
-const WMS_ROLES = ['warehouse', 'manager', 'ceo', 'admin']
+const WMS_ROLES = ['warehouse', 'wh_manager', 'manager', 'ceo', 'admin']
 const MGR_ROLES = ['manager', 'ceo', 'admin']
 const MODULES = [
   { key: 'crm', label: 'CRM', nav: CRM_NAV, home: '/dashboard', roles: null },

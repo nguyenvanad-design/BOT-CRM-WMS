@@ -83,6 +83,16 @@ def auth(wh_user):
     return c
 
 
+@pytest.fixture
+def wh_mgr(db):
+    return UserFactory(role='wh_manager')
+
+
+@pytest.fixture
+def auth_mgr(wh_mgr):
+    c = APIClient(); c.force_authenticate(wh_mgr); return c
+
+
 # ─── Scan-entry: quét điện thoại để nhập dữ liệu ─────────────────────────────
 @pytest.mark.django_db
 def test_scan_entry_receive_adds_stock(auth, part):
@@ -101,17 +111,30 @@ def test_scan_entry_receive_adds_stock(auth, part):
 
 
 @pytest.mark.django_db
-def test_scan_entry_count_sets_stock(auth, part):
+def test_scan_entry_count_sets_stock(auth, auth_mgr, part):
     BinFactory(full_code='HCM-A-R01-B06')
     auth.post('/api/v1/wms/inventory/scan-entry/',
               {'code': '002001', 'bin_code': 'HCM-A-R01-B06', 'qty': 100, 'mode': 'receive'},
               format='json')
-    # kiểm kê: đếm thực tế chỉ còn 80 → set tồn = 80
-    r = auth.post('/api/v1/wms/inventory/scan-entry/',
-                  {'code': '002001', 'bin_code': 'HCM-A-R01-B06', 'qty': 80, 'mode': 'count'},
+    # NV kho thường KHÔNG được kiểm kê đặt lại tồn → 403
+    assert auth.post('/api/v1/wms/inventory/scan-entry/',
+                     {'code': '002001', 'bin_code': 'HCM-A-R01-B06', 'qty': 80, 'mode': 'count'},
+                     format='json').status_code == 403
+    # Quản lý kho mới được
+    r = auth_mgr.post('/api/v1/wms/inventory/scan-entry/',
+                      {'code': '002001', 'bin_code': 'HCM-A-R01-B06', 'qty': 80, 'mode': 'count'},
+                      format='json')
+    assert r.status_code == 200 and r.data['qty_on_hand'] == 80
+
+
+@pytest.mark.django_db
+def test_warehouse_staff_cannot_adjust(auth, part):
+    """Nhân viên kho KHÔNG được điều chỉnh tồn (chỉ Quản lý kho+)."""
+    b = BinFactory(full_code='HCM-A-R01-B20')
+    r = auth.post('/api/v1/wms/inventory/adjust/',
+                  {'bin': str(b.id), 'part': '002001', 'new_qty': 5, 'reason': 'adjust', 'note': ''},
                   format='json')
-    assert r.status_code == 200
-    assert r.data['qty_on_hand'] == 80
+    assert r.status_code == 403
 
 
 @pytest.mark.django_db
@@ -294,18 +317,21 @@ def test_outbound_scan_pick_deducts(auth, part, wh_user):
 
 
 @pytest.mark.django_db
-def test_cycle_count_scan_and_apply(auth, part, wh_user):
+def test_cycle_count_scan_and_apply(auth, auth_mgr, part, wh_user):
     from apps.wms.models import Bin, InventoryItem, Warehouse, Zone
     wh = Warehouse.objects.create(code='HCM', name='K', is_active=True, is_default=True)
     z = Zone.objects.create(warehouse=wh, code='A', name='A')
     b = Bin.objects.create(zone=z, rack='R01', bin_code='B3', full_code='HCM-A-R01-B3')
     InventoryItem.objects.create(bin=b, part=part, qty_on_hand=100)
     cc = auth.post('/api/v1/wms/cycle-counts/', {'warehouse': str(wh.id)}, format='json').data
-    # đếm thực tế 92 (thiếu 8)
+    # NV kho tạo phiên + quét đếm (nghiệp vụ)
     r = auth.post(f"/api/v1/wms/cycle-counts/{cc['id']}/scan/",
                   {'code': '002001', 'bin_code': 'HCM-A-R01-B3', 'counted_qty': 92}, format='json')
     assert r.data['system_qty'] == 100 and r.data['diff'] == -8
-    ra = auth.post(f"/api/v1/wms/cycle-counts/{cc['id']}/apply/")
+    # NV kho KHÔNG được duyệt (apply) → 403
+    assert auth.post(f"/api/v1/wms/cycle-counts/{cc['id']}/apply/").status_code == 403
+    # Quản lý kho duyệt chênh lệch
+    ra = auth_mgr.post(f"/api/v1/wms/cycle-counts/{cc['id']}/apply/")
     assert ra.data['total_diff'] == -8
     assert InventoryItem.objects.get(bin=b, part=part).qty_on_hand == 92
 
@@ -411,11 +437,12 @@ def test_customer_blocked_from_wms(customer_user, part):
 
 
 @pytest.mark.django_db
-def test_warehouse_can_adjust(auth, part):
+def test_warehouse_manager_can_adjust(auth_mgr, part):
+    """Quản lý kho (wh_manager) được điều chỉnh tồn."""
     b = BinFactory()
-    r = auth.post('/api/v1/wms/inventory/adjust/',
-                  {'bin': b.id, 'part': part.pk, 'new_qty': 100, 'reason': 'adjust'},
-                  format='json')
+    r = auth_mgr.post('/api/v1/wms/inventory/adjust/',
+                      {'bin': b.id, 'part': part.pk, 'new_qty': 100, 'reason': 'adjust'},
+                      format='json')
     assert r.status_code == 200
     assert r.data['qty_on_hand'] == 100
 

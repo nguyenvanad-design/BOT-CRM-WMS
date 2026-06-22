@@ -2,7 +2,8 @@
  * Tokinarc frontend — src/lib/types.ts
  * Shape khớp serializer backend (UserSerializer, CustomerListSerializer).
  */
-export type Role = 'customer' | 'sales' | 'warehouse' | 'service' | 'manager' | 'ceo' | 'admin'
+export type Role =
+  | 'customer' | 'sales' | 'warehouse' | 'wh_manager' | 'service' | 'manager' | 'ceo' | 'admin'
 
 export interface User {
   id: string

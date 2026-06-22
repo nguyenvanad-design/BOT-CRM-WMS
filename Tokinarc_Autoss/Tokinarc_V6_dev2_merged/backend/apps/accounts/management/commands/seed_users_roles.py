@@ -14,6 +14,7 @@ from apps.accounts.models import Role, User
 SAMPLE = [
     ('sale1', Role.SALES, 'Trần Văn Minh'),
     ('kho1', Role.WAREHOUSE, 'Nguyễn Thị Kho'),
+    ('khotruong1', Role.WAREHOUSE_MANAGER, 'Trần Quản Kho'),
     ('kysu1', Role.SERVICE, 'Lê Dịch Vụ'),
     ('quanly1', Role.MANAGER, 'Phạm Quản Lý'),
     ('ceo1', Role.CEO, 'Đỗ Tổng Giám Đốc'),

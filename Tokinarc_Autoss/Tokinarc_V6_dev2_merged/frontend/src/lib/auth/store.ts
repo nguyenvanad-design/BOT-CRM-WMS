@@ -63,3 +63,7 @@ export const isManager = (role?: Role) =>
 
 /** Duyệt cấp 2 báo giá = ceo hoặc admin (khớp CEO_ROLES backend). */
 export const isCeo = (role?: Role) => role === 'ceo' || role === 'admin'
+
+/** Kiểm soát tồn kho (điều chỉnh tồn, duyệt kiểm kê) = quản lý kho trở lên. */
+export const isWmsControl = (role?: Role) =>
+  role === 'wh_manager' || role === 'manager' || role === 'ceo' || role === 'admin'

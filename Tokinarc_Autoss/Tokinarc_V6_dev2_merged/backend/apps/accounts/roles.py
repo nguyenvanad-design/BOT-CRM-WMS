@@ -19,37 +19,53 @@ from __future__ import annotations
 
 # ─── 1. Danh sách role hợp lệ ────────────────────────────────────────────────
 class Role:
-    CUSTOMER  = 'customer'
-    SALES     = 'sales'
-    WAREHOUSE = 'warehouse'
-    SERVICE   = 'service'
-    MANAGER   = 'manager'
-    CEO       = 'ceo'
-    ADMIN     = 'admin'
+    CUSTOMER          = 'customer'
+    SALES             = 'sales'
+    WAREHOUSE         = 'warehouse'      # nhân viên kho — chỉ nghiệp vụ
+    WAREHOUSE_MANAGER = 'wh_manager'     # quản lý kho — điều chỉnh tồn, duyệt kiểm kê
+    SERVICE           = 'service'
+    MANAGER           = 'manager'
+    CEO               = 'ceo'
+    ADMIN             = 'admin'
 
 
 ALL_ROLES: frozenset[str] = frozenset({
-    Role.CUSTOMER, Role.SALES, Role.WAREHOUSE,
+    Role.CUSTOMER, Role.SALES, Role.WAREHOUSE, Role.WAREHOUSE_MANAGER,
     Role.SERVICE, Role.MANAGER, Role.CEO, Role.ADMIN,
 })
 
 
 # ─── 2. Hierarchy (so sánh quyền) ────────────────────────────────────────────
 ROLE_HIERARCHY: dict[str, int] = {
-    Role.CUSTOMER:  0,
-    Role.SALES:     10,
-    Role.WAREHOUSE: 10,
-    Role.SERVICE:   10,
-    Role.MANAGER:   50,
-    Role.CEO:       70,
-    Role.ADMIN:     100,
+    Role.CUSTOMER:          0,
+    Role.SALES:             10,
+    Role.WAREHOUSE:         10,
+    Role.WAREHOUSE_MANAGER: 30,
+    Role.SERVICE:           10,
+    Role.MANAGER:           50,
+    Role.CEO:               70,
+    Role.ADMIN:             100,
 }
 
 # CEO có toàn bộ quyền đọc/điều hành mức quản lý (đứng trên manager).
+# Lưu ý: wh_manager KHÔNG thuộc MANAGER_ROLES (không xem dashboard CEO/tài chính).
 MANAGER_ROLES: frozenset[str] = frozenset({Role.MANAGER, Role.CEO, Role.ADMIN})
 
 # Cấp duyệt 2 (báo giá vượt ngưỡng): chỉ CEO/admin.
 CEO_ROLES: frozenset[str] = frozenset({Role.CEO, Role.ADMIN})
+
+# ─── WMS: 2 cấp thao tác ─────────────────────────────────────────────────────
+# OP: nghiệp vụ kho (nhập/xuất/chuyển/quét/đếm) — nhân viên kho + cấp trên.
+WMS_OP_ROLES: frozenset[str] = frozenset({
+    Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN})
+# CONTROL: kiểm soát tồn (điều chỉnh tồn, duyệt chênh lệch kiểm kê, đặt FIFO/FEFO)
+# — KHÔNG cho nhân viên kho thường.
+WMS_CONTROL_ROLES: frozenset[str] = frozenset({
+    Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN})
+
+
+def is_wms_control(user) -> bool:
+    return role_of(user) in WMS_CONTROL_ROLES
 
 
 # ─── 3. Capabilities (write tools / read tools) ──────────────────────────────
@@ -65,9 +81,9 @@ WRITE_TOOL_REQUIREMENTS: dict[str, frozenset[str]] = {
     'sign_order':             frozenset({Role.MANAGER, Role.CEO, Role.ADMIN}),
     'ship_order':             frozenset({Role.SALES, Role.WAREHOUSE, Role.MANAGER, Role.CEO, Role.ADMIN}),
     'create_payment':         frozenset({Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'wms_pick_confirm':       frozenset({Role.WAREHOUSE, Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'wms_adjust_inventory':   frozenset({Role.WAREHOUSE, Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'wms_transfer_stock':     frozenset({Role.WAREHOUSE, Role.MANAGER, Role.CEO, Role.ADMIN}),
+    'wms_pick_confirm':       frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN}),
+    'wms_adjust_inventory':   frozenset({Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN}),  # control: ko cho NV kho
+    'wms_transfer_stock':     frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN}),
 }
 
 # Read tools mọi authenticated role đều dùng được (không enforce role riêng).
@@ -91,7 +107,8 @@ INTERNAL_ROLES: frozenset[str] = frozenset(ALL_ROLES - {Role.CUSTOMER})
 #  - WMS:   warehouse + CEO/admin. Manager KHÔNG lập phiếu kho qua bot
 #           (việc kho để nhân viên kho; chỉ CEO/admin toàn quyền liên phòng ban).
 SALES_ROLES: frozenset[str] = frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN})
-WAREHOUSE_ROLES: frozenset[str] = frozenset({Role.WAREHOUSE, Role.CEO, Role.ADMIN})
+WAREHOUSE_ROLES: frozenset[str] = frozenset({
+    Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.CEO, Role.ADMIN})
 
 ASSISTANT_INTENT_ROLES: dict[str, frozenset[str]] = {
     # Đọc nghiệp vụ tài chính/điều hành — manager/CEO/admin
@@ -190,11 +207,12 @@ def get_django_choices():
     from django.db import models
 
     class RoleChoices(models.TextChoices):
-        CUSTOMER  = Role.CUSTOMER,  'Khách hàng'
-        SALES     = Role.SALES,     'Sales'
-        WAREHOUSE = Role.WAREHOUSE, 'Nhân viên kho'
-        SERVICE   = Role.SERVICE,   'Kỹ sư dịch vụ'
-        MANAGER   = Role.MANAGER,   'Quản lý'
-        CEO       = Role.CEO,       'CEO'
-        ADMIN     = Role.ADMIN,     'Admin'
+        CUSTOMER          = Role.CUSTOMER,          'Khách hàng'
+        SALES             = Role.SALES,             'Sales'
+        WAREHOUSE         = Role.WAREHOUSE,         'Nhân viên kho'
+        WAREHOUSE_MANAGER = Role.WAREHOUSE_MANAGER, 'Quản lý kho'
+        SERVICE           = Role.SERVICE,           'Kỹ sư dịch vụ'
+        MANAGER           = Role.MANAGER,           'Quản lý'
+        CEO               = Role.CEO,               'CEO'
+        ADMIN             = Role.ADMIN,             'Admin'
     return RoleChoices

@@ -19,6 +19,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from apps.accounts.roles import is_wms_control
 from apps.catalog.models import Part, Torch
 
 from . import services
@@ -125,6 +126,8 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='adjust')
     def adjust(self, request):
+        if not is_wms_control(request.user):
+            return Response({'detail': 'Chỉ Quản lý kho trở lên được điều chỉnh tồn.'}, status=403)
         ser = AdjustSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         d = ser.validated_data
@@ -162,6 +165,8 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': 'Thiếu mã phụ tùng hoặc mã ô (bin).'}, status=400)
         if mode not in ('receive', 'issue', 'count'):
             return Response({'detail': "mode phải là 'receive', 'issue' hoặc 'count'."}, status=400)
+        if mode == 'count' and not is_wms_control(request.user):
+            return Response({'detail': 'Kiểm kê đặt lại tồn cần quyền Quản lý kho.'}, status=403)
         if mode in ('receive', 'issue') and qty <= 0:
             return Response({'detail': 'Số lượng phải > 0.'}, status=400)
         if mode == 'count' and qty < 0:
@@ -444,8 +449,11 @@ class CycleCountViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def apply(self, request, pk=None):
-        """Áp dụng kiểm kê: set tồn từng dòng = số đếm (ghi movement chênh lệch)."""
+        """Áp dụng kiểm kê: set tồn từng dòng = số đếm (ghi movement chênh lệch).
+        Duyệt chênh lệch = quyền Quản lý kho trở lên."""
         from django.utils import timezone
+        if not is_wms_control(request.user):
+            return Response({'detail': 'Duyệt kiểm kê cần quyền Quản lý kho.'}, status=403)
         cc = self.get_object()
         if cc.status != 'open':
             return Response({'detail': 'Phiên đã đóng.', 'code': 'CONFLICT'},

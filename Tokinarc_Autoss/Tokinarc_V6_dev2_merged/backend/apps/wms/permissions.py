@@ -11,11 +11,12 @@ from __future__ import annotations
 from rest_framework import permissions
 from rest_framework.permissions import SAFE_METHODS
 
-from apps.accounts.roles import Role, role_of
+from apps.accounts.roles import INTERNAL_ROLES, WMS_OP_ROLES, Role, role_of
 
-WMS_WRITE_ROLES = frozenset({Role.WAREHOUSE, Role.MANAGER, Role.CEO, Role.ADMIN})
-WMS_READ_ROLES  = frozenset({Role.SALES, Role.WAREHOUSE, Role.SERVICE,
-                             Role.MANAGER, Role.CEO, Role.ADMIN})
+# Đọc: mọi nhân viên (trừ customer). Ghi nghiệp vụ: WMS_OP_ROLES.
+WMS_READ_ROLES  = INTERNAL_ROLES
+WMS_WRITE_ROLES = WMS_OP_ROLES          # nhập/xuất/chuyển/quét/đếm (gồm nhân viên kho)
+# Kiểm soát tồn (điều chỉnh/duyệt kiểm kê/FIFO-FEFO): WMS_CONTROL_ROLES (ko cho NV kho).
 
 
 class WmsAccess(permissions.BasePermission):

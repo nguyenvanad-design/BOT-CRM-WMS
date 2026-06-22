@@ -15,6 +15,7 @@ import { compactVnd } from '@/lib/crm'
 import { SERIAL_STATUS_LABEL, SERIAL_STATUS_TONE } from '@/lib/wms'
 import type { CatalogPart, SerialNumber } from '@/lib/types'
 import { Card, PageHeader, Button, Tag } from '@/components/ui'
+import { useAuth, isWmsControl } from '@/lib/auth/store'
 
 type Mode = 'lookup' | 'receive' | 'issue' | 'count'
 type Target = 'code' | 'bin'
@@ -29,6 +30,8 @@ const MODES: { key: Mode; label: string; icon: typeof Search }[] = [
 ]
 
 export function ScanPage() {
+  const canControl = isWmsControl(useAuth((s) => s.user?.role))
+  const visibleModes = MODES.filter((m) => m.key !== 'count' || canControl)
   const videoRef = useRef<HTMLVideoElement>(null)
   const readerRef = useRef<BrowserMultiFormatReader | null>(null)
   const [mode, setMode] = useState<Mode>('lookup')
@@ -109,7 +112,7 @@ export function ScanPage() {
 
       {/* Chọn chế độ */}
       <div className="flex gap-1.5 mb-4">
-        {MODES.map((m) => {
+        {visibleModes.map((m) => {
           const Icon = m.icon
           return (
             <button key={m.key} onClick={() => { setMode(m.key); setResult(null) }}
