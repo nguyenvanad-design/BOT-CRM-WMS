@@ -14,7 +14,7 @@ from __future__ import annotations
 from django.db.models import F
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status, viewsets
+from rest_framework import filters, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -23,8 +23,8 @@ from apps.catalog.models import Part, Torch
 
 from . import services
 from .models import (
-    ASN, Bin, InboundOrder, InventoryItem, Lot, OutboundOrder,
-    SerialNumber, StockMovement, Warehouse, Zone,
+    ASN, Bin, CycleCount, CycleCountLine, InboundOrder, InventoryItem, Lot,
+    OutboundOrder, SerialNumber, StockMovement, Warehouse, Zone,
 )
 from .permissions import WMSPermission
 from .serializers import (
@@ -308,19 +308,143 @@ class InboundViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Trạng thái không cho xác nhận.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
         for line in inbound.lines.all():
-            if not line.target_bin_id or line.qty_expected <= 0:
+            # Dùng số đã quét nhận (qty_received) nếu có; nếu chưa quét → qty_expected.
+            qty = line.qty_received or line.qty_expected
+            if not line.target_bin_id or qty <= 0:
                 continue
             services.receive_stock(
                 bin_obj=line.target_bin, part=line.part, torch=line.torch,
-                qty=line.qty_expected, user=request.user, ref_id=inbound.code,
-                lot_no=line.lot_no)
-            line.qty_received = line.qty_expected
+                qty=qty, user=request.user, ref_id=inbound.code, lot_no=line.lot_no)
+            line.qty_received = qty
             line.save(update_fields=['qty_received'])
         inbound.status = 'putaway'
         inbound.received_at = timezone.now()
         inbound.save(update_fields=['status', 'received_at'])
         _publish('StockReceived', {'inbound': inbound.code, 'warehouse': inbound.warehouse.code})
         return Response(InboundOrderSerializer(inbound).data)
+
+    @action(detail=True, methods=['post'], url_path='scan-receive')
+    def scan_receive(self, request, pk=None):
+        """Quét nhận hàng theo phiếu: cộng dồn qty_received cho dòng khớp mã."""
+        inbound = self.get_object()
+        if inbound.status not in ('draft', 'confirmed'):
+            return Response({'detail': 'Phiếu đã xử lý.', 'code': 'CONFLICT'},
+                            status=status.HTTP_409_CONFLICT)
+        code = str(request.data.get('code', '')).strip()
+        try:
+            qty = int(request.data.get('qty', 1))
+        except (TypeError, ValueError):
+            return Response({'detail': 'Số lượng không hợp lệ.'}, status=400)
+        if not code or qty <= 0:
+            return Response({'detail': 'Thiếu mã hoặc số lượng.'}, status=400)
+        line = next((l for l in inbound.lines.all()
+                     if (l.part_id == code or l.torch_id == code)), None)
+        if line is None:
+            return Response({'detail': f'Mã "{code}" không có trong phiếu nhập này.'}, status=404)
+        line.qty_received = min(line.qty_received + qty, line.qty_expected)
+        line.save(update_fields=['qty_received'])
+        done = all(l.qty_received >= l.qty_expected for l in inbound.lines.all())
+        if inbound.status == 'draft':
+            inbound.status = 'confirmed'; inbound.save(update_fields=['status'])
+        return Response({
+            'detail': f'Đã nhận {line.qty_received}/{line.qty_expected} mã {code}.',
+            'code': code, 'received': line.qty_received, 'expected': line.qty_expected,
+            'all_done': done,
+        })
+
+
+class CycleCountLineSerializer(serializers.ModelSerializer):
+    part_name = serializers.SerializerMethodField()
+    bin_code  = serializers.CharField(source='bin.full_code', read_only=True)
+    diff      = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = CycleCountLine
+        fields = ['id', 'bin', 'bin_code', 'part', 'torch', 'part_name',
+                  'system_qty', 'counted_qty', 'diff', 'counted_at']
+        read_only_fields = fields
+
+    def get_part_name(self, obj):
+        o = obj.part or obj.torch
+        return getattr(o, 'display_name_vi', None)
+
+
+class CycleCountSerializer(serializers.ModelSerializer):
+    lines = CycleCountLineSerializer(many=True, read_only=True)
+    warehouse_code = serializers.CharField(source='warehouse.code', read_only=True)
+
+    class Meta:
+        model = CycleCount
+        fields = ['id', 'code', 'warehouse', 'warehouse_code', 'status', 'note',
+                  'applied_at', 'created_at', 'lines']
+        read_only_fields = ['id', 'code', 'status', 'applied_at', 'created_at', 'lines']
+
+
+class CycleCountViewSet(viewsets.ModelViewSet):
+    """Phiên kiểm kê: tạo → quét đếm (scan) → áp dụng (apply) điều chỉnh tồn."""
+    serializer_class = CycleCountSerializer
+    permission_classes = [WMSPermission]
+    queryset = CycleCount.objects.select_related('warehouse').prefetch_related('lines')
+
+    def perform_create(self, serializer):
+        from django.utils import timezone
+        wh = serializer.validated_data['warehouse']
+        year = timezone.now().year
+        pre = f'KK-{year}-'
+        last = CycleCount.objects.filter(code__startswith=pre).order_by('-code').first()
+        seq = (int(last.code.rsplit('-', 1)[-1]) + 1) if last else 1
+        serializer.save(code=f'{pre}{seq:03d}', created_by=self.request.user,
+                        updated_by=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def scan(self, request, pk=None):
+        """Quét đếm 1 mặt hàng tại 1 ô: lưu tồn hệ thống + số đếm thực tế."""
+        cc = self.get_object()
+        if cc.status != 'open':
+            return Response({'detail': 'Phiên đã đóng.', 'code': 'CONFLICT'},
+                            status=status.HTTP_409_CONFLICT)
+        code = str(request.data.get('code', '')).strip()
+        bin_code = str(request.data.get('bin_code', '')).strip()
+        try:
+            counted = int(request.data.get('counted_qty'))
+        except (TypeError, ValueError):
+            return Response({'detail': 'Số đếm không hợp lệ.'}, status=400)
+        if not code or not bin_code or counted < 0:
+            return Response({'detail': 'Thiếu mã hàng, mã ô hoặc số đếm.'}, status=400)
+        part = Part.objects.filter(pk=code).first()
+        torch = None if part else Torch.objects.filter(pk=code).first()
+        if part is None and torch is None:
+            return Response({'detail': f'Không tìm thấy mã "{code}".'}, status=404)
+        bin_obj = Bin.objects.filter(full_code=bin_code, zone__warehouse=cc.warehouse).first()
+        if bin_obj is None:
+            return Response({'detail': f'Không có ô "{bin_code}" trong kho {cc.warehouse.code}.'},
+                            status=404)
+        inv = InventoryItem.objects.filter(bin=bin_obj, part=part, torch=torch).first()
+        system_qty = inv.qty_on_hand if inv else 0
+        line, _ = CycleCountLine.objects.update_or_create(
+            session=cc, bin=bin_obj, part=part, torch=torch,
+            defaults={'system_qty': system_qty, 'counted_qty': counted})
+        return Response(CycleCountLineSerializer(line).data)
+
+    @action(detail=True, methods=['post'])
+    def apply(self, request, pk=None):
+        """Áp dụng kiểm kê: set tồn từng dòng = số đếm (ghi movement chênh lệch)."""
+        from django.utils import timezone
+        cc = self.get_object()
+        if cc.status != 'open':
+            return Response({'detail': 'Phiên đã đóng.', 'code': 'CONFLICT'},
+                            status=status.HTTP_409_CONFLICT)
+        applied, total_diff = 0, 0
+        for line in cc.lines.all():
+            services.adjust_stock(bin_obj=line.bin, part=line.part, torch=line.torch,
+                                  new_qty=line.counted_qty, reason='adjust',
+                                  user=request.user, note=f'Kiểm kê {cc.code}')
+            total_diff += line.diff
+            applied += 1
+        cc.status = 'applied'; cc.applied_at = timezone.now()
+        cc.save(update_fields=['status', 'applied_at'])
+        return Response({'detail': f'Đã áp dụng {applied} dòng kiểm kê.',
+                         'applied': applied, 'total_diff': total_diff})
 
 
 class OutboundViewSet(viewsets.ModelViewSet):
@@ -351,3 +475,47 @@ class OutboundViewSet(viewsets.ModelViewSet):
         _publish('OrderShipped', {'outbound': outbound.code,
                                   'warehouse': outbound.warehouse.code})
         return Response(OutboundOrderSerializer(outbound).data)
+
+    @action(detail=True, methods=['post'], url_path='scan-pick')
+    def scan_pick(self, request, pk=None):
+        """Quét soạn hàng theo phiếu: trừ tồn khỏi ô + cộng dồn qty_picked dòng khớp."""
+        outbound = self.get_object()
+        if outbound.status in ('shipped', 'cancelled'):
+            return Response({'detail': 'Phiếu đã xử lý.', 'code': 'CONFLICT'},
+                            status=status.HTTP_409_CONFLICT)
+        code = str(request.data.get('code', '')).strip()
+        bin_code = str(request.data.get('bin_code', '')).strip()
+        try:
+            qty = int(request.data.get('qty', 1))
+        except (TypeError, ValueError):
+            return Response({'detail': 'Số lượng không hợp lệ.'}, status=400)
+        if not code or not bin_code or qty <= 0:
+            return Response({'detail': 'Thiếu mã hàng, mã ô hoặc số lượng.'}, status=400)
+        line = next((l for l in outbound.lines.all()
+                     if (l.part_id == code or l.torch_id == code)), None)
+        if line is None:
+            return Response({'detail': f'Mã "{code}" không có trong phiếu xuất này.'}, status=404)
+        remaining = line.qty_ordered - line.qty_picked
+        if qty > remaining:
+            return Response({'detail': f'Chỉ còn cần soạn {remaining} cho mã {code}.'}, status=400)
+        bin_obj = Bin.objects.filter(full_code=bin_code,
+                                     zone__warehouse=outbound.warehouse).first()
+        if bin_obj is None:
+            return Response({'detail': f'Không có ô "{bin_code}" trong kho {outbound.warehouse.code}.'},
+                            status=404)
+        try:
+            services.issue_stock(bin_obj=bin_obj, part=line.part, torch=line.torch,
+                                 qty=qty, user=request.user, ref_id=outbound.code)
+        except services.InsufficientStock as e:
+            return Response({'detail': str(e), 'code': 'CONFLICT'},
+                            status=status.HTTP_409_CONFLICT)
+        line.qty_picked += qty
+        line.save(update_fields=['qty_picked'])
+        done = all(l.qty_picked >= l.qty_ordered for l in outbound.lines.all())
+        outbound.status = 'picked' if done else 'picking'
+        outbound.save(update_fields=['status'])
+        return Response({
+            'detail': f'Đã soạn {line.qty_picked}/{line.qty_ordered} mã {code} từ {bin_code}.',
+            'code': code, 'picked': line.qty_picked, 'ordered': line.qty_ordered,
+            'all_done': done,
+        })

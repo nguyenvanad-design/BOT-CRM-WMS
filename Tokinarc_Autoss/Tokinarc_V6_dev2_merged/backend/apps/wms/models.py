@@ -354,3 +354,52 @@ class StockMovement(models.Model):
     def __str__(self) -> str:
         what = self.part_id or self.torch_id
         return f"[{self.ts:%Y-%m-%d}] {what} {self.delta:+d} ({self.reason})"
+
+
+# ─── Kiểm kê (cycle count) ───────────────────────────────────────────────────
+class CycleCountStatus(models.TextChoices):
+    OPEN      = 'open',      'Đang đếm'
+    APPLIED   = 'applied',   'Đã áp dụng'
+    CANCELLED = 'cancelled', 'Hủy'
+
+
+class CycleCount(BaseModel):
+    """Phiên kiểm kê kho. Quét đếm thực tế → áp dụng để điều chỉnh tồn."""
+    code      = models.CharField(max_length=20, unique=True)   # 'KK-2026-001'
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='cycle_counts')
+    status    = models.CharField(max_length=20, choices=CycleCountStatus.choices,
+                                 default=CycleCountStatus.OPEN, db_index=True)
+    note      = models.CharField(max_length=200, blank=True)
+    applied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'wms_cycle_count'
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return f"{self.code} ({self.warehouse_id})"
+
+
+class CycleCountLine(models.Model):
+    """1 dòng đếm: ô × mặt hàng, tồn hệ thống lúc quét vs số đếm thực tế."""
+    session     = models.ForeignKey(CycleCount, on_delete=models.CASCADE, related_name='lines')
+    bin         = models.ForeignKey(Bin, on_delete=models.PROTECT)
+    part        = models.ForeignKey('catalog.Part', null=True, blank=True,
+                                    on_delete=models.PROTECT, db_column='part_no')
+    torch       = models.ForeignKey('catalog.Torch', null=True, blank=True,
+                                    on_delete=models.PROTECT, db_column='torch_model')
+    system_qty  = models.IntegerField(default=0)   # tồn hệ thống lúc quét
+    counted_qty = models.IntegerField(default=0)   # số đếm thực tế
+    counted_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'wms_cycle_count_line'
+        ordering = ['id']
+        constraints = [
+            models.UniqueConstraint(fields=['session', 'bin', 'part', 'torch'],
+                                    name='uniq_cc_line'),
+        ]
+
+    @property
+    def diff(self) -> int:
+        return self.counted_qty - self.system_qty

@@ -7,8 +7,8 @@ Include vào tokinarc/urls.py:
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    ASNViewSet, BinViewSet, InboundViewSet, InventoryViewSet, LotViewSet,
-    OutboundViewSet, SerialNumberViewSet, StockMovementViewSet,
+    ASNViewSet, BinViewSet, CycleCountViewSet, InboundViewSet, InventoryViewSet,
+    LotViewSet, OutboundViewSet, SerialNumberViewSet, StockMovementViewSet,
     WarehouseViewSet, ZoneViewSet,
 )
 
@@ -23,5 +23,6 @@ router.register(r'stock-movements', StockMovementViewSet, basename='stockmovemen
 router.register(r'asn', ASNViewSet, basename='asn')
 router.register(r'inbound', InboundViewSet, basename='inbound')
 router.register(r'outbound', OutboundViewSet, basename='outbound')
+router.register(r'cycle-counts', CycleCountViewSet, basename='cyclecount')
 
 urlpatterns = router.urls

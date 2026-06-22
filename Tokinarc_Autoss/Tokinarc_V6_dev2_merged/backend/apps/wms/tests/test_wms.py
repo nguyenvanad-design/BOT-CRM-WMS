@@ -161,6 +161,57 @@ def test_scan_entry_blocked_for_customer(customer_user, part):
     assert r.status_code in (403, 401)
 
 
+# ─── Scan theo phiếu + kiểm kê (hoàn thiện scan) ─────────────────────────────
+@pytest.mark.django_db
+def test_inbound_scan_receive_then_confirm(auth, part, wh_user):
+    from apps.wms.models import Bin, InboundLine, InboundOrder, InventoryItem, Warehouse, Zone
+    wh = Warehouse.objects.create(code='HCM', name='K', is_active=True, is_default=True)
+    z = Zone.objects.create(warehouse=wh, code='A', name='A')
+    b = Bin.objects.create(zone=z, rack='R01', bin_code='B1', full_code='HCM-A-R01-B1')
+    io = InboundOrder.objects.create(code='IN-1', warehouse=wh, created_by=wh_user, updated_by=wh_user)
+    InboundLine.objects.create(inbound=io, part=part, qty_expected=10, target_bin=b)
+    # quét nhận 6 rồi 4
+    auth.post(f'/api/v1/wms/inbound/{io.id}/scan-receive/', {'code': '002001', 'qty': 6}, format='json')
+    r = auth.post(f'/api/v1/wms/inbound/{io.id}/scan-receive/', {'code': '002001', 'qty': 4}, format='json')
+    assert r.data['received'] == 10 and r.data['all_done'] is True
+    # confirm → cộng tồn đúng số đã nhận
+    auth.post(f'/api/v1/wms/inbound/{io.id}/confirm/')
+    assert InventoryItem.objects.get(bin=b, part=part).qty_on_hand == 10
+
+
+@pytest.mark.django_db
+def test_outbound_scan_pick_deducts(auth, part, wh_user):
+    from apps.wms.models import (Bin, InventoryItem, OutboundLine, OutboundOrder,
+                                 Warehouse, Zone)
+    wh = Warehouse.objects.create(code='HCM', name='K', is_active=True, is_default=True)
+    z = Zone.objects.create(warehouse=wh, code='A', name='A')
+    b = Bin.objects.create(zone=z, rack='R01', bin_code='B2', full_code='HCM-A-R01-B2')
+    InventoryItem.objects.create(bin=b, part=part, qty_on_hand=20)
+    ob = OutboundOrder.objects.create(code='OUT-1', warehouse=wh, created_by=wh_user, updated_by=wh_user)
+    OutboundLine.objects.create(outbound=ob, part=part, qty_ordered=5)
+    r = auth.post(f'/api/v1/wms/outbound/{ob.id}/scan-pick/',
+                  {'code': '002001', 'bin_code': 'HCM-A-R01-B2', 'qty': 5}, format='json')
+    assert r.status_code == 200 and r.data['all_done'] is True
+    assert InventoryItem.objects.get(bin=b, part=part).qty_on_hand == 15
+
+
+@pytest.mark.django_db
+def test_cycle_count_scan_and_apply(auth, part, wh_user):
+    from apps.wms.models import Bin, InventoryItem, Warehouse, Zone
+    wh = Warehouse.objects.create(code='HCM', name='K', is_active=True, is_default=True)
+    z = Zone.objects.create(warehouse=wh, code='A', name='A')
+    b = Bin.objects.create(zone=z, rack='R01', bin_code='B3', full_code='HCM-A-R01-B3')
+    InventoryItem.objects.create(bin=b, part=part, qty_on_hand=100)
+    cc = auth.post('/api/v1/wms/cycle-counts/', {'warehouse': str(wh.id)}, format='json').data
+    # đếm thực tế 92 (thiếu 8)
+    r = auth.post(f"/api/v1/wms/cycle-counts/{cc['id']}/scan/",
+                  {'code': '002001', 'bin_code': 'HCM-A-R01-B3', 'counted_qty': 92}, format='json')
+    assert r.data['system_qty'] == 100 and r.data['diff'] == -8
+    ra = auth.post(f"/api/v1/wms/cycle-counts/{cc['id']}/apply/")
+    assert ra.data['total_diff'] == -8
+    assert InventoryItem.objects.get(bin=b, part=part).qty_on_hand == 92
+
+
 # ─── N1.3 Serial history (2 chiều, gồm ticket) ───────────────────────────────
 @pytest.mark.django_db
 def test_serial_history_includes_tickets(auth, torch):

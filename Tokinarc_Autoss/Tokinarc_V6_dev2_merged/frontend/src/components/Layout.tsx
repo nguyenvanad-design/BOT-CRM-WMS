@@ -9,7 +9,7 @@ import {
   Radar, Target, Filter, FileText, ScrollText, MapPin, Phone,
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
   Package, AlertTriangle, Barcode, History, Inbox, PackageCheck,
-  Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot,
+  Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useAuth } from '@/lib/auth/store'
@@ -76,6 +76,7 @@ const WMS_NAV: NavGroup[] = [
     { to: '/wms/warehouses', icon: <Warehouse size={16} />, label: 'Kho & vị trí' },
     { to: '/wms/map', icon: <MapIcon size={16} />, label: 'Bản đồ kho' },
     { to: '/wms/scan', icon: <ScanLine size={16} />, label: 'Quét mã' },
+    { to: '/wms/cycle-count', icon: <ClipboardCheck size={16} />, label: 'Kiểm kê' },
     { to: '/wms/reports', icon: <FileBarChart size={16} />, label: 'Báo cáo' },
   ]},
 ]
