@@ -161,6 +161,34 @@ def test_scan_entry_blocked_for_customer(customer_user, part):
     assert r.status_code in (403, 401)
 
 
+# ─── build_zones: dựng zone theo nhóm sản phẩm + dời tồn ─────────────────────
+@pytest.mark.django_db
+def test_build_zones_creates_taxonomy_and_relocates(wh_user):
+    from django.core.management import call_command
+    from apps.catalog.models import Part, Torch
+    from apps.wms.models import Bin, InventoryItem, SerialNumber, Warehouse, Zone
+    wh = Warehouse.objects.create(code='HCM', name='K', is_active=True, is_default=True)
+    z0 = Zone.objects.create(warehouse=wh, code='OLD', name='Old')
+    old = Bin.objects.create(zone=z0, rack='R', bin_code='B', full_code='HCM-OLD-R-B')
+    tip = Part.objects.create(tokin_part_no='T-TIP', category='Tip', display_name_vi='Bép')
+    InventoryItem.objects.create(bin=old, part=tip, qty_on_hand=7)
+    torch = Torch.objects.create(model_code='RB-1', display_name_vi='Súng hàn robot RB-1',
+                                 ecosystem='N', body_type='RR')
+    sn = SerialNumber.objects.create(serial='SNR-1', torch=torch, bin=old, status='in_stock')
+
+    call_command('build_zones', '--warehouse', 'HCM')
+
+    # 8 zone chuẩn được tạo
+    assert Zone.objects.filter(warehouse=wh, code='SUNG').exists()
+    assert Zone.objects.filter(warehouse=wh).count() >= 8
+    # Tip → zone MIG / tầng T1
+    inv = InventoryItem.objects.get(part=tip)
+    assert inv.bin.zone.code == 'MIG' and inv.bin.rack == 'T1' and inv.qty_on_hand == 7
+    # Súng robot → zone SUNG / tầng T3
+    sn.refresh_from_db()
+    assert sn.bin.zone.code == 'SUNG' and sn.bin.rack == 'T3'
+
+
 # ─── Scan theo phiếu + kiểm kê (hoàn thiện scan) ─────────────────────────────
 @pytest.mark.django_db
 def test_inbound_scan_receive_then_confirm(auth, part, wh_user):
