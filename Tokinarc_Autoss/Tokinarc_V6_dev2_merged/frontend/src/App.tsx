@@ -26,6 +26,8 @@ import { ScanPage } from '@/pages/wms/Scan'
 import { WmsCycleCountPage } from '@/pages/wms/CycleCount'
 import { WmsLotsPage } from '@/pages/wms/Lots'
 import { WmsOpsKpiPage } from '@/pages/wms/OpsKpi'
+import { PurchaseOrdersPage } from '@/pages/purchasing/PurchaseOrders'
+import { SuppliersPage } from '@/pages/purchasing/Suppliers'
 import { WarehouseMapPage } from '@/pages/wms/WarehouseMap'
 import { WmsReportsPage } from '@/pages/wms/Reports'
 import { ContactsPage } from '@/pages/crm/Contacts'
@@ -107,6 +109,11 @@ export function App() {
           <Route path="wms/cycle-count" element={<WmsCycleCountPage />} />
           <Route path="wms/lots" element={<WmsLotsPage />} />
           <Route path="wms/ops-kpi" element={<WmsOpsKpiPage />} />
+
+          {/* ── Mua hàng ── */}
+          <Route path="purchasing" element={<Navigate to="/purchasing/orders" replace />} />
+          <Route path="purchasing/orders" element={<PurchaseOrdersPage />} />
+          <Route path="purchasing/suppliers" element={<SuppliersPage />} />
           <Route path="wms/reports" element={<WmsReportsPage />} />
 
           {/* ── CEO (manager/admin) ── */}

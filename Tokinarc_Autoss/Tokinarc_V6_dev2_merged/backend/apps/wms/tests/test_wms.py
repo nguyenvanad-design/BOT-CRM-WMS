@@ -451,6 +451,7 @@ def test_ops_kpi(auth, auth_mgr, part, wh_user):
     assert r.status_code == 200
     assert r.data['inbound']['qty'] == 40
     assert any(z['zone'] == 'MIG' and z['qty'] == 40 for z in r.data['by_zone'])
+    assert 'inventory_turnover' in r.data and r.data['on_hand_total'] == 40
 
 
 @pytest.mark.django_db

@@ -10,6 +10,7 @@ import {
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
   Package, AlertTriangle, Barcode, History, Inbox, PackageCheck,
   Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Boxes, Gauge,
+  ShoppingCart, Building,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useAuth, isWmsControl } from '@/lib/auth/store'
@@ -83,6 +84,13 @@ const WMS_NAV: NavGroup[] = [
   ]},
 ]
 
+const PUR_NAV: NavGroup[] = [
+  { group: 'Mua hàng', items: [
+    { to: '/purchasing/orders', icon: <ShoppingCart size={16} />, label: 'Đơn mua' },
+    { to: '/purchasing/suppliers', icon: <Building size={16} />, label: 'Nhà cung cấp' },
+  ]},
+]
+
 const CEO_NAV: NavGroup[] = [
   { group: 'Tổng quan', items: [
     { to: '/ceo/overview', icon: <Crown size={16} />, label: 'Bảng điều hành' },
@@ -103,9 +111,11 @@ const CEO_NAV: NavGroup[] = [
 // Phạm vi module theo role (FE ẩn tab; backend vẫn là rào cứng).
 const WMS_ROLES = ['warehouse', 'wh_manager', 'manager', 'ceo', 'admin']
 const MGR_ROLES = ['manager', 'ceo', 'admin']
+const PUR_ROLES = ['warehouse', 'wh_manager', 'manager', 'ceo', 'admin']
 const MODULES = [
   { key: 'crm', label: 'CRM', nav: CRM_NAV, home: '/dashboard', roles: null },
   { key: 'wms', label: 'WMS', nav: WMS_NAV, home: '/wms/dashboard', roles: WMS_ROLES },
+  { key: 'mua', label: 'Mua', nav: PUR_NAV, home: '/purchasing/orders', roles: PUR_ROLES },
   { key: 'ceo', label: 'CEO', nav: CEO_NAV, home: '/ceo/overview', roles: MGR_ROLES },
 ] as const
 
@@ -119,6 +129,7 @@ export function Layout() {
   const canCtrl = isWmsControl(role)
   const visibleModules = MODULES.filter((m) => !m.roles || (role && m.roles.includes(role)))
   const moduleKey = loc.pathname.startsWith('/wms') ? 'wms'
+    : loc.pathname.startsWith('/purchasing') ? 'mua'
     : loc.pathname.startsWith('/ceo') ? 'ceo' : 'crm'
   const current = MODULES.find((m) => m.key === moduleKey)!
 

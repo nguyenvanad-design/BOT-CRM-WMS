@@ -605,10 +605,17 @@ class OpsKpiView(APIView):
                        .order_by('bin__zone__code'))
         low_stock = inv.filter(qty_on_hand__lte=F('min_level')).count()
 
+        # Vòng quay hàng hóa (xấp xỉ): tổng SL xuất trong kỳ / tồn hiện tại,
+        # quy về năm. turnover_year = (out_qty/tồn) × (365/days).
+        on_hand = int(inv.aggregate(s=Sum('qty_on_hand'))['s'] or 0)
+        out_qty = abs(out_q)
+        turnover = round((out_qty / on_hand) * (365 / days), 2) if on_hand else 0.0
+
         return Response({
             'warehouse': wh or 'ALL', 'days': days,
             'inbound':  {'ops': in_c, 'qty': in_q},
             'outbound': {'ops': out_c, 'qty': abs(out_q)},
+            'inventory_turnover': turnover, 'on_hand_total': on_hand,
             'adjust_ops': adj_c, 'transfer_ops': trf_c,
             'cycle_count': {'sessions': sessions.count(), 'lines': counted_lines,
                             'mismatch': mismatch, 'abs_diff': int(abs_diff),
