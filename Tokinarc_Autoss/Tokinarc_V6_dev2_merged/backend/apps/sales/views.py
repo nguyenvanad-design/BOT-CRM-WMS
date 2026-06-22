@@ -10,11 +10,12 @@ from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.accounts.roles import is_manager
 from apps.common.models import AuditLog
 
 from . import services
 from .models import Payment, SalesOrder
-from .permissions import SalesPermission, role_of
+from .permissions import SalesPermission, role_of  # noqa: F401 (role_of dùng nơi khác)
 from .serializers import (
     PaymentSerializer, SalesOrderDetailSerializer, SalesOrderListSerializer,
 )
@@ -68,7 +69,7 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
         qs = (SalesOrder.objects.select_related('customer', 'owner')
               .prefetch_related('lines')
               .annotate(debt_vnd=F('total_vnd') - F('paid_vnd')))
-        if role_of(self.request.user) not in ('manager', 'admin'):
+        if not is_manager(self.request.user):
             qs = qs.filter(owner_id=self.request.user.id)
         return qs
 
@@ -77,7 +78,7 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         owner = serializer.validated_data.get('owner') or self.request.user
-        if role_of(self.request.user) not in ('manager', 'admin'):
+        if not is_manager(self.request.user):
             owner = self.request.user
         order = serializer.save(owner=owner, created_by=self.request.user,
                                 updated_by=self.request.user)

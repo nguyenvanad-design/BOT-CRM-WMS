@@ -4,7 +4,7 @@ from rest_framework.permissions import SAFE_METHODS
 
 from apps.accounts.roles import MANAGER_ROLES, Role, role_of
 
-WRITE_ROLES = frozenset({Role.SALES, Role.MANAGER, Role.ADMIN})
+WRITE_ROLES = frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN})
 
 
 class SalesPermission(permissions.BasePermission):

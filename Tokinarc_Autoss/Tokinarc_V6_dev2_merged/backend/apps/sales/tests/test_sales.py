@@ -98,6 +98,15 @@ def test_customer_role_blocked(db):
     assert c.get('/api/v1/sales/orders/').status_code == 403
 
 
+@pytest.mark.django_db
+def test_ceo_can_access_sales_and_wms(db):
+    """CEO phải đọc được đơn bán + WMS (regression: role-set từng sót ceo)."""
+    ceo = User.objects.create(username='ceo1', role=Role.CEO)
+    c = APIClient(); c.force_authenticate(ceo)
+    assert c.get('/api/v1/sales/orders/').status_code == 200
+    assert c.get('/api/v1/wms/inventory/').status_code == 200
+
+
 # ─── N1.2 ship → tự sinh WMS Outbound ────────────────────────────────────
 @pytest.mark.django_db
 def test_ship_creates_wms_outbound(auth, sale):

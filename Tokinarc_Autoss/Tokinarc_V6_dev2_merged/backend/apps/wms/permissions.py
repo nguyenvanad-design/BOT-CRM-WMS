@@ -13,9 +13,9 @@ from rest_framework.permissions import SAFE_METHODS
 
 from apps.accounts.roles import Role, role_of
 
-WMS_WRITE_ROLES = frozenset({Role.WAREHOUSE, Role.MANAGER, Role.ADMIN})
+WMS_WRITE_ROLES = frozenset({Role.WAREHOUSE, Role.MANAGER, Role.CEO, Role.ADMIN})
 WMS_READ_ROLES  = frozenset({Role.SALES, Role.WAREHOUSE, Role.SERVICE,
-                             Role.MANAGER, Role.ADMIN})
+                             Role.MANAGER, Role.CEO, Role.ADMIN})
 
 
 class WmsAccess(permissions.BasePermission):
