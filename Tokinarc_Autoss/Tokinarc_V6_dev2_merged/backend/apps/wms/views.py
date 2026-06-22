@@ -575,6 +575,21 @@ class OutboundViewSet(viewsets.ModelViewSet):
         remaining = line.qty_ordered - line.qty_picked
         if qty > remaining:
             return Response({'detail': f'Chỉ còn cần soạn {remaining} cho mã {code}.'}, status=400)
+        # FEFO: cảnh báo nếu quét lô KHÔNG phải lô ưu tiên (hết hạn sớm nhất).
+        lot_no = str(request.data.get('lot_no', '')).strip()
+        confirm_lot = bool(request.data.get('confirm_lot'))
+        if line.part_id and lot_no and not confirm_lot:
+            priority = (Lot.objects.filter(part_id=line.part_id, qty_remaining__gt=0,
+                                           expires_at__isnull=False)
+                        .order_by('expires_at').first())
+            if priority and priority.lot_no != lot_no:
+                return Response({
+                    'detail': f'Lô "{lot_no}" KHÔNG phải lô ưu tiên FEFO. Nên lấy lô '
+                              f'"{priority.lot_no}" (hết hạn {priority.expires_at}). '
+                              'Xác nhận lại nếu chắc chắn.',
+                    'code': 'WRONG_LOT', 'priority_lot': priority.lot_no,
+                    'priority_expires': priority.expires_at.isoformat(),
+                }, status=status.HTTP_409_CONFLICT)
         bin_obj = Bin.objects.filter(full_code=bin_code,
                                      zone__warehouse=outbound.warehouse).first()
         if bin_obj is None:

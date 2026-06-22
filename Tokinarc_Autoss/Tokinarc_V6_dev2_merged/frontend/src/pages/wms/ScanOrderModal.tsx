@@ -21,6 +21,7 @@ export function ScanOrderModal({ open, onClose, kind, orderId }: {
 }) {
   const qc = useQueryClient()
   const [code, setCode] = useState(''); const [bin, setBin] = useState(''); const [qty, setQty] = useState('1')
+  const [lot, setLot] = useState('')
 
   const order = useQuery({
     queryKey: ['wms-order', kind, orderId],
@@ -34,14 +35,25 @@ export function ScanOrderModal({ open, onClose, kind, orderId }: {
     qc.invalidateQueries({ queryKey: ['wms-inventory'] })
   }
 
-  const scan = useMutation({
-    mutationFn: () => api.post(`/wms/${kind}/${orderId}/scan-${kind === 'inbound' ? 'receive' : 'pick'}/`,
-      kind === 'inbound'
+  const [scanning, setScanning] = useState(false)
+  const doScan = async (confirmLot = false) => {
+    setScanning(true)
+    try {
+      const payload = kind === 'inbound'
         ? { code: code.trim(), qty: Number(qty) }
-        : { code: code.trim(), bin_code: bin.trim(), qty: Number(qty) }),
-    onSuccess: (r) => { toast.success(r.data.detail); setCode(''); setQty('1'); invalidate() },
-    onError: (e) => toast.error(apiError(e)),
-  })
+        : { code: code.trim(), bin_code: bin.trim(), qty: Number(qty),
+            lot_no: lot.trim(), confirm_lot: confirmLot }
+      const r = await api.post(`/wms/${kind}/${orderId}/scan-${kind === 'inbound' ? 'receive' : 'pick'}/`, payload)
+      toast.success(r.data.detail); setCode(''); setQty('1'); invalidate()
+    } catch (e) {
+      const data = (e as { response?: { data?: { code?: string; detail?: string } } })?.response?.data
+      if (data?.code === 'WRONG_LOT') {
+        if (window.confirm(`${data.detail}\n\nVẫn lấy lô này?`)) { await doScan(true); return }
+        return
+      }
+      toast.error(apiError(e))
+    } finally { setScanning(false) }
+  }
   const finalize = useMutation({
     mutationFn: () => api.post(`/wms/${kind}/${orderId}/${kind === 'inbound' ? 'confirm' : 'ship'}/`),
     onSuccess: () => { toast.success(kind === 'inbound' ? 'Đã nhận hàng — cộng tồn' : 'Đã giao hàng'); invalidate(); onClose() },
@@ -74,9 +86,12 @@ export function ScanOrderModal({ open, onClose, kind, orderId }: {
           {kind === 'outbound' && <Inp label="Mã ô" v={bin} set={setBin} ph="HCM-A-R01-B01" />}
           <div className="flex gap-2 items-end">
             <Inp label="SL" v={qty} set={setQty} ph="1" type="number" />
-            <Button onClick={() => scan.mutate()} disabled={scan.isPending}><ScanLine size={14} /></Button>
+            <Button onClick={() => doScan()} disabled={scanning}><ScanLine size={14} /></Button>
           </div>
         </div>
+        {kind === 'outbound' && (
+          <Inp label="Lô (FEFO — để trống nếu không theo lô)" v={lot} set={setLot} ph="VD: LOT-2026-01" />
+        )}
 
         <div className="border border-line rounded-md divide-y divide-line/50">
           {order.isLoading && <p className="text-xs text-txt-2 py-4 text-center">Đang tải…</p>}
