@@ -208,3 +208,25 @@ def confirm_pick_and_ship(outbound: OutboundOrder, user=None) -> None:
     outbound.status = 'shipped'
     outbound.shipped_at = timezone.now()
     outbound.save(update_fields=['status', 'shipped_at'])
+    _sync_sales_order_completed(outbound, user)
+
+
+def _sync_sales_order_completed(outbound, user=None) -> None:
+    """Sync ngược kho→CRM: giao xong → đơn bán `completed` + báo 🔔 cho sale."""
+    if not outbound.sales_order_code:
+        return
+    try:
+        from apps.common.models import notify
+        from apps.sales.models import SalesOrder
+    except Exception:  # noqa: BLE001
+        return
+    order = (SalesOrder.objects.filter(code=outbound.sales_order_code)
+             .exclude(status__in=['completed', 'cancelled']).first())
+    if order is None:
+        return
+    order.status = 'completed'
+    order.save(update_fields=['status'])
+    if order.owner_id:
+        notify(order.owner, 'order_shipped',
+               f'Đơn {order.code} đã giao xong (phiếu xuất {outbound.code}).',
+               link='/orders')
