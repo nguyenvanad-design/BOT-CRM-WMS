@@ -202,7 +202,7 @@ export interface InboundOrder {
   updated_at: string
 }
 
-export type OutboundStatus = 'draft' | 'picking' | 'picked' | 'shipped' | 'cancelled'
+export type OutboundStatus = 'draft' | 'picking' | 'picked' | 'partial' | 'shipped' | 'cancelled'
 export type OutboundRule = 'FIFO' | 'FEFO' | 'NEAREST'
 
 export interface OutboundLine {

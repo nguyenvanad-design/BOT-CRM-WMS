@@ -180,8 +180,12 @@ def _candidate_inventory(outbound: OutboundOrder, line: OutboundLine):
 
 @transaction.atomic
 def confirm_pick_and_ship(outbound: OutboundOrder, user=None) -> None:
-    """Xác nhận đã soạn + giao: trừ tồn thực, nhả reserved, ghi movement, update serial."""
+    """Xác nhận giao: trừ tồn theo SL đã soạn thực tế. Hỗ trợ GIAO MỘT PHẦN —
+    chỉ giao phần đã pick, phần còn lại là backorder (status=partial)."""
+    total_shipped = 0
+    fully = True
     for line in outbound.lines.all():
+        shipped_this = 0
         for pick in line.picks.filter(is_picked=False):
             item = InventoryItem.objects.select_for_update().get(
                 bin=pick.bin, part=line.part, torch=line.torch)
@@ -202,17 +206,26 @@ def confirm_pick_and_ship(outbound: OutboundOrder, user=None) -> None:
                 SerialNumber.objects.filter(pk=pick.serial_id).update(
                     status='shipped', sold_to_customer=outbound.customer,
                     sold_order=outbound.sales_order_code)
-        line.qty_picked = line.qty_ordered
-        line.save(update_fields=['qty_picked'])
+            shipped_this += pick.qty
+        if shipped_this:
+            OutboundLine.objects.filter(pk=line.pk).update(
+                qty_picked=F('qty_picked') + shipped_this)
+        line.refresh_from_db()
+        total_shipped += shipped_this
+        if line.qty_picked < line.qty_ordered:
+            fully = False
+    if total_shipped == 0:
+        raise ValueError("Chưa soạn (pick) sản phẩm nào để giao.")
     from django.utils import timezone
-    outbound.status = 'shipped'
+    outbound.status = 'shipped' if fully else 'partial'
     outbound.shipped_at = timezone.now()
     outbound.save(update_fields=['status', 'shipped_at'])
-    _sync_sales_order_completed(outbound, user)
+    _sync_sales_order(outbound, user, fully)
 
 
-def _sync_sales_order_completed(outbound, user=None) -> None:
-    """Sync ngược kho→CRM: giao xong → đơn bán `completed` + báo 🔔 cho sale."""
+def _sync_sales_order(outbound, user=None, fully=True) -> None:
+    """Sync ngược kho→CRM. Giao đủ → đơn `completed`; giao một phần → giữ
+    `shipping` + cập nhật shipped_qty từng dòng + báo 🔔 cho sale."""
     if not outbound.sales_order_code:
         return
     try:
@@ -224,9 +237,17 @@ def _sync_sales_order_completed(outbound, user=None) -> None:
              .exclude(status__in=['completed', 'cancelled']).first())
     if order is None:
         return
-    order.status = 'completed'
-    order.save(update_fields=['status'])
+    # Cập nhật SL đã giao từng dòng đơn (theo part) — phục vụ theo dõi backorder.
+    picked = {ln.part_id: ln.qty_picked for ln in outbound.lines.all() if ln.part_id}
+    for ol in order.lines.all():
+        if ol.part_id in picked:
+            ol.shipped_qty = min(ol.qty, picked[ol.part_id])
+            ol.save(update_fields=['shipped_qty'])
+    if fully:
+        order.status = 'completed'
+        order.save(update_fields=['status'])
+        msg = f'Đơn {order.code} đã giao xong (phiếu xuất {outbound.code}).'
+    else:
+        msg = f'Đơn {order.code} đã giao MỘT PHẦN (phiếu {outbound.code}); còn backorder.'
     if order.owner_id:
-        notify(order.owner, 'order_shipped',
-               f'Đơn {order.code} đã giao xong (phiếu xuất {outbound.code}).',
-               link='/orders')
+        notify(order.owner, 'order_shipped', msg, link='/orders')

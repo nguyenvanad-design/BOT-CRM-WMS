@@ -58,6 +58,7 @@ class OutboundStatus(models.TextChoices):
     DRAFT     = 'draft',     'Nháp'
     PICKING   = 'picking',   'Đang soạn'
     PICKED    = 'picked',    'Đã soạn xong'
+    PARTIAL   = 'partial',   'Giao một phần'   # còn backorder
     SHIPPED   = 'shipped',   'Đã giao'
     CANCELLED = 'cancelled', 'Hủy'
 

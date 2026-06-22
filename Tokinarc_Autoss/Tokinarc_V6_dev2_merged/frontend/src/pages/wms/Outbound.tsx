@@ -84,10 +84,10 @@ export function OutboundPage() {
                     <ScanLine size={13} /> Quét
                   </Button>
                 )}
-                {(o.status === 'picking' || o.status === 'picked') && (
+                {(o.status === 'picking' || o.status === 'picked' || o.status === 'partial') && (
                   <Button size="sm" disabled={ship.isPending && ship.variables === o.id}
                     onClick={() => ship.mutate(o.id)}>
-                    <Truck size={13} /> Giao
+                    <Truck size={13} /> {o.status === 'partial' ? 'Giao tiếp' : 'Giao'}
                   </Button>
                 )}
               </Td>

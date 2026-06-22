@@ -32,10 +32,12 @@ export const INBOUND_STATUS_TONE: Record<InboundStatus, TagTone> = {
 }
 
 export const OUTBOUND_STATUS_LABEL: Record<OutboundStatus, string> = {
-  draft: 'Nháp', picking: 'Đang soạn', picked: 'Đã soạn xong', shipped: 'Đã giao', cancelled: 'Hủy',
+  draft: 'Nháp', picking: 'Đang soạn', picked: 'Đã soạn xong',
+  partial: 'Giao một phần', shipped: 'Đã giao', cancelled: 'Hủy',
 }
 export const OUTBOUND_STATUS_TONE: Record<OutboundStatus, TagTone> = {
-  draft: 'gray', picking: 'warn', picked: 'blue', shipped: 'ok', cancelled: 'danger',
+  draft: 'gray', picking: 'warn', picked: 'blue',
+  partial: 'flame', shipped: 'ok', cancelled: 'danger',
 }
 
 export const RULE_LABEL: Record<OutboundRule, string> = {
