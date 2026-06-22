@@ -9,10 +9,10 @@ import {
   Radar, Target, Filter, FileText, ScrollText, MapPin, Phone,
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
   Package, AlertTriangle, Barcode, History, Inbox, PackageCheck,
-  Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Boxes,
+  Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Boxes, Gauge,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { useAuth } from '@/lib/auth/store'
+import { useAuth, isWmsControl } from '@/lib/auth/store'
 import { ChatWidget } from '@/components/ChatWidget'
 import { NotificationBell } from '@/components/NotificationBell'
 
@@ -21,7 +21,7 @@ const ROLE_LABEL: Record<string, string> = {
   warehouse: 'NV Kho', wh_manager: 'Quản lý kho', service: 'Dịch vụ', customer: 'Khách',
 }
 
-interface NavItem { to: string; icon: ReactNode; label: string; badge?: number }
+interface NavItem { to: string; icon: ReactNode; label: string; badge?: number; ctrl?: boolean }
 interface NavGroup { group: string; items: NavItem[] }
 
 const CRM_NAV: NavGroup[] = [
@@ -78,6 +78,7 @@ const WMS_NAV: NavGroup[] = [
     { to: '/wms/map', icon: <MapIcon size={16} />, label: 'Bản đồ kho' },
     { to: '/wms/scan', icon: <ScanLine size={16} />, label: 'Quét mã' },
     { to: '/wms/cycle-count', icon: <ClipboardCheck size={16} />, label: 'Kiểm kê' },
+    { to: '/wms/ops-kpi', icon: <Gauge size={16} />, label: 'KPI vận hành', ctrl: true },
     { to: '/wms/reports', icon: <FileBarChart size={16} />, label: 'Báo cáo' },
   ]},
 ]
@@ -115,6 +116,7 @@ export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const role = user?.role
+  const canCtrl = isWmsControl(role)
   const visibleModules = MODULES.filter((m) => !m.roles || (role && m.roles.includes(role)))
   const moduleKey = loc.pathname.startsWith('/wms') ? 'wms'
     : loc.pathname.startsWith('/ceo') ? 'ceo' : 'crm'
@@ -167,7 +169,7 @@ export function Layout() {
               <div className="text-[10px] uppercase tracking-wide text-txt-2 font-semibold px-2.5 pt-3 pb-1">
                 {g.group}
               </div>
-              {g.items.map((it) => (
+              {g.items.filter((it) => !it.ctrl || canCtrl).map((it) => (
                 <SideLink key={it.to} to={it.to} icon={it.icon} badge={it.badge} onClick={closeDrawer}>
                   {it.label}
                 </SideLink>

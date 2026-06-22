@@ -437,6 +437,23 @@ def test_customer_blocked_from_wms(customer_user, part):
 
 
 @pytest.mark.django_db
+def test_ops_kpi(auth, auth_mgr, part, wh_user):
+    """KPI vận hành: NV kho bị chặn; Quản lý kho xem được + có số liệu."""
+    from apps.wms.models import Bin, Warehouse, Zone
+    wh = Warehouse.objects.create(code='HCM', name='K', is_active=True, is_default=True)
+    z = Zone.objects.create(warehouse=wh, code='MIG', name='MIG')
+    b = Bin.objects.create(zone=z, rack='T1', bin_code='B01', full_code='HCM-MIG-T1-B01')
+    services.receive_stock(bin_obj=b, part=part, qty=40, user=wh_user)
+    # NV kho thường → 403
+    assert auth.get('/api/v1/wms/ops-kpi/?warehouse=HCM').status_code == 403
+    # Quản lý kho → 200 + số liệu nhập + tồn theo zone
+    r = auth_mgr.get('/api/v1/wms/ops-kpi/?warehouse=HCM&days=30')
+    assert r.status_code == 200
+    assert r.data['inbound']['qty'] == 40
+    assert any(z['zone'] == 'MIG' and z['qty'] == 40 for z in r.data['by_zone'])
+
+
+@pytest.mark.django_db
 def test_warehouse_manager_can_adjust(auth_mgr, part):
     """Quản lý kho (wh_manager) được điều chỉnh tồn."""
     b = BinFactory()

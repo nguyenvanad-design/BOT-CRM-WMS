@@ -17,7 +17,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from django.db.models import Count, Sum
+from django.db.models.functions import Abs
 
 from apps.accounts.roles import is_wms_control
 from apps.catalog.models import Part, Torch
@@ -542,4 +547,74 @@ class OutboundViewSet(viewsets.ModelViewSet):
             'detail': f'Đã soạn {line.qty_picked}/{line.qty_ordered} mã {code} từ {bin_code}.',
             'code': code, 'picked': line.qty_picked, 'ordered': line.qty_ordered,
             'all_done': done,
+        })
+
+
+class OpsKpiView(APIView):
+    """KPI vận hành kho (Quản lý kho trở lên): năng suất nhập/xuất, chênh lệch
+    kiểm kê, tồn theo zone, hiệu suất nhân sự. GET ?warehouse=HCM&days=30."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from datetime import date, timedelta
+
+        from .models import CycleCount, CycleCountLine, InventoryItem, StockMovement
+        if not is_wms_control(request.user):
+            return Response({'detail': 'Cần quyền Quản lý kho trở lên.'}, status=403)
+        wh = request.query_params.get('warehouse')
+        try:
+            days = max(1, int(request.query_params.get('days', 30)))
+        except ValueError:
+            days = 30
+        cutoff = date.today() - timedelta(days=days)
+
+        mv = StockMovement.objects.filter(ts__date__gte=cutoff)
+        if wh:
+            mv = mv.filter(warehouse__code=wh)
+
+        def agg(reason):
+            a = mv.filter(reason=reason).aggregate(c=Count('id'), q=Sum('delta'))
+            return a['c'] or 0, int(a['q'] or 0)
+        in_c, in_q = agg('inbound')
+        out_c, out_q = agg('outbound')
+        adj_c, _ = agg('adjust')
+        trf_c, _ = agg('transfer')
+
+        # Hiệu suất nhân sự: số thao tác theo người (top 8)
+        by_user = list(mv.exclude(by_user__isnull=True)
+                       .values('by_user__username')
+                       .annotate(ops=Count('id')).order_by('-ops')[:8])
+
+        # Chênh lệch kiểm kê: phiên đã áp dụng trong kỳ
+        sessions = CycleCount.objects.filter(status='applied', applied_at__date__gte=cutoff)
+        if wh:
+            sessions = sessions.filter(warehouse__code=wh)
+        cc_lines = CycleCountLine.objects.filter(session__in=sessions)
+        abs_diff = cc_lines.annotate(ad=Abs(F('counted_qty') - F('system_qty'))) \
+            .aggregate(s=Sum('ad'))['s'] or 0
+        counted_lines = cc_lines.count()
+        mismatch = cc_lines.exclude(counted_qty=F('system_qty')).count()
+        accuracy = round((1 - mismatch / counted_lines) * 100, 1) if counted_lines else 100.0
+
+        # Tồn theo zone
+        inv = InventoryItem.objects.all()
+        if wh:
+            inv = inv.filter(bin__zone__warehouse__code=wh)
+        by_zone = list(inv.values('bin__zone__code', 'bin__zone__name')
+                       .annotate(sku=Count('id'), qty=Sum('qty_on_hand'))
+                       .order_by('bin__zone__code'))
+        low_stock = inv.filter(qty_on_hand__lte=F('min_level')).count()
+
+        return Response({
+            'warehouse': wh or 'ALL', 'days': days,
+            'inbound':  {'ops': in_c, 'qty': in_q},
+            'outbound': {'ops': out_c, 'qty': abs(out_q)},
+            'adjust_ops': adj_c, 'transfer_ops': trf_c,
+            'cycle_count': {'sessions': sessions.count(), 'lines': counted_lines,
+                            'mismatch': mismatch, 'abs_diff': int(abs_diff),
+                            'accuracy_pct': accuracy},
+            'by_user': [{'user': u['by_user__username'], 'ops': u['ops']} for u in by_user],
+            'by_zone': [{'zone': z['bin__zone__code'], 'name': z['bin__zone__name'],
+                         'sku': z['sku'], 'qty': int(z['qty'] or 0)} for z in by_zone],
+            'low_stock': low_stock,
         })
