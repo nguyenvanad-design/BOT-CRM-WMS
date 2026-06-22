@@ -35,3 +35,5 @@ _trash/
 .idea/
 *.swp
 .DS_Store
+*.docx
+!KIEN_TRUC_DU_AN.docx
