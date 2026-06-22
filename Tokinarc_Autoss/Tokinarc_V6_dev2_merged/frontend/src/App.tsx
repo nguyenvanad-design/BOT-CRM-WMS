@@ -24,6 +24,7 @@ import { CrmForecastPage } from '@/pages/crm/Forecast'
 import { WarrantyPage } from '@/pages/crm/Warranty'
 import { ScanPage } from '@/pages/wms/Scan'
 import { WmsCycleCountPage } from '@/pages/wms/CycleCount'
+import { WmsLotsPage } from '@/pages/wms/Lots'
 import { WarehouseMapPage } from '@/pages/wms/WarehouseMap'
 import { WmsReportsPage } from '@/pages/wms/Reports'
 import { ContactsPage } from '@/pages/crm/Contacts'
@@ -103,6 +104,7 @@ export function App() {
           <Route path="wms/map" element={<WarehouseMapPage />} />
           <Route path="wms/scan" element={<ScanPage />} />
           <Route path="wms/cycle-count" element={<WmsCycleCountPage />} />
+          <Route path="wms/lots" element={<WmsLotsPage />} />
           <Route path="wms/reports" element={<WmsReportsPage />} />
 
           {/* ── CEO (manager/admin) ── */}

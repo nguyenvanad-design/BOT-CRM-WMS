@@ -130,6 +130,7 @@ class InventoryItem(models.Model):
     qty_on_hand  = models.IntegerField(default=0)
     qty_reserved = models.IntegerField(default=0)
     min_level    = models.IntegerField(default=0)
+    received_at  = models.DateTimeField(null=True, blank=True, db_index=True)  # FIFO: lần nhập đầu
     updated_at   = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -250,6 +251,7 @@ class InboundLine(models.Model):
     qty_received = models.IntegerField(default=0)
     target_bin   = models.ForeignKey(Bin, null=True, blank=True, on_delete=models.SET_NULL)
     lot_no       = models.CharField(max_length=40, blank=True)
+    lot_expires  = models.DateField(null=True, blank=True)   # hạn dùng của lô (nếu có)
     order_idx    = models.IntegerField(default=0)
 
     class Meta:

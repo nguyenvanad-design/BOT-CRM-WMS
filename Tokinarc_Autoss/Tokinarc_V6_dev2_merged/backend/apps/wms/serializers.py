@@ -97,7 +97,7 @@ class InboundLineSerializer(serializers.ModelSerializer):
     class Meta:
         model  = InboundLine
         fields = ['id', 'part', 'torch', 'qty_expected', 'qty_received',
-                  'target_bin', 'lot_no', 'order_idx']
+                  'target_bin', 'lot_no', 'lot_expires', 'order_idx']
 
 
 class InboundOrderSerializer(serializers.ModelSerializer):

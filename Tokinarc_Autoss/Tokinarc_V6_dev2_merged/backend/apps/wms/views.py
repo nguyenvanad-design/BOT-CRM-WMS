@@ -180,7 +180,9 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
 
         if mode == 'receive':
             item = services.receive_stock(bin_obj=bin_obj, part=part, torch=torch, qty=qty,
-                                          user=request.user, ref_id='scan')
+                                          user=request.user, ref_id='scan',
+                                          lot_no=str(request.data.get('lot_no', '')).strip(),
+                                          lot_expires=request.data.get('lot_expires') or None)
             msg = f'Đã nhập +{qty} vào {bin_obj.full_code}.'
         elif mode == 'issue':
             try:
@@ -256,9 +258,22 @@ class SerialNumberViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class LotViewSet(viewsets.ReadOnlyModelViewSet):
+    """Lô hàng (FEFO). ?expiring_days=N → lô còn hàng sắp hết hạn trong N ngày;
+    ?warehouse=HCM lọc theo kho."""
     serializer_class = LotSerializer
     permission_classes = [WMSPermission]
-    queryset = Lot.objects.select_related('part', 'bin').order_by('expires_at')
+
+    def get_queryset(self):
+        qs = Lot.objects.select_related('part', 'bin').filter(qty_remaining__gt=0)
+        wh = self.request.query_params.get('warehouse')
+        if wh:
+            qs = qs.filter(bin__zone__warehouse__code=wh)
+        days = self.request.query_params.get('expiring_days')
+        if days:
+            from datetime import date, timedelta
+            cutoff = date.today() + timedelta(days=int(days))
+            qs = qs.filter(expires_at__isnull=False, expires_at__lte=cutoff)
+        return qs.order_by('expires_at')
 
 
 class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
@@ -314,7 +329,8 @@ class InboundViewSet(viewsets.ModelViewSet):
                 continue
             services.receive_stock(
                 bin_obj=line.target_bin, part=line.part, torch=line.torch,
-                qty=qty, user=request.user, ref_id=inbound.code, lot_no=line.lot_no)
+                qty=qty, user=request.user, ref_id=inbound.code,
+                lot_no=line.lot_no, lot_expires=line.lot_expires)
             line.qty_received = qty
             line.save(update_fields=['qty_received'])
         inbound.status = 'putaway'

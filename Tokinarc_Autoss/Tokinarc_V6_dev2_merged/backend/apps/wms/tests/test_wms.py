@@ -161,6 +161,76 @@ def test_scan_entry_blocked_for_customer(customer_user, part):
     assert r.status_code in (403, 401)
 
 
+# ─── FIFO thật + Lot tracking khép kín ───────────────────────────────────────
+@pytest.mark.django_db
+def test_receive_creates_lot_and_received_at(part, wh_user):
+    import datetime as dt
+    from apps.wms.models import InventoryItem, Lot
+    b = BinFactory(full_code='HCM-MIG-T1-B01')
+    item = services.receive_stock(bin_obj=b, part=part, qty=50, user=wh_user,
+                                  lot_no='LOT-A', lot_expires=dt.date(2030, 1, 1))
+    assert item.received_at is not None                      # FIFO mốc nhập
+    lot = Lot.objects.get(lot_no='LOT-A')
+    assert lot.qty_remaining == 50 and lot.expires_at == dt.date(2030, 1, 1)
+    # nhập thêm cùng lô → cộng dồn
+    services.receive_stock(bin_obj=b, part=part, qty=20, user=wh_user, lot_no='LOT-A')
+    lot.refresh_from_db(); assert lot.qty_remaining == 70
+
+
+@pytest.mark.django_db
+def test_fifo_picks_oldest_bin_first(part, wh_user):
+    import datetime as dt
+    from django.utils import timezone
+    from apps.wms.models import (Bin, InventoryItem, OutboundLine, OutboundOrder,
+                                 PickListItem, Warehouse, Zone)
+    wh = Warehouse.objects.create(code='HCM', name='K', is_active=True, is_default=True)
+    z = Zone.objects.create(warehouse=wh, code='MIG', name='MIG')
+    b_old = Bin.objects.create(zone=z, rack='T1', bin_code='B01', full_code='HCM-MIG-T1-B01')
+    b_new = Bin.objects.create(zone=z, rack='T1', bin_code='B02', full_code='HCM-MIG-T1-B02')
+    # b_new nhập trước (cũ hơn về thời gian) nhưng mã ô lớn hơn → FIFO phải chọn b_new
+    InventoryItem.objects.create(bin=b_new, part=part, qty_on_hand=10,
+                                 received_at=timezone.now() - dt.timedelta(days=5))
+    InventoryItem.objects.create(bin=b_old, part=part, qty_on_hand=10,
+                                 received_at=timezone.now())
+    ob = OutboundOrder.objects.create(code='OUT-F1', warehouse=wh, rule='FIFO',
+                                      created_by=wh_user, updated_by=wh_user)
+    OutboundLine.objects.create(outbound=ob, part=part, qty_ordered=5)
+    services.generate_pick_list(ob)
+    pick = PickListItem.objects.get(outbound_line__outbound=ob)
+    assert pick.bin_id == b_new.id     # lấy ô nhập sớm nhất (FIFO theo thời gian)
+
+
+@pytest.mark.django_db
+def test_fefo_ship_decrements_lot(part, wh_user):
+    import datetime as dt
+    from apps.wms.models import (Bin, Lot, OutboundLine, OutboundOrder, Warehouse, Zone)
+    wh = Warehouse.objects.create(code='HCM', name='K', is_active=True, is_default=True)
+    z = Zone.objects.create(warehouse=wh, code='MIG', name='MIG')
+    b = Bin.objects.create(zone=z, rack='T1', bin_code='B01', full_code='HCM-MIG-T1-B01')
+    services.receive_stock(bin_obj=b, part=part, qty=30, user=wh_user,
+                           lot_no='LOT-X', lot_expires=dt.date(2030, 6, 1))
+    ob = OutboundOrder.objects.create(code='OUT-F2', warehouse=wh, rule='FEFO',
+                                      created_by=wh_user, updated_by=wh_user)
+    OutboundLine.objects.create(outbound=ob, part=part, qty_ordered=12)
+    services.generate_pick_list(ob)
+    services.confirm_pick_and_ship(ob, user=wh_user)
+    assert Lot.objects.get(lot_no='LOT-X').qty_remaining == 18   # 30 - 12
+
+
+@pytest.mark.django_db
+def test_lot_expiring_filter(auth, part):
+    import datetime as dt
+    from apps.wms.models import Lot
+    b = BinFactory(full_code='HCM-MIG-T1-B09')
+    Lot.objects.create(lot_no='L-SOON', part=part, qty_remaining=5,
+                       received_date=dt.date.today(), expires_at=dt.date.today() + dt.timedelta(days=10), bin=b)
+    Lot.objects.create(lot_no='L-FAR', part=part, qty_remaining=5,
+                       received_date=dt.date.today(), expires_at=dt.date.today() + dt.timedelta(days=200), bin=b)
+    r = auth.get('/api/v1/wms/lots/?expiring_days=30')
+    codes = [x['lot_no'] for x in (r.data['results'] if 'results' in r.data else r.data)]
+    assert 'L-SOON' in codes and 'L-FAR' not in codes
+
+
 # ─── build_zones: dựng zone theo nhóm sản phẩm + dời tồn ─────────────────────
 @pytest.mark.django_db
 def test_build_zones_creates_taxonomy_and_relocates(wh_user):

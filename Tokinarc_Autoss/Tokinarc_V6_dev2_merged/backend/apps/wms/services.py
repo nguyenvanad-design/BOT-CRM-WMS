@@ -50,19 +50,36 @@ def adjust_stock(*, bin_obj: Bin, part=None, torch=None, new_qty: int,
 
 @transaction.atomic
 def receive_stock(*, bin_obj: Bin, part=None, torch=None, qty: int,
-                  user=None, ref_id: str = '', lot_no: str = '') -> InventoryItem:
-    """Nhập kho: +qty vào bin, ghi movement reason=inbound."""
+                  user=None, ref_id: str = '', lot_no: str = '', lot_expires=None) -> InventoryItem:
+    """Nhập kho: +qty vào bin, ghi movement inbound, gắn mốc FIFO + cập nhật Lot."""
+    from datetime import date
+
+    from django.utils import timezone
+
     if qty <= 0:
         raise ValueError("qty nhập phải > 0.")
     item, _ = InventoryItem.objects.select_for_update().get_or_create(
         bin=bin_obj, part=part, torch=torch, defaults={'qty_on_hand': 0},
     )
-    InventoryItem.objects.filter(pk=item.pk).update(qty_on_hand=F('qty_on_hand') + qty)
+    # FIFO: ghi mốc nhập lần đầu (khi ô đang trống) để xếp xuất theo thời gian.
+    fields = {'qty_on_hand': F('qty_on_hand') + qty}
+    if item.qty_on_hand == 0 or item.received_at is None:
+        fields['received_at'] = timezone.now()
+    InventoryItem.objects.filter(pk=item.pk).update(**fields)
     StockMovement.objects.create(
         warehouse=_wh_of_bin(bin_obj), part=part, torch=torch, bin=bin_obj,
         delta=qty, reason=MovementReason.INBOUND, ref_kind='inbound',
-        ref_id=ref_id, by_user=user,
+        ref_id=ref_id, by_user=user, note=(f'lot {lot_no}' if lot_no else ''),
     )
+    # Lot tracking: tạo/cộng lô (chỉ cho part có lô).
+    if lot_no and part is not None:
+        lot, created = Lot.objects.select_for_update().get_or_create(
+            lot_no=lot_no, defaults={'part': part, 'qty_remaining': 0,
+                                     'received_date': date.today(), 'expires_at': lot_expires,
+                                     'bin': bin_obj})
+        Lot.objects.filter(pk=lot.pk).update(qty_remaining=F('qty_remaining') + qty)
+        if not created and lot_expires and lot.expires_at != lot_expires:
+            Lot.objects.filter(pk=lot.pk).update(expires_at=lot_expires)
     item.refresh_from_db()
     return item
 
@@ -156,8 +173,8 @@ def _candidate_inventory(outbound: OutboundOrder, line: OutboundLine):
         return qs.order_by('bin__lot__expires_at')
     if outbound.rule == OutboundRule.NEAREST:
         return qs.order_by('bin__full_code')   # giả định full_code phản ánh khoảng cách cửa
-    # FIFO mặc định: bin nào có hàng cũ nhất (theo movement) — đơn giản hóa theo bin code
-    return qs.order_by('bin__full_code')
+    # FIFO: ưu tiên ô có hàng nhập SỚM NHẤT (theo received_at); nulls cuối.
+    return qs.order_by(F('received_at').asc(nulls_last=True), 'bin__full_code')
 
 
 @transaction.atomic
@@ -174,6 +191,10 @@ def confirm_pick_and_ship(outbound: OutboundOrder, user=None) -> None:
                 warehouse=outbound.warehouse, part=line.part, torch=line.torch,
                 bin=pick.bin, delta=-pick.qty, reason=MovementReason.OUTBOUND,
                 ref_kind='outbound', ref_id=outbound.code, by_user=user)
+            # Lot tracking: trừ tồn của lô đã pick (FEFO).
+            if pick.lot_id:
+                Lot.objects.filter(pk=pick.lot_id).update(
+                    qty_remaining=F('qty_remaining') - pick.qty)
             pick.is_picked = True
             pick.save(update_fields=['is_picked'])
             if pick.serial_id:
