@@ -119,6 +119,7 @@ ASSISTANT_INTENT_ROLES: dict[str, frozenset[str]] = {
     'ceo_report':         MANAGER_ROLES,
     'evaluate_plan':      MANAGER_ROLES,
     # Ghi nghiệp vụ — theo phòng ban (manager giám sát sales, KHÔNG làm kho)
+    'create_lead':        SALES_ROLES,
     'create_quote':       SALES_ROLES,
     'create_contract':    SALES_ROLES,
     'wms_inbound':        WAREHOUSE_ROLES,

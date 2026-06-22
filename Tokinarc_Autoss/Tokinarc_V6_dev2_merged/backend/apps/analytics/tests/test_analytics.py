@@ -114,6 +114,33 @@ def test_assistant_sale_create_quote(sale, seeded, no_llm):
 
 
 @pytest.mark.django_db
+def test_assistant_sale_create_lead(sale, no_llm):
+    """Sale nhờ bot tạo lead → ghi Lead THẬT vào CRM, owner = sale."""
+    from apps.crm.models import Lead
+    c = APIClient(); c.force_authenticate(sale)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'tạo lead Nguyễn Văn A, công ty ABC, 0901234567'}, format='json')
+    assert r.status_code == 200
+    assert 'lead' in r.data['text'].lower()
+    lead = Lead.objects.get(owner=sale)
+    assert lead.name == 'Nguyễn Văn A'
+    assert lead.company == 'ABC'
+    assert lead.phone == '0901234567'
+    assert lead.source == 'chatbot'
+
+
+@pytest.mark.django_db
+def test_assistant_warehouse_blocked_create_lead(warehouse_user, no_llm):
+    """NV kho KHÔNG được tạo lead (ngoài phạm vi) → từ chối, không tạo Lead."""
+    from apps.crm.models import Lead
+    c = APIClient(); c.force_authenticate(warehouse_user)
+    r = c.post('/api/v1/analytics/assistant/query/',
+               {'query': 'tạo lead Trần B 0912345678'}, format='json')
+    assert r.status_code == 200
+    assert Lead.objects.count() == 0
+
+
+@pytest.mark.django_db
 def test_assistant_sale_blocked_ceo_report(sale, seeded, no_llm):
     """Sale KHÔNG được dùng báo cáo CEO → trả thông báo từ chối (không 403)."""
     c = APIClient(); c.force_authenticate(sale)

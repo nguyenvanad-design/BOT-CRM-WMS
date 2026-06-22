@@ -147,8 +147,9 @@ _INTENT_SCHEMA = (
     '{"intent": "...", "customer_name": "", "period": "", "months": 3, '
     '"items": [{"part_no": "", "qty": 1}], "quote_code": ""}. '
     "intent ∈ [revenue, customer_debt, top_customers, dormant_customers, ceo_report, "
-    "evaluate_plan, create_quote, create_contract, wms_inbound, wms_outbound, "
+    "evaluate_plan, create_lead, create_quote, create_contract, wms_inbound, wms_outbound, "
     "lookup_doc, unknown]. "
+    "Khi tạo lead: lead_name (tên người), company (công ty), phone (SĐT). "
     "period ∈ [today, month, year, all] (chỉ cho revenue). "
     "customer_name: tên KH nếu liên quan 1 KH cụ thể (công nợ / báo giá / hợp đồng). "
     "months: số tháng cho dormant_customers (mặc định 3). "
@@ -184,6 +185,9 @@ def _llm_intent(question: str) -> dict | None:
 
 def _keyword_intent(q: str) -> dict:
     ql = q.lower()
+    if any(k in ql for k in ('tạo lead', 'tao lead', 'thêm lead', 'them lead', 'lead mới',
+                             'khách tiềm năng', 'khach tiem nang', 'ghi lead')):
+        return {'intent': 'create_lead'}
     # Hợp đồng trước báo giá: câu "soạn hợp đồng từ báo giá BG-x" chứa cả 2 từ khóa.
     if any(k in ql for k in ('hợp đồng', 'hop dong', 'soạn hợp đồng', 'lập hợp đồng')):
         return {'intent': 'create_contract'}
@@ -292,6 +296,28 @@ def _resolve_customer(name: str, user):
         qs = qs.filter(owner_id=user.id)
     return (qs.filter(name__icontains=name).first()
             or qs.filter(code__icontains=name).first())
+
+
+def _parse_phone(q: str) -> str:
+    m = re.search(r'\b0\d{8,10}\b', q.replace('.', '').replace(' ', ''))
+    return m.group(0) if m else ''
+
+
+def tool_create_lead(user, name: str, company: str = '', phone: str = '', source: str = 'chatbot') -> str:
+    """Tạo LEAD (khách tiềm năng) vào CRM, owner = người dùng."""
+    from apps.crm.models import Lead
+    name = (name or '').strip()
+    if not name:
+        return ('Cần tên khách tiềm năng. VD: "tạo lead Nguyễn Văn A, công ty ABC, 0901234567".')
+    lead = Lead.objects.create(name=name, company=(company or '').strip(),
+                               phone=(phone or '').strip(), source=source or 'chatbot',
+                               owner=user)
+    extra = []
+    if lead.company: extra.append(lead.company)
+    if lead.phone: extra.append(lead.phone)
+    tail = f" ({', '.join(extra)})" if extra else ""
+    return (f"✅ Đã ghi **lead: {lead.name}**{tail} vào CRM (trạng thái Mới). "
+            f"Vào menu Leads để theo dõi / chuyển thành khách hàng.")
 
 
 def tool_create_quote(user, customer_name: str, items: list[dict]) -> str:
@@ -557,6 +583,21 @@ def answer(question: str, user) -> str:
         return tool_ceo_report()
     if name == 'evaluate_plan':
         return tool_evaluate_plan()
+    if name == 'create_lead':
+        lead_name = (intent.get('lead_name') or '').strip()
+        company = (intent.get('company') or '').strip()
+        phone = (intent.get('phone') or '').strip() or _parse_phone(question)
+        if not lead_name:
+            # Fallback từ câu: bỏ từ khóa, lấy phần tên trước dấu phẩy.
+            raw = re.sub(r'(tạo|tao|thêm|them|ghi)\s+lead|lead\s+mới|khách\s+tiềm\s+năng|khach\s+tiem\s+nang|ghi\s+lead',
+                         '', question, flags=re.I)
+            mcom = re.search(r'(?:công ty|cong ty|cty)\s+([\w\sÀ-ỹ.]+)', raw, re.I)
+            if mcom and not company:
+                company = mcom.group(1).split(',')[0].strip()
+                raw = raw.replace(mcom.group(0), '')
+            raw = re.sub(r'\b0\d{8,10}\b', '', raw.replace('.', ''))
+            lead_name = raw.strip(' ,:-') or ''
+        return tool_create_lead(user, lead_name, company, phone)
     if name == 'create_quote':
         cust_name = intent.get('customer_name') or _detect_customer(question)
         items = intent.get('items') or _parse_items(question)

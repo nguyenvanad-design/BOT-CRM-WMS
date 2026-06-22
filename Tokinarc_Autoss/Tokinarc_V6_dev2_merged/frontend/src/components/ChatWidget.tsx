@@ -27,6 +27,7 @@ function suggestionsFor(role?: Role): string[] {
     'Tra cứu phụ tùng 001002',
   ]
   if (role === 'sales') return [
+    'Tạo lead Nguyễn Văn A, công ty ABC, 0901234567',
     'Làm báo giá cho Công ty ABC: 5 x 001002',
     'Soạn hợp đồng từ báo giá BG-0007',
     'Tra cứu phụ tùng 001002',
