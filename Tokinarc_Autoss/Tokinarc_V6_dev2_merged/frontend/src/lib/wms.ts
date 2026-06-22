@@ -25,10 +25,11 @@ export const MOVE_REASON_TONE: Record<MovementReason, TagTone> = {
 }
 
 export const INBOUND_STATUS_LABEL: Record<InboundStatus, string> = {
-  draft: 'Nháp', confirmed: 'Đã xác nhận', putaway: 'Đã cất kho', cancelled: 'Hủy',
+  draft: 'Nháp', confirmed: 'Đã xác nhận', partial: 'Nhận một phần',
+  putaway: 'Đã cất kho', cancelled: 'Hủy',
 }
 export const INBOUND_STATUS_TONE: Record<InboundStatus, TagTone> = {
-  draft: 'gray', confirmed: 'blue', putaway: 'ok', cancelled: 'danger',
+  draft: 'gray', confirmed: 'blue', partial: 'flame', putaway: 'ok', cancelled: 'danger',
 }
 
 export const OUTBOUND_STATUS_LABEL: Record<OutboundStatus, string> = {

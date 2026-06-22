@@ -50,6 +50,7 @@ class OutboundRule(models.TextChoices):
 class InboundStatus(models.TextChoices):
     DRAFT     = 'draft',     'Nháp'
     CONFIRMED = 'confirmed', 'Đã xác nhận'
+    PARTIAL   = 'partial',   'Nhận một phần'   # giao thiếu, phiếu còn mở
     PUTAWAY   = 'putaway',   'Đã cất kho'
     CANCELLED = 'cancelled', 'Hủy'
 
@@ -249,7 +250,8 @@ class InboundLine(models.Model):
     torch       = models.ForeignKey('catalog.Torch', null=True, blank=True,
                                     on_delete=models.PROTECT, db_column='torch_model')
     qty_expected = models.IntegerField()
-    qty_received = models.IntegerField(default=0)
+    qty_received = models.IntegerField(default=0)   # đã quét/khai nhận
+    qty_putaway  = models.IntegerField(default=0)   # đã thực cộng tồn (idempotent)
     target_bin   = models.ForeignKey(Bin, null=True, blank=True, on_delete=models.SET_NULL)
     lot_no       = models.CharField(max_length=40, blank=True)
     lot_expires  = models.DateField(null=True, blank=True)   # hạn dùng của lô (nếu có)

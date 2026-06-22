@@ -28,9 +28,12 @@ export function InboundPage() {
   })
 
   const confirm = useMutation({
-    mutationFn: (id: string) => api.post(`/wms/inbound/${id}/confirm/`),
-    onSuccess: () => {
-      toast.success('Đã xác nhận nhận hàng — tồn kho đã cộng')
+    mutationFn: (v: { id: string; partial?: boolean }) =>
+      api.post(`/wms/inbound/${v.id}/confirm/`, { partial: !!v.partial }),
+    onSuccess: (r) => {
+      toast.success(r.data?.status === 'partial'
+        ? 'Đã nhận một phần — phiếu còn mở, nhận tiếp khi hàng về'
+        : 'Đã xác nhận nhận hàng — tồn kho đã cộng')
       qc.invalidateQueries({ queryKey: ['wms-inbound-list'] })
       qc.invalidateQueries({ queryKey: ['wms'] })
       qc.invalidateQueries({ queryKey: ['wms-inventory'] })
@@ -64,15 +67,20 @@ export function InboundPage() {
               <Td className="text-txt-2">{formatDate(o.received_at)}</Td>
               <Td><Tag tone={INBOUND_STATUS_TONE[o.status]}>{INBOUND_STATUS_LABEL[o.status]}</Tag></Td>
               <Td className="text-right">
-                {(o.status === 'draft' || o.status === 'confirmed') ? (
+                {(o.status === 'draft' || o.status === 'confirmed' || o.status === 'partial') ? (
                   <span className="inline-flex gap-1.5">
                     <Button variant="ghost" size="sm" onClick={() => setScanId(o.id)}>
                       <ScanLine size={13} /> Quét
                     </Button>
+                    <Button variant="ghost" size="sm"
+                      disabled={confirm.isPending && confirm.variables?.id === o.id}
+                      onClick={() => confirm.mutate({ id: o.id, partial: true })}>
+                      Nhận một phần
+                    </Button>
                     <Button variant="success" size="sm"
-                      disabled={confirm.isPending && confirm.variables === o.id}
-                      onClick={() => confirm.mutate(o.id)}>
-                      <Check size={13} /> Xác nhận
+                      disabled={confirm.isPending && confirm.variables?.id === o.id}
+                      onClick={() => confirm.mutate({ id: o.id })}>
+                      <Check size={13} /> Nhận đủ
                     </Button>
                   </span>
                 ) : <span className="text-[11px] text-txt-2">—</span>}

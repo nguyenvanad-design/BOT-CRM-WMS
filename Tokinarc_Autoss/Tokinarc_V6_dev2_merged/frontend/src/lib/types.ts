@@ -176,7 +176,7 @@ export interface StockMovement {
   note: string
 }
 
-export type InboundStatus = 'draft' | 'confirmed' | 'putaway' | 'cancelled'
+export type InboundStatus = 'draft' | 'confirmed' | 'partial' | 'putaway' | 'cancelled'
 
 export interface InboundLine {
   id?: string

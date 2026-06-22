@@ -327,33 +327,44 @@ class InboundViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='confirm')
     def confirm(self, request, pk=None):
-        """Nhận hàng thực: +tồn cho từng line theo target_bin, ghi movement."""
+        """Nhận hàng thực: chỉ cộng tồn phần MỚI nhận (delta = received - putaway).
+        Hỗ trợ NHẬN MỘT PHẦN: body {partial:true} → không tự coi là nhận đủ;
+        giao thiếu → phiếu giữ trạng thái `partial` (còn mở), confirm tiếp được."""
         inbound = self.get_object()
-        if inbound.status not in ('draft', 'confirmed'):
+        if inbound.status not in ('draft', 'confirmed', 'partial'):
             return Response({'detail': 'Trạng thái không cho xác nhận.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
+        partial_flag = bool(request.data.get('partial'))
+        fully = True
         for line in inbound.lines.all():
-            # Dùng số đã quét nhận (qty_received) nếu có; nếu chưa quét → qty_expected.
-            qty = line.qty_received or line.qty_expected
-            if not line.target_bin_id or qty <= 0:
-                continue
-            services.receive_stock(
-                bin_obj=line.target_bin, part=line.part, torch=line.torch,
-                qty=qty, user=request.user, ref_id=inbound.code,
-                lot_no=line.lot_no, lot_expires=line.lot_expires)
-            line.qty_received = qty
-            line.save(update_fields=['qty_received'])
-        inbound.status = 'putaway'
-        inbound.received_at = timezone.now()
+            received = line.qty_received
+            # Không quét + không phải nhận-một-phần → coi như giao đủ.
+            if received == 0 and not partial_flag:
+                received = line.qty_expected
+            delta = received - line.qty_putaway
+            if line.target_bin_id and delta > 0:
+                services.receive_stock(
+                    bin_obj=line.target_bin, part=line.part, torch=line.torch,
+                    qty=delta, user=request.user, ref_id=inbound.code,
+                    lot_no=line.lot_no, lot_expires=line.lot_expires)
+                line.qty_received = received
+                line.qty_putaway = received
+                line.save(update_fields=['qty_received', 'qty_putaway'])
+            if line.qty_putaway < line.qty_expected:
+                fully = False
+        inbound.status = 'putaway' if fully else 'partial'
+        if fully:
+            inbound.received_at = timezone.now()
         inbound.save(update_fields=['status', 'received_at'])
-        _publish('StockReceived', {'inbound': inbound.code, 'warehouse': inbound.warehouse.code})
+        _publish('StockReceived', {'inbound': inbound.code, 'warehouse': inbound.warehouse.code,
+                                   'partial': not fully})
         return Response(InboundOrderSerializer(inbound).data)
 
     @action(detail=True, methods=['post'], url_path='scan-receive')
     def scan_receive(self, request, pk=None):
         """Quét nhận hàng theo phiếu: cộng dồn qty_received cho dòng khớp mã."""
         inbound = self.get_object()
-        if inbound.status not in ('draft', 'confirmed'):
+        if inbound.status not in ('draft', 'confirmed', 'partial'):
             return Response({'detail': 'Phiếu đã xử lý.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
         code = str(request.data.get('code', '')).strip()
