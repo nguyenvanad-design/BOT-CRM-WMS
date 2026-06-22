@@ -28,6 +28,35 @@ def _publish(channel, payload):
         pass
 
 
+def _create_outbound_for_order(order, user) -> str | None:
+    """Khi ship đơn → tự tạo WMS OutboundOrder (draft) gắn sales_order_code.
+    Trả mã phiếu xuất, hoặc None nếu không có kho mặc định / đã có phiếu."""
+    from apps.catalog.models import Part
+    from apps.wms.models import OutboundLine, OutboundOrder, Warehouse
+
+    if OutboundOrder.objects.filter(sales_order_code=order.code).exists():
+        return None
+    actives = Warehouse.objects.filter(is_active=True)
+    wh = actives.first() if actives.count() == 1 else actives.filter(is_default=True).first()
+    if wh is None:
+        return None
+    year = timezone.now().year
+    pre = f'OUT-{year}-'
+    last = OutboundOrder.objects.filter(code__startswith=pre).order_by('-code').first()
+    seq = (int(last.code.rsplit('-', 1)[-1]) + 1) if last else 1
+    code = f'{pre}{seq:03d}'
+    ob = OutboundOrder.objects.create(
+        code=code, warehouse=wh, sales_order_code=order.code, customer=order.customer,
+        created_by=user, updated_by=user,
+    )
+    for idx, ol in enumerate(order.lines.all()):
+        if ol.part_id:
+            OutboundLine.objects.create(
+                outbound=ob, part=Part.objects.filter(pk=ol.part_id).first(),
+                qty_ordered=ol.qty, order_idx=idx)
+    return code
+
+
 class SalesOrderViewSet(viewsets.ModelViewSet):
     permission_classes = [SalesPermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -75,9 +104,13 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_409_CONFLICT)
         order.status = 'shipping'
         order.save(update_fields=['status'])
+        outbound_code = _create_outbound_for_order(order, request.user)
         from tokinarc.eventbus.channels import Channel
-        _publish(Channel.ORDER_SHIPPED, {'order': order.code, 'customer_id': str(order.customer_id)})
-        return Response(SalesOrderDetailSerializer(order).data)
+        _publish(Channel.ORDER_SHIPPED, {'order': order.code, 'customer_id': str(order.customer_id),
+                                         'outbound': outbound_code})
+        data = SalesOrderDetailSerializer(order).data
+        data['outbound_code'] = outbound_code
+        return Response(data)
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):

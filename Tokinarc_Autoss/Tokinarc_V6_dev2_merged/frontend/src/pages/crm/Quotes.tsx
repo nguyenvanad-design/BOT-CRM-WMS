@@ -9,7 +9,7 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { FileText, Check, ArrowRight, Plus, ShieldCheck } from 'lucide-react'
+import { FileText, Check, ArrowRight, Plus, ShieldCheck, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
@@ -56,6 +56,17 @@ export function QuotesPage() {
   const approveL2 = useMutation({
     mutationFn: (id: string) => api.post(`/crm/quotes/${id}/approve-l2/`),
     onSuccess: () => { toast.success('CEO đã duyệt cấp 2'); invalidate() },
+    onError: (e) => toast.error(apiError(e)),
+  })
+  const toOrder = useMutation({
+    mutationFn: (id: string) => api.post(`/crm/quotes/${id}/to-order/`),
+    onSuccess: (res) => { toast.success(`Đã tạo đơn ${res.data.order_code ?? ''}`); invalidate() },
+    onError: (e) => toast.error(apiError(e)),
+  })
+  const reject = useMutation({
+    mutationFn: (v: { id: string; reason: string }) =>
+      api.post(`/crm/quotes/${v.id}/reject/`, { reason: v.reason }),
+    onSuccess: () => { toast.success('Đã từ chối báo giá'); invalidate() },
     onError: (e) => toast.error(apiError(e)),
   })
   const toContract = useMutation({
@@ -123,14 +134,33 @@ export function QuotesPage() {
                   <span className="text-[11px] text-txt-2">Chờ CEO duyệt</span>
                 )}
 
-                {q.status === 'approved' && (
+                {/* Từ chối: manager+ cho báo giá chưa chốt */}
+                {(q.status === 'draft' || q.status === 'sent' || q.status === 'pending_ceo') && canApprove && (
                   <Button
-                    size="sm"
-                    disabled={toContract.isPending && toContract.variables === q.id}
-                    onClick={() => toContract.mutate(q.id)}
+                    variant="ghost" size="sm"
+                    disabled={reject.isPending && reject.variables?.id === q.id}
+                    onClick={() => {
+                      const reason = window.prompt('Lý do từ chối báo giá?') ?? ''
+                      if (reason !== null) reject.mutate({ id: q.id, reason })
+                    }}
                   >
-                    Tạo HĐ <ArrowRight size={13} />
+                    <X size={13} /> Từ chối
                   </Button>
+                )}
+
+                {q.status === 'approved' && (
+                  <span className="inline-flex gap-1.5">
+                    <Button size="sm"
+                      disabled={toOrder.isPending && toOrder.variables === q.id}
+                      onClick={() => toOrder.mutate(q.id)}>
+                      Tạo đơn <ArrowRight size={13} />
+                    </Button>
+                    <Button variant="ghost" size="sm"
+                      disabled={toContract.isPending && toContract.variables === q.id}
+                      onClick={() => toContract.mutate(q.id)}>
+                      Tạo HĐ
+                    </Button>
+                  </span>
                 )}
                 {q.status === 'converted' && (
                   <span className="text-[11px] text-txt-2 font-mono">{q.contract_order_code || 'Đã chuyển'}</span>

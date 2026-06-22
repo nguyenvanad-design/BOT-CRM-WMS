@@ -108,6 +108,27 @@ class OpportunityViewSet(viewsets.ModelViewSet):
         obj = serializer.save(owner=self.request.user)
         _audit(self.request, 'create', 'Opportunity', obj.id)
 
+    @action(detail=False, methods=['get'])
+    def forecast(self, request):
+        """Forecast pipeline theo phạm vi của user (sale: của mình; manager+: tất cả).
+        weighted = est_value_vnd × probability/100, gộp theo stage."""
+        from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
+
+        qs = _own_filter(Opportunity.objects.exclude(stage__in=['won', 'lost']),
+                         request.user)
+        weighted = ExpressionWrapper(F('est_value_vnd') * F('probability') / 100.0,
+                                     output_field=DecimalField(max_digits=18, decimal_places=2))
+        rows = (qs.values('stage')
+                .annotate(weighted_vnd=Sum(weighted), total_vnd=Sum('est_value_vnd'),
+                          count=Count('id')).order_by('stage'))
+        rows = list(rows)
+        return Response({
+            'by_stage': rows,
+            'weighted_total': sum(float(r['weighted_vnd'] or 0) for r in rows),
+            'value_total': sum(float(r['total_vnd'] or 0) for r in rows),
+            'open_count': sum(int(r['count']) for r in rows),
+        })
+
     @action(detail=True, methods=['post'], url_path='move-stage')
     def move_stage(self, request, pk=None):
         opp = self.get_object()
@@ -190,6 +211,24 @@ class QuoteViewSet(viewsets.ModelViewSet):
         _audit(request, 'approve', 'Quote', quote.id, {'level': 2})
         return Response(QuoteSerializer(quote).data)
 
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Từ chối báo giá kèm lý do (manager/CEO/admin). Lưu lý do vào notes + audit."""
+        quote = self.get_object()
+        if not is_manager(request.user):
+            return Response({'detail': 'Chỉ quản lý/CEO/admin được từ chối báo giá.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        if quote.status not in (QuoteStatus.DRAFT, QuoteStatus.SENT, QuoteStatus.PENDING_CEO):
+            return Response({'detail': f'Báo giá ở trạng thái {quote.status}, không thể từ chối.'},
+                            status=400)
+        reason = (request.data.get('reason') or '').strip()
+        quote.status = QuoteStatus.REJECTED
+        if reason:
+            quote.notes = (quote.notes + f"\n[Từ chối] {reason}").strip()
+        quote.save(update_fields=['status', 'notes', 'updated_at'])
+        _audit(request, 'reject', 'Quote', quote.id, {'reason': reason})
+        return Response(QuoteSerializer(quote).data)
+
     @action(detail=True, methods=['post'], url_path='to-contract')
     def to_contract(self, request, pk=None):
         quote = self.get_object()
@@ -205,6 +244,49 @@ class QuoteViewSet(viewsets.ModelViewSet):
         _audit(request, 'to_contract', 'Quote', quote.id, {'order_code': order_code})
         return Response({'contract_order_code': order_code,
                          'quote': QuoteSerializer(quote).data})
+
+    @action(detail=True, methods=['post'], url_path='to-order')
+    def to_order(self, request, pk=None):
+        """Báo giá ĐÃ DUYỆT → tạo SalesOrder thật (draft) + lines từ QuoteLine."""
+        from django.utils import timezone
+
+        from apps.catalog.models import Part
+        from apps.sales import services as sales_services
+        from apps.sales.models import SalesOrder, SalesOrderLine
+
+        quote = self.get_object()
+        if quote.status != QuoteStatus.APPROVED:
+            return Response({'detail': 'Chỉ báo giá đã duyệt mới tạo đơn hàng.'}, status=400)
+        if quote.contract_order_code:
+            return Response({'detail': f'Báo giá đã gắn đơn/HĐ {quote.contract_order_code}.'},
+                            status=400)
+
+        year = timezone.now().year
+        pre = f'DH-{year}-'
+        last = SalesOrder.objects.filter(code__startswith=pre).order_by('-code').first()
+        seq = (int(last.code.rsplit('-', 1)[-1]) + 1) if last else 1
+        code = f'{pre}{seq:03d}'
+
+        with transaction.atomic():
+            order = SalesOrder.objects.create(
+                code=code, customer=quote.customer, issued_date=timezone.now().date(),
+                owner=quote.owner, created_by=request.user, updated_by=request.user,
+                status='draft',
+            )
+            for idx, ql in enumerate(quote.lines.all()):
+                part = Part.objects.filter(pk=ql.part_no).first()
+                SalesOrderLine.objects.create(
+                    order=order, part=part, description=ql.part_name or ql.part_no,
+                    qty=ql.qty, unit_price=ql.unit_price_vnd,
+                    line_total=ql.qty * ql.unit_price_vnd, order_idx=idx,
+                )
+            sales_services.recompute_order_total(order)
+            quote.contract_order_code = code
+            quote.status = QuoteStatus.CONVERTED
+            quote.save(update_fields=['contract_order_code', 'status', 'updated_at'])
+        _audit(request, 'to_order', 'Quote', quote.id, {'order_code': code})
+        return Response({'order_code': code, 'order_id': str(order.id),
+                         'total_vnd': str(order.total_vnd)})
 
 
 def _next_code_simple(prefix, model, field):

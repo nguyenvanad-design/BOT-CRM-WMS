@@ -266,3 +266,65 @@ def test_unauthenticated_blocked(db):
     c = APIClient()
     r = c.post('/api/v1/crm/quotes/', {}, format='json')
     assert r.status_code in (401, 403)
+
+
+# ─── N1.1 Quote → SalesOrder ─────────────────────────────────────────────
+@pytest.mark.django_db
+def test_quote_to_order_creates_salesorder(sale):
+    from apps.crm.models import Quote, QuoteLine, QuoteStatus
+    from apps.sales.models import SalesOrder
+    cust = CustomerFactory(owner=sale)
+    q = Quote.objects.create(code='BG-7001', customer=cust, owner=sale,
+                             status=QuoteStatus.APPROVED)
+    QuoteLine.objects.create(quote=q, part_no='X1', part_name='Part X', qty=3, unit_price_vnd=10000)
+    q.recompute_total(); q.save(update_fields=['total_vnd'])
+    cli = APIClient(); cli.force_authenticate(sale)
+    r = cli.post(f'/api/v1/crm/quotes/{q.id}/to-order/')
+    assert r.status_code == 200
+    order = SalesOrder.objects.get(code=r.data['order_code'])
+    assert order.customer_id == cust.id and int(order.total_vnd) == 30000
+    assert order.lines.count() == 1
+    q.refresh_from_db(); assert q.status == 'converted'
+
+
+# ─── N2.5 Reject quote ───────────────────────────────────────────────────
+@pytest.mark.django_db
+def test_reject_quote_with_reason(manager, sale):
+    from apps.crm.models import Quote, QuoteStatus
+    cust = CustomerFactory(owner=sale)
+    q = Quote.objects.create(code='BG-7101', customer=cust, owner=sale, status=QuoteStatus.SENT)
+    mc = APIClient(); mc.force_authenticate(manager)
+    r = mc.post(f'/api/v1/crm/quotes/{q.id}/reject/', {'reason': 'Giá cao'}, format='json')
+    assert r.status_code == 200 and r.data['status'] == 'rejected'
+    q.refresh_from_db(); assert 'Giá cao' in q.notes
+    # sale không được reject
+    sc = APIClient(); sc.force_authenticate(sale)
+    q2 = Quote.objects.create(code='BG-7102', customer=cust, owner=sale, status=QuoteStatus.SENT)
+    assert sc.post(f'/api/v1/crm/quotes/{q2.id}/reject/').status_code == 403
+
+
+# ─── N2.7 CRM forecast ───────────────────────────────────────────────────
+@pytest.mark.django_db
+def test_crm_forecast_endpoint(sale):
+    from apps.crm.models import Opportunity
+    cust = CustomerFactory(owner=sale)
+    Opportunity.objects.create(customer=cust, owner=sale, title='O1', stage='proposal',
+                               est_value_vnd=100_000_000, probability=50)
+    cli = APIClient(); cli.force_authenticate(sale)
+    r = cli.get('/api/v1/crm/opportunities/forecast/')
+    assert r.status_code == 200
+    assert r.data['open_count'] == 1
+    assert r.data['weighted_total'] == 50_000_000
+
+
+# ─── N2.6 Expire contracts command ───────────────────────────────────────
+@pytest.mark.django_db
+def test_expire_contracts_command(sale):
+    import datetime as dt
+    from django.core.management import call_command
+    from apps.crm.models import Contract, ContractStatus
+    cust = CustomerFactory(owner=sale)
+    c = Contract.objects.create(code='HD-EXP-1', customer=cust, owner=sale,
+                                status=ContractStatus.ACTIVE, end_date=dt.date(2020, 1, 1))
+    call_command('expire_contracts')
+    c.refresh_from_db(); assert c.status == 'expired'

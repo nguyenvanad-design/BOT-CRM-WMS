@@ -226,7 +226,31 @@ class SerialNumberViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['serial']
 
     def get_queryset(self):
-        return SerialNumber.objects.select_related('torch', 'bin')
+        return SerialNumber.objects.select_related('torch', 'bin', 'sold_to_customer')
+
+    @action(detail=True, methods=['get'])
+    def history(self, request, pk=None):
+        """Lịch sử 1 serial (2 chiều): bán cho ai, đơn nào, bảo hành, + ticket liên quan."""
+        from datetime import date
+
+        from apps.crm.models import Ticket
+        s = self.get_object()
+        tickets = (Ticket.objects.filter(serial_no=s.serial)
+                   .values('code', 'title', 'status', 'created_at').order_by('-created_at'))
+        wu = s.warranty_until
+        warranty = ('none' if not wu else 'valid' if wu >= date.today() else 'expired')
+        return Response({
+            'serial': s.serial,
+            'torch': str(s.torch_id),
+            'status': s.status,
+            'sold_to_customer': s.sold_to_customer.name if s.sold_to_customer_id else None,
+            'sold_to_customer_id': str(s.sold_to_customer_id) if s.sold_to_customer_id else None,
+            'sold_order': s.sold_order or None,
+            'received_at': s.received_at.isoformat() if s.received_at else None,
+            'warranty_until': wu.isoformat() if wu else None,
+            'warranty_state': warranty,
+            'tickets': list(tickets),
+        })
 
 
 class LotViewSet(viewsets.ReadOnlyModelViewSet):

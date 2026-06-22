@@ -96,3 +96,24 @@ def test_customer_role_blocked(db):
     cu = User.objects.create(username='kh1', role=Role.CUSTOMER)
     c = APIClient(); c.force_authenticate(cu)
     assert c.get('/api/v1/sales/orders/').status_code == 403
+
+
+# ─── N1.2 ship → tự sinh WMS Outbound ────────────────────────────────────
+@pytest.mark.django_db
+def test_ship_creates_wms_outbound(auth, sale):
+    from apps.catalog.models import Part
+    from apps.wms.models import OutboundOrder, Warehouse
+    Warehouse.objects.create(code='HCM', name='Kho HCM', is_active=True, is_default=True)
+    Part.objects.create(tokin_part_no='P-001', category='tip', display_name_vi='Béc')
+    cust = CustomerFactory(owner=sale)
+    r = auth.post('/api/v1/sales/orders/', {
+        'code': 'HD-OB-1', 'customer': str(cust.id), 'issued_date': '2026-06-01',
+        'lines': [{'description': 'Béc', 'part': 'P-001', 'qty': 5, 'unit_price': 10000}],
+    }, format='json')
+    oid = r.data['id']
+    auth.post(f'/api/v1/sales/orders/{oid}/sign/')
+    rs = auth.post(f'/api/v1/sales/orders/{oid}/ship/')
+    assert rs.status_code == 200
+    ob = OutboundOrder.objects.get(sales_order_code='HD-OB-1')
+    assert ob.customer_id == cust.id and ob.lines.count() == 1
+    assert rs.data['outbound_code'] == ob.code

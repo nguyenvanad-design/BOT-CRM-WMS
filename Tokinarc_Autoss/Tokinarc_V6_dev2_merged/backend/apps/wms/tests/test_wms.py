@@ -151,6 +151,27 @@ def test_scan_entry_blocked_for_customer(customer_user, part):
     assert r.status_code in (403, 401)
 
 
+# ─── N1.3 Serial history (2 chiều, gồm ticket) ───────────────────────────────
+@pytest.mark.django_db
+def test_serial_history_includes_tickets(auth, torch):
+    import datetime as dt
+
+    from apps.crm.models import Customer, Ticket
+    from apps.wms.models import SerialNumber
+    cust = Customer.objects.create(code='KH-SN1', name='ACME', segment='factory',
+                                   owner=UserFactory(role='sales'))
+    sn = SerialNumber.objects.create(serial='SN-12345', torch=torch, status='sold',
+                                     sold_to_customer=cust, sold_order='HD-1',
+                                     warranty_until=dt.date(2030, 1, 1))
+    Ticket.objects.create(code='TK-1', customer=cust, title='Lỗi mỏ', serial_no='SN-12345',
+                          created_owner=UserFactory(role='service'))
+    r = auth.get(f'/api/v1/wms/serials/{sn.id}/history/')
+    assert r.status_code == 200
+    assert r.data['sold_to_customer'] == 'ACME'
+    assert r.data['warranty_state'] == 'valid'
+    assert len(r.data['tickets']) == 1 and r.data['tickets'][0]['code'] == 'TK-1'
+
+
 # ─── Constraint: part XOR torch ──────────────────────────────────────────────
 @pytest.mark.django_db
 def test_inventory_requires_exactly_one_of_part_torch(part, torch):
