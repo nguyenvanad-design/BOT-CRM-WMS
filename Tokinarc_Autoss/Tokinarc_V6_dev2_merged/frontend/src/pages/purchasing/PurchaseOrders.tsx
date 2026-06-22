@@ -60,7 +60,21 @@ export function PurchaseOrdersPage() {
     <div className="max-w-6xl">
       <PageHeader icon={<ShoppingCart size={20} className="text-flame" />} title="Đơn mua hàng"
         subtitle={orders.data ? `${orders.data.length} đơn` : undefined}
-        actions={canManage && <Button onClick={() => setOpen(true)}><Plus size={14} /> Tạo PO</Button>} />
+        actions={
+          <>
+            {canManage && (
+              <Button variant="ghost" onClick={async () => {
+                try {
+                  const res = await api.get('/purchasing/payments/export-misa/', { responseType: 'blob' })
+                  const url = URL.createObjectURL(res.data as Blob)
+                  const a = document.createElement('a'); a.href = url; a.download = 'phieuchi_misa.xlsx'; a.click()
+                  URL.revokeObjectURL(url)
+                } catch (e) { toast.error(apiError(e)) }
+              }}><Wallet size={14} /> Xuất phiếu chi (MISA)</Button>
+            )}
+            {canManage && <Button onClick={() => setOpen(true)}><Plus size={14} /> Tạo PO</Button>}
+          </>
+        } />
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
         <StatCard label="Công nợ phải trả" tone="danger" value={ap.data ? compactVnd(ap.data.total_payable) : '…'} />

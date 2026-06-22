@@ -193,6 +193,29 @@ class PaymentViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(PaymentSerializer(p).data, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['get'], url_path='export-misa')
+    def export_misa(self, request):
+        """Xuất Excel phiếu THU (AR) để nạp vào MISA. ?from=&to= (ngày)."""
+        import io
+
+        from django.http import HttpResponse
+        from openpyxl import Workbook
+        qs = Payment.objects.select_related('order', 'order__customer').order_by('-paid_at')
+        if request.query_params.get('from'):
+            qs = qs.filter(paid_at__gte=request.query_params['from'])
+        if request.query_params.get('to'):
+            qs = qs.filter(paid_at__lte=request.query_params['to'])
+        wb = Workbook(); ws = wb.active; ws.title = 'PhieuThu_MISA'
+        ws.append(['Ngay', 'Don hang', 'Ma KH', 'Ten KH', 'So tien', 'Hinh thuc', 'Tham chieu'])
+        for p in qs:
+            ws.append([p.paid_at.isoformat(), p.order.code, p.order.customer.code,
+                       p.order.customer.name, int(p.amount_vnd), p.method, p.reference])
+        buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+        resp = HttpResponse(buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        resp['Content-Disposition'] = 'attachment; filename="phieuthu_misa.xlsx"'
+        return resp
+
 
 class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     """Đề nghị xuất hóa đơn (đọc). Tạo qua /orders/{id}/create-invoice/.

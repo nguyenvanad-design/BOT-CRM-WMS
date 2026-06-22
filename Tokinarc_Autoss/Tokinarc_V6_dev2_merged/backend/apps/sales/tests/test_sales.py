@@ -134,6 +134,17 @@ def test_invoice_misa_export_and_sync(db):
 
 
 @pytest.mark.django_db
+def test_payment_export_misa(sale):
+    cust = CustomerFactory(owner=sale)
+    order = SalesOrder.objects.create(code='HD-EXP-1', customer=cust, issued_date=dt.date(2026, 6, 1),
+                                      total_vnd=1_000_000, owner=sale)
+    services.record_payment(order, amount=400_000, paid_at=dt.date(2026, 6, 2), method='cash', user=sale)
+    c = APIClient(); c.force_authenticate(sale)
+    r = c.get('/api/v1/sales/payments/export-misa/')
+    assert r.status_code == 200 and 'spreadsheet' in r['Content-Type']
+
+
+@pytest.mark.django_db
 def test_ceo_can_access_sales_and_wms(db):
     """CEO phải đọc được đơn bán + WMS (regression: role-set từng sót ceo)."""
     ceo = User.objects.create(username='ceo1', role=Role.CEO)

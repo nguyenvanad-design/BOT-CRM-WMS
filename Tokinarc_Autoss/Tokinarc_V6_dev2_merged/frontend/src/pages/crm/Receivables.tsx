@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Wallet, Upload } from 'lucide-react'
+import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { compactVnd, formatVnd } from '@/lib/crm'
 import type { ReceivablesResponse, DebtBucket } from '@/lib/types'
@@ -41,9 +42,23 @@ export function ReceivablesPage() {
         icon={<Wallet size={20} className="text-flame" />}
         title="Công nợ"
         subtitle={s ? `${s.count} đơn còn nợ` : undefined}
-        actions={canImport && (
-          <Button variant="ghost" onClick={() => setImportOpen(true)}><Upload size={14} /> Import đơn cũ</Button>
-        )}
+        actions={
+          <>
+            {canImport && (
+              <Button variant="ghost" onClick={async () => {
+                try {
+                  const res = await api.get('/sales/payments/export-misa/', { responseType: 'blob' })
+                  const url = URL.createObjectURL(res.data as Blob)
+                  const a = document.createElement('a'); a.href = url; a.download = 'phieuthu_misa.xlsx'; a.click()
+                  URL.revokeObjectURL(url)
+                } catch (e) { toast.error(apiError(e)) }
+              }}><Upload size={14} /> Xuất phiếu thu (MISA)</Button>
+            )}
+            {canImport && (
+              <Button variant="ghost" onClick={() => setImportOpen(true)}><Upload size={14} /> Import đơn cũ</Button>
+            )}
+          </>
+        }
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">

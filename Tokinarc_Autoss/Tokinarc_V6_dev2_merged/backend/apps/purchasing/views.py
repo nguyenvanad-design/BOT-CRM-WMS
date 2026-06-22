@@ -138,3 +138,26 @@ class PurchasePaymentViewSet(viewsets.ModelViewSet):
         p = ser.save(created_by=request.user, updated_by=request.user)
         PurchaseOrder.objects.filter(pk=po.pk).update(paid_vnd=F('paid_vnd') + amount)
         return Response(PurchasePaymentSerializer(p).data, status=201)
+
+    @action(detail=False, methods=['get'], url_path='export-misa')
+    def export_misa(self, request):
+        """Xuất Excel phiếu CHI (AP) trả NCC để nạp vào MISA. ?from=&to=."""
+        import io
+
+        from django.http import HttpResponse
+        from openpyxl import Workbook
+        qs = PurchasePayment.objects.select_related('po', 'po__supplier').order_by('-paid_at')
+        if request.query_params.get('from'):
+            qs = qs.filter(paid_at__gte=request.query_params['from'])
+        if request.query_params.get('to'):
+            qs = qs.filter(paid_at__lte=request.query_params['to'])
+        wb = Workbook(); ws = wb.active; ws.title = 'PhieuChi_MISA'
+        ws.append(['Ngay', 'Don mua', 'Ma NCC', 'Ten NCC', 'So tien', 'Hinh thuc', 'Tham chieu'])
+        for p in qs:
+            ws.append([p.paid_at.isoformat(), p.po.code, p.po.supplier.code,
+                       p.po.supplier.name, int(p.amount_vnd), p.method, p.reference])
+        buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+        resp = HttpResponse(buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        resp['Content-Disposition'] = 'attachment; filename="phieuchi_misa.xlsx"'
+        return resp

@@ -90,6 +90,19 @@ def test_ap_payment_and_summary(manager, part, wh):
 
 
 @pytest.mark.django_db
+def test_ap_payment_export_misa(manager, part, wh):
+    mc = APIClient(); mc.force_authenticate(manager)
+    sup = Supplier.objects.create(code='NCC-EXP', name='E', created_by=manager, updated_by=manager)
+    po = PurchaseOrder.objects.create(code='PO-EXP-1', supplier=sup, warehouse=wh,
+                                      status='received', total_vnd=2_000_000, owner=manager,
+                                      created_by=manager, updated_by=manager)
+    mc.post('/api/v1/purchasing/payments/',
+            {'po': str(po.id), 'amount_vnd': 500_000, 'paid_at': '2026-06-01'}, format='json')
+    r = mc.get('/api/v1/purchasing/payments/export-misa/')
+    assert r.status_code == 200 and 'spreadsheet' in r['Content-Type']
+
+
+@pytest.mark.django_db
 def test_sale_cannot_create_po(part, wh):
     sale = User.objects.create(username='s1', role=Role.SALES)
     c = APIClient(); c.force_authenticate(sale)
