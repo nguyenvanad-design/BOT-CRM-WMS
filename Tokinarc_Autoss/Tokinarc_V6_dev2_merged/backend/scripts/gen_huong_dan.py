@@ -39,6 +39,20 @@ def main(out: str):
     def bullet(text):
         d.add_paragraph(text, style='List Bullet')
 
+    def steps(items):
+        for it in items:
+            d.add_paragraph(it, style='List Number')
+
+    def buttons(rows):
+        t = d.add_table(rows=1, cols=2); t.style = 'Light Grid Accent 1'
+        hc = t.rows[0].cells; hc[0].text = 'Nút / Trường'; hc[1].text = 'Tác dụng'
+        for c in hc:
+            for r in c.paragraphs[0].runs: r.bold = True
+        for a, b in rows:
+            cells = t.add_row().cells; cells[0].text = a; cells[1].text = b
+            for r in cells[0].paragraphs[0].runs: r.bold = True
+        d.add_paragraph()
+
     def flow(text):
         p = d.add_paragraph(); p.paragraph_format.space_after = Pt(0)
         r = p.add_run(text); r.bold = True; r.font.name = 'Consolas'
@@ -207,6 +221,154 @@ def main(out: str):
            ['Điều chỉnh tồn / duyệt kiểm kê', '–', '✗', '✓', '✓', '✓'],
            ['KPI vận hành kho', '–', '–', '✓', '✓', '✓'],
            ['Dashboard CEO / tài chính', '–', '–', '–', '✓', '✓']])
+
+    # ════════ G. HƯỚNG DẪN CHI TIẾT TỪNG TRANG ════════
+    d.add_page_break()
+    h('G. Hướng dẫn chi tiết từng trang', 1)
+    para('Tra cứu nhanh: mỗi trang gồm đường dẫn menu, các nút/trường và các bước thao tác.')
+
+    h('G.0. Thanh chung (mọi trang)', 2)
+    buttons([
+        ('🔔 Chuông', 'Số thông báo chưa đọc; bấm xem danh sách; "Đọc hết" để xoá badge.'),
+        ('Tên user + vai trò', 'Hiển thị người đang đăng nhập.'),
+        ('Đăng xuất', 'Thoát tài khoản.'),
+        ('Bộ chuyển CRM/WMS/CEO', 'Đổi phân hệ (chỉ hiện phân hệ bạn có quyền).'),
+        ('Trợ lý nội bộ (đáy)', 'Gõ lệnh + "Hỏi"; chip gợi ý; Thu gọn; 🗑 xoá hội thoại.'),
+    ])
+
+    # ── CRM pages ──
+    h('G.1. Khách hàng  (CRM → Khách hàng)', 2)
+    buttons([
+        ('Ô tìm kiếm', 'Lọc theo tên/mã KH.'),
+        ('Import (Quản lý+)', 'Nhập KH cũ từ Excel/CSV.'),
+        ('Thêm KH', 'Mở form tạo khách hàng.'),
+        ('Bấm 1 dòng', 'Mở hồ sơ Khách hàng 360.'),
+        ('Trước / Sau', 'Chuyển trang.'),
+    ])
+    para('Thêm khách hàng:')
+    steps(['Bấm "Thêm KH".', 'Nhập Mã KH (bắt đầu "KH"), Tên, Phân khúc, Vùng, MST.',
+           'Bấm "Thêm người liên hệ" để thêm liên hệ (đánh dấu "chính").', 'Bấm "Lưu".'])
+
+    h('G.2. Khách hàng 360', 2)
+    buttons([
+        ('← Quay lại', 'Về danh sách.'),
+        ('Sửa', 'Sửa thông tin KH.'),
+        ('Thẻ KPI', 'Đơn mở, công nợ, ticket, hoạt động gần nhất.'),
+        ('Lịch sử làm việc', 'Dòng thời gian tương tác; 🎧 nghe ghi âm, 📄 tải recap.'),
+    ])
+
+    h('G.3. Leads  (CRM → Leads)', 2)
+    buttons([
+        ('Tạo Lead', 'Tạo khách tiềm năng.'),
+        ('Chuyển KH', 'Biến lead đủ điều kiện thành Khách hàng.'),
+        ('Import (Quản lý+)', 'Nhập lead cũ.'),
+        ('Bấm 1 dòng', 'Sửa lead.'),
+    ])
+
+    h('G.4. Cơ hội  (CRM → Opportunity / Pipeline)', 2)
+    buttons([
+        ('Tạo Opportunity', 'Tạo cơ hội (KH, giá trị, xác suất, giai đoạn).'),
+        ('Bấm 1 dòng', 'Mở chi tiết + dòng thời gian; đổi giai đoạn.'),
+        ('Pipeline (menu)', 'Xem kanban theo giai đoạn.'),
+    ])
+
+    h('G.5. Báo giá  (CRM → Báo giá)', 2)
+    buttons([
+        ('Tạo BG', 'Mở form: chọn KH, thêm dòng (mã/tên/SL/đơn giá); tổng tự tính.'),
+        ('Bấm dòng (Nháp)', 'Sửa báo giá (chỉ khi Nháp).'),
+        ('Duyệt / Duyệt (cấp 1)', 'Manager+ duyệt; <ngưỡng→Đã duyệt, ≥ngưỡng→Chờ CEO.'),
+        ('Duyệt cấp 2 (CEO)', 'CEO/Admin duyệt báo giá Chờ CEO.'),
+        ('Từ chối', 'Manager+ từ chối kèm lý do.'),
+        ('Tạo đơn', 'Báo giá đã duyệt → tạo Đơn bán.'),
+        ('Tạo HĐ', 'Báo giá đã duyệt → tạo Hợp đồng.'),
+    ])
+    para('Tạo & trình duyệt báo giá:')
+    steps(['Bấm "Tạo BG", chọn khách hàng.', 'Nhập từng dòng: Mã part, Tên, SL, Đơn giá.',
+           'Bấm "Tạo" (lưu Nháp).', 'Manager mở báo giá bấm "Duyệt".',
+           'Nếu lớn: CEO bấm "Duyệt cấp 2".', 'Khi "Đã duyệt": bấm "Tạo đơn"/"Tạo HĐ".'])
+
+    h('G.6. Hợp đồng / Công nợ', 2)
+    buttons([
+        ('Tạo HĐ', 'Tạo hợp đồng (hoặc sinh từ báo giá).'),
+        ('Import (HĐ/Đơn cũ)', 'Nhập dữ liệu cũ; cột customer_code = mã KH.'),
+        ('Phân tích tuổi nợ', '(Công nợ) Thanh tỷ lệ theo nhóm tuổi nợ.'),
+    ])
+
+    h('G.7. Viếng thăm / Hoạt động', 2)
+    buttons([
+        ('Khách hàng* / Ngày*', 'Bắt buộc.'),
+        ('Mục đích / Nội dung / Tóm tắt / Bước tiếp', 'Nội dung buổi gặp/gọi.'),
+        ('File ghi âm — Chọn file', 'Tải audio lên.'),
+        ('File recap — Chọn file', 'Tải file recap (Word/PDF).'),
+        ('Recap (văn bản)', 'Gõ tóm tắt.'),
+        ('Lưu', 'Lưu; tự hiện ở Lịch sử làm việc của KH.'),
+    ])
+
+    h('G.8. Import dữ liệu (hộp thoại)', 2)
+    buttons([
+        ('Tải file mẫu (Excel)', 'Tải file mẫu đúng cột.'),
+        ('Chọn file', 'Chọn .xlsx/.csv đã điền.'),
+        ('Xem trước', 'Kiểm lỗi (sẽ tạo/bỏ qua trùng/lỗi từng dòng), CHƯA ghi.'),
+        ('Import', 'Ghi vào hệ thống; bỏ qua bản ghi trùng mã.'),
+    ])
+
+    # ── WMS pages ──
+    h('G.9. Nhập kho  (WMS → Nhập kho)', 2)
+    buttons([
+        ('Tạo đơn nhập', 'Chọn kho + dòng hàng + ô đích (+ lô/hạn dùng).'),
+        ('Quét', 'Mở cửa sổ quét nhận theo phiếu.'),
+        ('Xác nhận', 'Cộng tồn theo số đã nhận.'),
+    ])
+    steps(['Tạo đơn nhập.', 'Bấm "Quét" → quét/nhập mã + SL từng mặt hàng.',
+           'Khi đủ ("Đủ"), bấm "Xác nhận nhận" → cộng tồn + tạo Lô.'])
+
+    h('G.10. Xuất kho  (WMS → Xuất kho)', 2)
+    buttons([
+        ('Tạo đơn xuất', 'Tạo phiếu (hoặc auto khi Giao đơn bán).'),
+        ('Pick-list', 'Xem gợi ý lấy hàng ở ô nào (FIFO/FEFO).'),
+        ('Quét', 'Cửa sổ quét soạn: mã + ô + SL → trừ tồn.'),
+        ('Giao', 'Xác nhận giao → trừ tồn, ghi xuất kho.'),
+    ])
+
+    h('G.11. Quét mã  (WMS → Quét mã)', 2)
+    buttons([
+        ('Tab Tra cứu', 'Quét → xem phụ tùng/serial.'),
+        ('Tab Nhập kho', 'Quét mã + ô + SL → cộng tồn.'),
+        ('Tab Xuất kho', 'Quét mã + ô + SL → trừ tồn.'),
+        ('Tab Kiểm kê (Quản lý kho)', 'Quét mã + ô + số đếm → đặt lại tồn.'),
+        ('Bắt đầu quét / Dừng', 'Bật/tắt camera.'),
+        ('Đang quét vào: Mã hàng / Ô', 'Chọn camera điền vào trường nào.'),
+    ])
+
+    h('G.12. Kiểm kê  (WMS → Kiểm kê)', 2)
+    buttons([
+        ('Phiên mới', 'Tạo phiên kiểm kê (NV kho làm được).'),
+        ('Mã hàng / Mã ô / Số đếm + quét', 'Ghi số đếm thực tế từng ô.'),
+        ('Bảng chênh lệch', 'Hệ thống vs Đếm (xanh dư / đỏ thiếu).'),
+        ('Áp dụng (Quản lý kho)', 'Điều chỉnh tồn theo số đếm.'),
+    ])
+
+    h('G.13. Lô hàng / Serial', 2)
+    buttons([
+        ('Lô hàng — Sắp hết hạn (≤30 ngày)', 'Lọc lô gần hết hạn (cảnh báo đỏ/vàng).'),
+        ('Serial (menu)', 'Danh sách serial; tra lịch sử (đã bán cho ai, bảo hành).'),
+    ])
+
+    h('G.14. KPI vận hành  (WMS → KPI vận hành, Quản lý kho+)', 2)
+    buttons([
+        ('Chọn kỳ 7/30/90 ngày', 'Khoảng thời gian thống kê.'),
+        ('Thẻ KPI', 'Nhập/Xuất (SL+lần), Độ chính xác kiểm kê, Sắp hết hàng.'),
+        ('Bảng Tồn theo zone', 'SKU + tồn từng zone.'),
+        ('Bảng Hiệu suất nhân sự', 'Số thao tác theo người.'),
+    ])
+
+    h('G.15. CEO  (menu CEO, Manager/CEO/Admin)', 2)
+    buttons([
+        ('Bảng điều hành', 'KPI tổng hợp công ty.'),
+        ('AI Summary — Làm mới', 'Tổng hợp lại số liệu.'),
+        ('AI Summary — Tải Excel', 'Xuất báo cáo điều hành .xlsx.'),
+        ('Doanh thu / Công nợ / Forecast / Tồn', 'Báo cáo chuyên đề.'),
+    ])
 
     d.save(out)
     print(f'Saved: {out}')
