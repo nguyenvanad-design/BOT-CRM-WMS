@@ -161,7 +161,7 @@ export function ScanPage() {
         {/* Nhập kho / Kiểm kê: form */}
         {entryMode && (
           <div className="mt-3 pt-3 border-t border-line space-y-2">
-            <Field label="Mã hàng" value={code} onChange={setCode} placeholder="Quét hoặc nhập mã phụ tùng" />
+            <Field label="Mã hàng" value={code} onChange={setCode} placeholder="Quét/nhập mã phụ tùng hoặc súng hàn" />
             <Field label="Mã ô (bin)" value={binCode} onChange={setBinCode} placeholder="VD HCM-A-R01-B03" />
             <Field label={mode === 'receive' ? 'Số lượng nhập' : mode === 'issue' ? 'Số lượng xuất' : 'Số đếm thực tế'}
               value={qty} onChange={setQty} placeholder="0" type="number" />

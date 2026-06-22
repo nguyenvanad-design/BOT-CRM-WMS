@@ -168,8 +168,9 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': 'Số đếm không được âm.'}, status=400)
 
         part = Part.objects.filter(pk=code).first()
-        if part is None:
-            return Response({'detail': f'Không tìm thấy phụ tùng mã "{code}".'}, status=404)
+        torch = None if part else Torch.objects.filter(pk=code).first()
+        if part is None and torch is None:
+            return Response({'detail': f'Không tìm thấy phụ tùng/súng hàn mã "{code}".'}, status=404)
         bin_qs = Bin.objects.filter(full_code=bin_code)
         if wh:
             bin_qs = bin_qs.filter(zone__warehouse__code=wh)
@@ -178,26 +179,27 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': f'Không tìm thấy ô (bin) mã "{bin_code}".'}, status=404)
 
         if mode == 'receive':
-            item = services.receive_stock(bin_obj=bin_obj, part=part, qty=qty,
+            item = services.receive_stock(bin_obj=bin_obj, part=part, torch=torch, qty=qty,
                                           user=request.user, ref_id='scan')
             msg = f'Đã nhập +{qty} vào {bin_obj.full_code}.'
         elif mode == 'issue':
             try:
-                item = services.issue_stock(bin_obj=bin_obj, part=part, qty=qty,
+                item = services.issue_stock(bin_obj=bin_obj, part=part, torch=torch, qty=qty,
                                             user=request.user, ref_id='scan')
             except services.InsufficientStock as e:
                 return Response({'detail': str(e), 'code': 'CONFLICT'},
                                 status=status.HTTP_409_CONFLICT)
             msg = f'Đã xuất -{qty} khỏi {bin_obj.full_code}.'
         else:
-            item = services.adjust_stock(bin_obj=bin_obj, part=part, new_qty=qty,
+            item = services.adjust_stock(bin_obj=bin_obj, part=part, torch=torch, new_qty=qty,
                                          reason='adjust', user=request.user,
                                          note='Kiểm kê (quét)')
             msg = f'Đã cập nhật tồn = {qty} tại {bin_obj.full_code}.'
 
+        obj = part or torch
         return Response({
             'detail': msg, 'mode': mode,
-            'part_no': part.tokin_part_no, 'part_name': part.display_name_vi,
+            'part_no': obj.pk, 'part_name': obj.display_name_vi,
             'bin_code': bin_obj.full_code, 'qty_on_hand': item.qty_on_hand,
             'item': InventoryItemSerializer(item).data,
         })

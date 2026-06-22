@@ -115,6 +115,16 @@ def test_scan_entry_count_sets_stock(auth, part):
 
 
 @pytest.mark.django_db
+def test_scan_entry_receive_torch(auth, torch):
+    BinFactory(full_code='HCM-A-R01-T01')
+    r = auth.post('/api/v1/wms/inventory/scan-entry/',
+                  {'code': 'TK-508RR', 'bin_code': 'HCM-A-R01-T01', 'qty': 3, 'mode': 'receive'},
+                  format='json')
+    assert r.status_code == 200 and r.data['qty_on_hand'] == 3
+    assert r.data['part_no'] == 'TK-508RR'
+
+
+@pytest.mark.django_db
 def test_scan_entry_issue_deducts_stock(auth, part):
     BinFactory(full_code='HCM-A-R01-B09')
     auth.post('/api/v1/wms/inventory/scan-entry/',
