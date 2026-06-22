@@ -195,14 +195,51 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
 
 class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
-    """Hóa đơn (đọc). Tạo qua /orders/{id}/create-invoice/."""
+    """Đề nghị xuất hóa đơn (đọc). Tạo qua /orders/{id}/create-invoice/.
+    Tích hợp MISA: export-misa (lấy dữ liệu đẩy sang MISA) + mark-synced."""
     serializer_class = InvoiceSerializer
     permission_classes = [SalesPermission]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['order', 'customer', 'status']
+    filterset_fields = ['order', 'customer', 'status', 'misa_status']
 
     def get_queryset(self):
         qs = Invoice.objects.select_related('order', 'customer')
         if not is_manager(self.request.user):
             qs = qs.filter(order__owner_id=self.request.user.id)
         return qs
+
+    @action(detail=False, methods=['get'], url_path='export-misa')
+    def export_misa(self, request):
+        """Xuất Excel hóa đơn CHƯA đồng bộ để nạp vào MISA (?all=1 lấy tất cả)."""
+        import io
+
+        from django.http import HttpResponse
+        from openpyxl import Workbook
+        qs = self.get_queryset()
+        if request.query_params.get('all') != '1':
+            qs = qs.filter(misa_status='pending')
+        wb = Workbook(); ws = wb.active; ws.title = 'HoaDon_MISA'
+        ws.append(['Ma de nghi', 'Ngay', 'Ma KH', 'Ten KH', 'MST', 'Don hang',
+                   'Tien hang', 'Thue %', 'Tien thue', 'Tong cong'])
+        for inv in qs.select_related('customer', 'order'):
+            ws.append([inv.code, inv.issue_date.isoformat(), inv.customer.code,
+                       inv.customer.name, inv.customer.tax_code, inv.order.code,
+                       int(inv.subtotal_vnd), float(inv.tax_pct), int(inv.tax_vnd),
+                       int(inv.total_vnd)])
+        buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+        resp = HttpResponse(buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        resp['Content-Disposition'] = 'attachment; filename="hoadon_misa.xlsx"'
+        return resp
+
+    @action(detail=True, methods=['post'], url_path='mark-synced')
+    def mark_synced(self, request, pk=None):
+        """Đánh dấu đã đẩy/đối soát với MISA + lưu số hóa đơn MISA trả về."""
+        if not is_manager(request.user):
+            return Response({'detail': 'Chỉ quản lý/CEO/admin.'}, status=403)
+        inv = self.get_object()
+        inv.misa_status = 'synced'
+        inv.misa_ref = (request.data.get('misa_ref') or '').strip()
+        inv.synced_at = timezone.now()
+        inv.save(update_fields=['misa_status', 'misa_ref', 'synced_at'])
+        return Response(InvoiceSerializer(inv).data)

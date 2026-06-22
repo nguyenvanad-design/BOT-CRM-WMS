@@ -118,7 +118,8 @@ class InvoiceStatus(models.TextChoices):
 
 
 class Invoice(BaseModel, SoftDeleteMixin):
-    """Hóa đơn VAT, sinh từ đơn bán. total = subtotal + thuế."""
+    """ĐỀ NGHỊ XUẤT HÓA ĐƠN (→ đẩy sang MISA phát hành). KHÔNG hạch toán nội bộ.
+    MISA là hệ thống kế toán + hóa đơn điện tử chính."""
     code        = models.CharField(max_length=20, unique=True)   # 'INV-2026-001'
     order       = models.ForeignKey(SalesOrder, on_delete=models.PROTECT, related_name='invoices')
     customer    = models.ForeignKey('crm.Customer', on_delete=models.PROTECT, related_name='invoices')
@@ -130,6 +131,10 @@ class Invoice(BaseModel, SoftDeleteMixin):
     status      = models.CharField(max_length=20, choices=InvoiceStatus.choices,
                                    default=InvoiceStatus.ISSUED, db_index=True)
     notes       = models.TextField(blank=True)
+    # ── Tích hợp MISA (CRM/WMS chỉ đẩy dữ liệu; MISA phát hành + hạch toán) ──
+    misa_status = models.CharField(max_length=20, default='pending', db_index=True)  # pending|synced
+    misa_ref    = models.CharField(max_length=40, blank=True)   # số hóa đơn MISA trả về
+    synced_at   = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'sales_invoice'

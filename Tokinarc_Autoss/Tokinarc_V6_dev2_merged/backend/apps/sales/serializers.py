@@ -19,9 +19,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
         model = Invoice
         fields = ['id', 'code', 'order', 'order_code', 'customer', 'customer_name',
                   'issue_date', 'subtotal_vnd', 'tax_pct', 'tax_vnd', 'total_vnd',
-                  'status', 'status_display', 'notes', 'created_at']
+                  'status', 'status_display', 'notes', 'misa_status', 'misa_ref',
+                  'synced_at', 'created_at']
         read_only_fields = ['id', 'code', 'customer', 'subtotal_vnd', 'tax_vnd',
-                            'total_vnd', 'status', 'created_at']
+                            'total_vnd', 'status', 'misa_status', 'misa_ref',
+                            'synced_at', 'created_at']
 
 
 class SalesOrderLineSerializer(serializers.ModelSerializer):

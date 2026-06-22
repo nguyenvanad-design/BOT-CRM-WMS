@@ -114,6 +114,26 @@ def test_create_invoice_with_vat(db):
 
 
 @pytest.mark.django_db
+def test_invoice_misa_export_and_sync(db):
+    from apps.accounts.models import Role as R, User as U
+    from apps.sales.models import Invoice
+    mgr = U.objects.create(username='mg2', role=R.MANAGER)
+    cust = CustomerFactory()
+    order = SalesOrder.objects.create(code='HD-MISA-1', customer=cust, issued_date=dt.date(2026, 6, 1),
+                                      total_vnd=2_000_000, status='active', owner=mgr)
+    c = APIClient(); c.force_authenticate(mgr)
+    inv = c.post(f'/api/v1/sales/orders/{order.id}/create-invoice/', {'tax_pct': 10}, format='json').data
+    assert inv['misa_status'] == 'pending'
+    # Export Excel cho MISA
+    ex = c.get('/api/v1/sales/invoices/export-misa/')
+    assert ex.status_code == 200 and 'spreadsheet' in ex['Content-Type']
+    # Đánh dấu đã đồng bộ MISA
+    r = c.post(f"/api/v1/sales/invoices/{inv['id']}/mark-synced/", {'misa_ref': 'HD0000123'}, format='json')
+    assert r.data['misa_status'] == 'synced' and r.data['misa_ref'] == 'HD0000123'
+    assert Invoice.objects.get(pk=inv['id']).synced_at is not None
+
+
+@pytest.mark.django_db
 def test_ceo_can_access_sales_and_wms(db):
     """CEO phải đọc được đơn bán + WMS (regression: role-set từng sót ceo)."""
     ceo = User.objects.create(username='ceo1', role=Role.CEO)
