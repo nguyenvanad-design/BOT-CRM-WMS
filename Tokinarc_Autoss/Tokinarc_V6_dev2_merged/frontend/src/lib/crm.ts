@@ -46,6 +46,13 @@ export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
 export const LEAD_STATUS_TONE: Record<LeadStatus, TagTone> = {
   new: 'warn', contacted: 'blue', qualified: 'ok', converted: 'purple', lost: 'gray',
 }
+/** Nguồn lead — khớp LeadSource (backend). */
+export const LEAD_SOURCE_LABEL: Record<string, string> = {
+  exhibition: 'Triển lãm / Hội chợ', referral: 'Giới thiệu',
+  chatbot_khach: 'Website / Bot khách', chatbot: 'Trợ lý nội bộ',
+  zalo: 'Zalo', facebook_ads: 'Facebook Ads', google_ads: 'Google Ads',
+  telesales: 'Telesales', dealer: 'Đại lý / NPP', manual: 'Nhập tay', other: 'Khác',
+}
 /** Điểm lead 0-100 → tone. */
 export const leadScoreTone = (s: number): TagTone =>
   s >= 80 ? 'ok' : s >= 50 ? 'warn' : 'gray'

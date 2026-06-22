@@ -120,13 +120,30 @@ class LeadStatus(models.TextChoices):
     LOST        = 'lost',        'Thất bại'
 
 
+class LeadSource(models.TextChoices):
+    """Nguồn lead — chuẩn hóa để thống kê kênh. Giữ các giá trị máy cũ
+    (chatbot_khach/chatbot/manual/zalo) để không vỡ dữ liệu sẵn có."""
+    EXHIBITION  = 'exhibition',    'Triển lãm / Hội chợ'
+    REFERRAL    = 'referral',      'Giới thiệu'
+    WEBSITE_BOT = 'chatbot_khach', 'Website / Bot khách'
+    ASSISTANT   = 'chatbot',       'Trợ lý nội bộ'
+    ZALO        = 'zalo',          'Zalo'
+    FACEBOOK    = 'facebook_ads',  'Facebook Ads'
+    GOOGLE      = 'google_ads',    'Google Ads'
+    TELESALES   = 'telesales',     'Telesales'
+    DEALER      = 'dealer',        'Đại lý / NPP'
+    MANUAL      = 'manual',        'Nhập tay'
+    OTHER       = 'other',         'Khác'
+
+
 class Lead(BaseModel, SoftDeleteMixin):
     """Khách hàng tiềm năng chưa thành Customer."""
     name      = models.CharField(max_length=200, db_index=True)
     company   = models.CharField(max_length=200, blank=True)
     phone     = models.CharField(max_length=20, blank=True, db_index=True)
     email     = models.EmailField(blank=True)
-    source    = models.CharField(max_length=40, blank=True)   # 'zalo', 'web', 'event'
+    source    = models.CharField(max_length=40, blank=True, db_index=True)  # LeadSource
+    campaign  = models.CharField(max_length=80, blank=True)   # chiến dịch QC cụ thể
     status    = models.CharField(
         max_length=20, choices=LeadStatus.choices,
         default=LeadStatus.NEW, db_index=True,

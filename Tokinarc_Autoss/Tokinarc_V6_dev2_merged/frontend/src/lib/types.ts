@@ -303,6 +303,8 @@ export interface Lead {
   phone: string
   email: string
   source: string
+  source_display?: string
+  campaign?: string
   status: LeadStatus
   score: number
   owner: string

@@ -21,12 +21,13 @@ from .models import (
 # ── Lead ──────────────────────────────────────────────────────────────────
 class LeadSerializer(serializers.ModelSerializer):
     owner_username = serializers.CharField(source='owner.username', read_only=True)
+    source_display = serializers.CharField(source='get_source_display', read_only=True)
 
     class Meta:
         model = Lead
         fields = [
-            'id', 'name', 'company', 'phone', 'email', 'source',
-            'status', 'score', 'owner', 'owner_username',
+            'id', 'name', 'company', 'phone', 'email', 'source', 'source_display',
+            'campaign', 'status', 'score', 'owner', 'owner_username',
             'converted_customer', 'notes', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'owner', 'converted_customer',
