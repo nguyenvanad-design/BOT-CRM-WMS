@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { PackageCheck, Truck, ClipboardList, Plus } from 'lucide-react'
+import { PackageCheck, Truck, ClipboardList, Plus, ScanLine } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { fetchAll } from '@/lib/list'
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui'
 import { Modal } from '@/components/Modal'
 import { OutboundForm } from '@/pages/wms/forms/OutboundForm'
+import { ScanOrderModal } from '@/pages/wms/ScanOrderModal'
 
 interface Pick { id: string; bin_code: string; qty: number; is_picked: boolean; serial: string | null }
 
@@ -24,6 +25,7 @@ export function OutboundPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [pickFor, setPickFor] = useState<OutboundOrder | null>(null)
   const [picks, setPicks] = useState<Pick[] | null>(null)
+  const [scanId, setScanId] = useState<string | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['wms-outbound-list'],
@@ -77,6 +79,11 @@ export function OutboundPage() {
                   disabled={viewPicks.isPending} onClick={() => viewPicks.mutate(o)}>
                   <ClipboardList size={13} /> Pick-list
                 </Button>
+                {o.status !== 'shipped' && o.status !== 'cancelled' && (
+                  <Button variant="ghost" size="sm" className="mr-1.5" onClick={() => setScanId(o.id)}>
+                    <ScanLine size={13} /> Quét
+                  </Button>
+                )}
                 {(o.status === 'picking' || o.status === 'picked') && (
                   <Button size="sm" disabled={ship.isPending && ship.variables === o.id}
                     onClick={() => ship.mutate(o.id)}>
@@ -90,6 +97,7 @@ export function OutboundPage() {
       </TableCard>
 
       <OutboundForm open={formOpen} onClose={() => setFormOpen(false)} />
+      <ScanOrderModal open={!!scanId} onClose={() => setScanId(null)} kind="outbound" orderId={scanId} />
 
       <Modal open={!!pickFor} onClose={() => setPickFor(null)}
         title={`Pick-list — ${pickFor?.code ?? ''}`}

@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { PackageCheck, Check, Plus } from 'lucide-react'
+import { PackageCheck, Check, Plus, ScanLine } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { fetchAll } from '@/lib/list'
@@ -16,10 +16,12 @@ import {
   PageHeader, Tag, Button, TableCard, Th, Td, RowMsg,
 } from '@/components/ui'
 import { InboundForm } from '@/pages/wms/forms/InboundForm'
+import { ScanOrderModal } from '@/pages/wms/ScanOrderModal'
 
 export function InboundPage() {
   const qc = useQueryClient()
   const [formOpen, setFormOpen] = useState(false)
+  const [scanId, setScanId] = useState<string | null>(null)
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['wms-inbound-list'],
     queryFn: () => fetchAll<InboundOrder>('/wms/inbound/'),
@@ -63,11 +65,16 @@ export function InboundPage() {
               <Td><Tag tone={INBOUND_STATUS_TONE[o.status]}>{INBOUND_STATUS_LABEL[o.status]}</Tag></Td>
               <Td className="text-right">
                 {(o.status === 'draft' || o.status === 'confirmed') ? (
-                  <Button variant="success" size="sm"
-                    disabled={confirm.isPending && confirm.variables === o.id}
-                    onClick={() => confirm.mutate(o.id)}>
-                    <Check size={13} /> Xác nhận nhận
-                  </Button>
+                  <span className="inline-flex gap-1.5">
+                    <Button variant="ghost" size="sm" onClick={() => setScanId(o.id)}>
+                      <ScanLine size={13} /> Quét
+                    </Button>
+                    <Button variant="success" size="sm"
+                      disabled={confirm.isPending && confirm.variables === o.id}
+                      onClick={() => confirm.mutate(o.id)}>
+                      <Check size={13} /> Xác nhận
+                    </Button>
+                  </span>
                 ) : <span className="text-[11px] text-txt-2">—</span>}
               </Td>
             </tr>
@@ -76,6 +83,7 @@ export function InboundPage() {
       </TableCard>
 
       <InboundForm open={formOpen} onClose={() => setFormOpen(false)} />
+      <ScanOrderModal open={!!scanId} onClose={() => setScanId(null)} kind="inbound" orderId={scanId} />
     </div>
   )
 }
