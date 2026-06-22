@@ -42,6 +42,17 @@ export function OutboundPage() {
     onError: (e) => toast.error(apiError(e)),
   })
 
+  const reject = useMutation({
+    mutationFn: (v: { id: string; reason: string }) =>
+      api.post(`/wms/outbound/${v.id}/reject/`, { reason: v.reason }),
+    onSuccess: () => {
+      toast.success('Đã từ chối phiếu — đơn trả về sale xử lý')
+      qc.invalidateQueries({ queryKey: ['wms-outbound-list'] })
+      qc.invalidateQueries({ queryKey: ['wms'] })
+    },
+    onError: (e) => toast.error(apiError(e)),
+  })
+
   const viewPicks = useMutation({
     mutationFn: (o: OutboundOrder) => api.get<Pick[]>(`/wms/outbound/${o.id}/pick-list/`),
     onSuccess: (res, o) => { setPickFor(o); setPicks(res.data) },
@@ -82,6 +93,15 @@ export function OutboundPage() {
                 {o.status !== 'shipped' && o.status !== 'cancelled' && (
                   <Button variant="ghost" size="sm" className="mr-1.5" onClick={() => setScanId(o.id)}>
                     <ScanLine size={13} /> Quét
+                  </Button>
+                )}
+                {o.status !== 'shipped' && o.status !== 'cancelled' && (
+                  <Button variant="ghost" size="sm" className="mr-1.5"
+                    onClick={() => {
+                      const reason = window.prompt('Lý do từ chối phiếu xuất (hết hàng, hàng lỗi…):')
+                      if (reason !== null) reject.mutate({ id: o.id, reason })
+                    }}>
+                    Từ chối
                   </Button>
                 )}
                 {(o.status === 'picking' || o.status === 'picked' || o.status === 'partial') && (

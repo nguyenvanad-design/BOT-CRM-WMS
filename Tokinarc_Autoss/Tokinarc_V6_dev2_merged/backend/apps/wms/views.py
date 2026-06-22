@@ -508,12 +508,49 @@ class OutboundViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='ship')
     def ship(self, request, pk=None):
         outbound = self.get_object()
-        if outbound.status not in ('picking', 'picked'):
+        if outbound.status not in ('picking', 'picked', 'partial'):
             return Response({'detail': 'Cần soạn hàng trước khi giao.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
-        services.confirm_pick_and_ship(outbound, user=request.user)
+        try:
+            services.confirm_pick_and_ship(outbound, user=request.user)
+        except ValueError as e:
+            return Response({'detail': str(e), 'code': 'VALIDATION_FAILED'}, status=400)
         _publish('OrderShipped', {'outbound': outbound.code,
                                   'warehouse': outbound.warehouse.code})
+        return Response(OutboundOrderSerializer(outbound).data)
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject(self, request, pk=None):
+        """Kho TỪ CHỐI phiếu xuất (hết hàng/hàng lỗi): hủy phiếu, nhả tồn đã giữ,
+        đưa đơn bán về `active` + báo 🔔 cho sale xử lý với khách."""
+        from django.db.models import F as _F
+
+        from apps.common.models import notify
+        outbound = self.get_object()
+        if outbound.status in ('shipped', 'cancelled'):
+            return Response({'detail': 'Phiếu đã giao/hủy, không từ chối được.',
+                             'code': 'CONFLICT'}, status=status.HTTP_409_CONFLICT)
+        reason = str(request.data.get('reason', '')).strip() or 'không nêu lý do'
+        # Nhả phần tồn đang giữ (reserved) của các pick chưa giao.
+        for line in outbound.lines.all():
+            for pick in line.picks.filter(is_picked=False):
+                InventoryItem.objects.filter(
+                    bin=pick.bin, part=line.part, torch=line.torch).update(
+                    qty_reserved=_F('qty_reserved') - pick.qty)
+        outbound.status = 'cancelled'
+        outbound.save(update_fields=['status'])
+        # Sync ngược CRM: đưa đơn về active để sale xử lý lại.
+        if outbound.sales_order_code:
+            from apps.sales.models import SalesOrder
+            order = SalesOrder.objects.filter(code=outbound.sales_order_code,
+                                              status='shipping').first()
+            if order:
+                order.status = 'active'
+                order.save(update_fields=['status'])
+                if order.owner_id:
+                    notify(order.owner, 'outbound_rejected',
+                           f'Kho TỪ CHỐI giao đơn {order.code} (lý do: {reason}). '
+                           'Vui lòng xử lý với khách.', link='/orders')
         return Response(OutboundOrderSerializer(outbound).data)
 
     @action(detail=True, methods=['post'], url_path='scan-pick')
