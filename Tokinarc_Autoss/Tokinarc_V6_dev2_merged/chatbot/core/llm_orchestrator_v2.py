@@ -256,7 +256,18 @@ QUY TẮC CỨNG — KHÔNG NGOẠI LỆ:
    TUYỆT ĐỐI không đề cập part mà không có mã. Không được bỏ sót mã nào.
 3. Xưng "em", gọi "anh/chị".
 4. tool_results rỗng hoặc success=false → thông báo không tìm thấy, gợi ý hỏi lại.
-5. CONSUMABLE_SET: liệt kê ĐỦ 6 nhóm TipBody→Tip→Nozzle→Insulator→Orifice→Liner.
+   NGOẠI LỆ [get_torches] NO_TORCHES_FOUND: KHÔNG nói "không tìm thấy".
+   Dùng domain knowledge trả model phổ biến + hỏi qualify:
+   Robot MA1440/1.4m → "TK-308RR (350A), YMXA-308R, YMSA-308R (cảm biến), TK-508RR (500A)..."
+   Yaskawa chung → nhóm theo MA/MH, hỏi công suất + loại cáp.
+   TUYỆT ĐỐI KHÔNG xin lỗi hoặc hỏi "anh/chị cho em mã cụ thể".
+5. [get_torches] success=true: KHÔNG liệt kê hết toàn bộ — chỉ nêu đại diện mỗi nhóm rồi hỏi qualify:
+   • Cáp ngoài (MH): TK-308RR/508RR, ACC-308RR, SRCT-308R
+   • Cáp trong (MA): YMXA-308R (không cảm biến), YMSA-308R (có cảm biến)
+   • Nước: TK-308RW, YMSA-500W
+   → Hỏi: "Anh/chị hàn dây cỡ mấy mm và cần cảm biến chống va đập không?"
+   Sau khi khách trả lời → báo giá + spec model cụ thể.
+6. CONSUMABLE_SET: liệt kê ĐỦ 6 nhóm TipBody→Tip→Nozzle→Insulator→Orifice→Liner.
    TUYỆT ĐỐI KHÔNG dừng lại ở 1-2 nhóm rồi hỏi — in ĐỦ 6 nhóm trước.
 6. Nếu tool_results chỉ có mã số mà KHÔNG có tên → vẫn liệt kê đầy đủ mã, ghi "(xem catalog)".
 7. KHÔNG rút gọn danh sách — in TOÀN BỘ parts có trong tool_results.
@@ -348,6 +359,26 @@ def _compact_result(tool_name, result):
         parts = data.get("parts") or data.get("items") or []
         out["data"] = {k: v for k, v in data.items() if k not in ("parts","items")}
         out["data"]["parts"] = [_compact_part(p) for p in parts]
+    elif tool_name == "get_torches":
+        torches = data.get("torches") or []
+        _TORCH_KEEP = {"model_code","display_name_vi","ecosystem","current_class",
+                       "torch_type","cooling","rated_a","wire_display","wire_kind",
+                       "price_vnd","is_contact_price","shock_sensor_type",
+                       "robot_compatibility","robot_series"}
+        def _ct(t):
+            slim = {k: v for k, v in t.items() if k in _TORCH_KEEP and v is not None}
+            rc = slim.get("robot_compatibility")
+            if isinstance(rc, list) and len(rc) > 4:
+                slim["robot_compatibility"] = rc[:4]
+            return slim
+        out["data"] = {
+            "total":   data.get("total", len(torches)),
+            "torches": [_ct(t) for t in torches[:50]],
+        }
+        if data.get("retry_dropped"):
+            out["data"]["retry_dropped"] = data["retry_dropped"]
+        if data.get("filters_applied"):
+            out["data"]["filters_applied"] = data["filters_applied"]
     else:
         out["data"] = data
     return out
@@ -686,7 +717,7 @@ class OrchestratorV2:
                     for tr in tool_results
                 )
 
-                if all_success and _lookup_ok and _needs_upsell and not _already_upsell:
+                if all_success and _lookup_ok and _needs_upsell and "find_upsell_companions" not in tools_called:
                     # Lấy tokin_part_no từ lookup result
                     _lookup_pno = None
                     for tr in tool_results:
@@ -719,13 +750,40 @@ class OrchestratorV2:
                     log.info(f"[Planner] fast-stop after {tool_call_count} tool(s)")
                     break
 
+            # ── PAGINATION PRE-INJECT (ngoài loop, trước LLM2) ───────────────
+            # Khi LLM1 không tự gọi tool nhưng query là "thêm nữa/liệt kê tiếp"
+            # → đọc upsell context từ session (lưu cuối turn trước) để page tiếp.
+            _pre_args_sdk = OrchestratorV2REST._prep_pre_inject_pagination(
+                ctx, query, tools_called)
+            if _pre_args_sdk:
+                log.info(f"[Planner PRE-INJECT] find_upsell_companions({_pre_args_sdk})")
+                try:
+                    _pre_result = self._dispatch("find_upsell_companions", _pre_args_sdk)
+                except Exception as _pe:
+                    _pre_result = {"success": False, "reason": str(_pe)}
+                tool_results.append({"tool": "find_upsell_companions",
+                                     "args": _pre_args_sdk,
+                                     "result": _sanitize(_pre_result)})
+                tools_called.append("find_upsell_companions")
+
             # ── LLM 2: Responder ──────────────────────────────────────────────
             final_text = ""
             if tool_results:
                 tool_summary = build_tool_summary(tool_results)
                 _context_hint = _build_context_hint(tool_results)
-                _intent_label = (tools_called[0].upper()
-                                 if tools_called else "UNKNOWN")
+                # Dùng INTENT_MAP giống _extract_session_data để label đúng tool thực chất
+                _INTENT_MAP_SDK = {
+                    "lookup_part": "LOOKUP", "search_parts": "SEARCH_BY_DESC",
+                    "get_consumable_set": "CONSUMABLE_SET", "find_upsell_companions": "UPSELL",
+                    "find_replacement": "REPLACEMENT", "check_compatibility": "COMPATIBILITY_CHECK",
+                    "compare_parts": "COMPARISON", "get_torches": "AGGREGATE",
+                    "get_troubleshoot": "REPAIR", "get_replacement_steps": "INSTALLATION",
+                    "get_liner_length": "INSTALLATION",
+                }
+                _intent_label = next(
+                    (_INTENT_MAP_SDK[t] for t in tools_called if t in _INTENT_MAP_SDK),
+                    "UNKNOWN"
+                )
                 responder_prompt = (
                     f"[INTENT: {_intent_label}]\n"
                     f"Câu hỏi của khách: {query}\n\n"
@@ -733,7 +791,7 @@ class OrchestratorV2:
                     f"Kết quả từ tools:\n{tool_summary}"
                     f"{_SYNTHESIS_RULES}"
                 )
-                resp_msgs = [_to_content(m) for m in base_history[:-1] if base_history]
+                resp_msgs = [_to_content(m) for m in base_history]
                 resp_msgs.append(gt.Content(role="user",
                     parts=[gt.Part.from_text(text=responder_prompt)]))
 
@@ -807,8 +865,8 @@ class OrchestratorV2:
                         _order_text = finalize_order(_os, ctx)
                     elif _next_q:
                         _order_text = _next_q
-                # Trigger chốt đơn mới
-                elif detect_order_trigger(query) and not _os.confirmed:
+                # Trigger chốt đơn mới — chỉ khi đã có tool_results (đang tư vấn part cụ thể)
+                elif detect_order_trigger(query) and not _os.confirmed and tool_results:
                     _upsell_ctx = {
                         "part_no":    getattr(ctx, "last_upsell_pno", ""),
                         "name":       "",
@@ -1062,7 +1120,7 @@ class OrchestratorV2REST:
                         "thinkingConfig": {"thinkingBudget": 0},
                     },
                     "contents": [
-                        *[m for m in contents[:-1]],
+                        *[m for m in contents],
                         {"role": "user", "parts": [{"text": responder_prompt}]},
                     ],
                 }
@@ -1408,13 +1466,24 @@ class OrchestratorV2REST:
                 # Smart truncate: UPSELL/CONSUMABLE có nhiều parts → giới hạn chặt hơn
                 tool_summary = build_tool_summary(tool_results)
                 _context_hint = _build_context_hint(tool_results)
-                _intent_label_r = (tools_called[0].upper()
-                                   if tools_called else "UNKNOWN")
+                # Dùng INTENT_MAP giống _extract_session_data để label đúng tool thực chất
+                _INTENT_MAP_REST = {
+                    "lookup_part": "LOOKUP", "search_parts": "SEARCH_BY_DESC",
+                    "get_consumable_set": "CONSUMABLE_SET", "find_upsell_companions": "UPSELL",
+                    "find_replacement": "REPLACEMENT", "check_compatibility": "COMPATIBILITY_CHECK",
+                    "compare_parts": "COMPARISON", "get_torches": "AGGREGATE",
+                    "get_troubleshoot": "REPAIR", "get_replacement_steps": "INSTALLATION",
+                    "get_liner_length": "INSTALLATION",
+                }
+                _intent_label_r = next(
+                    (_INTENT_MAP_REST[t] for t in tools_called if t in _INTENT_MAP_REST),
+                    "UNKNOWN"
+                )
                 resp2 = self._post({
                     "systemInstruction":{"parts":[{"text":_RESPONDER_SYSTEM}]},
                     "generationConfig": {"temperature":RESPONDER_TEMP,"maxOutputTokens":2500,"thinkingConfig":{"thinkingBudget":0}},
                     "contents": [
-                        *[m for m in contents[:-1]],
+                        *[m for m in contents],
                         {"role":"user","parts":[{"text":
                             f"[INTENT: {_intent_label_r}]\n"
                             f"Câu hỏi của khách: {query}\n\n"

@@ -1,4 +1,4 @@
-﻿# core/data_store.py
+# core/data_store.py
 # TOKINARC DataStore v1.2 — Single Source of Truth
 # =================================================
 # v1.2 (2026-05-25): path resolution defensive
@@ -31,6 +31,19 @@ _DATA_DIR_REPO = _REPO_ROOT / "data"
 _LEGACY_WIN_DATA_DIR = Path(r"C:\Users\ADMIN\Desktop\botautoss\data")
 
 
+def _version_sort_key(p: Path) -> tuple:
+    """
+    Trích version number để sort NUMERIC, tránh lỗi lexical (v9 > v100).
+    'tokinarc_data_v20.json' -> (20, '')  | 'v11k.json' -> (11, 'k')
+    Tách phần số (major) và hậu tố chữ (minor patch letter).
+    File không parse được version → (-1, '') để xếp cuối.
+    """
+    m = re.search(r"_v(\d+)([a-z]*)\.json$", p.name)
+    if not m:
+        return (-1, "")
+    return (int(m.group(1)), m.group(2))
+
+
 def _find_latest_data_file(pattern: str = "tokinarc_data_v*.json") -> Optional[str]:
     """
     Auto-detect file data version cao nhất.
@@ -39,7 +52,8 @@ def _find_latest_data_file(pattern: str = "tokinarc_data_v*.json") -> Optional[s
       1. <repo_root>/data/  (preferred — relative deploy)
       2. C:\\Users\\ADMIN\\Desktop\\botautoss\\data\\  (legacy dev)
 
-    Lexical sort: tokinarc_data_v14.json > v13.json > v11k.json (string compare).
+    Numeric-aware sort: v20 > v19 > v14, và v100 > v20 > v9 (không bị lỗi lexical).
+    Cùng major thì so hậu tố chữ: v11k > v11d > v11.
     Returns: absolute path string, hoặc None nếu không tìm thấy.
     """
     for data_dir in (_DATA_DIR_REPO, _LEGACY_WIN_DATA_DIR):
@@ -47,7 +61,7 @@ def _find_latest_data_file(pattern: str = "tokinarc_data_v*.json") -> Optional[s
             continue
         candidates: List[Path] = sorted(
             data_dir.glob(pattern),
-            key=lambda p: p.name,
+            key=_version_sort_key,
             reverse=True,  # cao nhất trước
         )
         if candidates:
@@ -120,6 +134,13 @@ class TokinarcDataStore:
         # v19: typo alias + torch index
         self.fake_pno_aliases: dict = raw.get("fake_pno_aliases", {})
         self.torch_model_index: set = set(raw.get("torch_model_index", []))
+
+        # v20 (schema v11m+): meta block — chứa robot_aliases, robot_series_map...
+        # tool_wrappers._robot_aliases() đọc self.meta["robot_aliases"] để resolve
+        # "1.4m"/"1440" → MA1440. Nếu thiếu, tool tự fallback bản hard-coded.
+        self.meta: dict = raw.get("meta", {})
+        self.robot_aliases: dict = self.meta.get("robot_aliases", {})
+        self.robot_series_map: dict = self.meta.get("robot_series_map", {})
 
         self._assembly: dict = {}
         if assembly_path and Path(assembly_path).exists():
@@ -1291,17 +1312,70 @@ class TokinarcDataStore:
             "tipbody": ["036001","016403"],
         }
 
+        # Resolve torch context để filter parts theo torch_model.eco + current_class
+        # Bug fix 2026-06: tương tự Patch #1 trong tool_wrappers.get_replacement_steps —
+        # chặn 350A parts leak vào response cho 500A torch (vd YMSA-508R không kèm 308RR).
+        torch_eco, torch_cc = "", ""
+        torch_models = e.get("torch_models") or []
+        if torch_models:
+            tm = self._resolve_torch_model(torch_models[0]) or torch_models[0]
+            torch = self.torches.get(tm) or {}
+            torch_eco = (torch.get("ecosystem") or "").upper()
+            torch_cc  = (torch.get("current_class") or "").upper()
+
+        # Current-class banding — torch 300A có thể nhận parts 350A, v.v.
+        _CC_BAND = {
+            "200A": {"200A","350A"}, "250A": {"250A","350A"},
+            "300A": {"300A","350A"}, "400A": {"400A","350A","500A"},
+            "450A": {"450A","500A"},
+        }
+        cc_accept = _CC_BAND.get(torch_cc, {torch_cc}) if torch_cc else set()
+
+        def _part_compat(p: dict) -> bool:
+            """Giữ part nếu khớp eco + cc của torch (UNIVERSAL/HYBRID luôn pass)."""
+            if not torch_eco and not torch_cc:
+                return True  # No torch context → keep all (backward compat)
+            p_eco = (p.get("ecosystem") or "").upper()
+            p_cc  = (p.get("current_class") or "").upper()
+            if torch_eco and p_eco and p_eco not in ("UNIVERSAL","HYBRID"):
+                if p_eco != torch_eco:
+                    return False
+            if cc_accept and p_cc and p_cc != "UNIVERSAL":
+                if p_cc not in cc_accept:
+                    return False
+            return True
+
         cats = e.get("categories") or []
-        # Lấy related parts theo category được hỏi
+        # Lấy related parts theo category được hỏi, filter theo torch context
         related_parts = []
+        skipped_pnos = []
         for cat in cats[:2]:
             pnos = _INSTALL_PARTS.get(cat, [])
-            related_parts.extend([self.parts[p] for p in pnos if p in self.parts])
-        # Fallback: tip + nozzle là hay hỏi nhất
+            for p in pnos:
+                if p not in self.parts:
+                    continue
+                part = self.parts[p]
+                if _part_compat(part):
+                    related_parts.append(part)
+                else:
+                    skipped_pnos.append(p)
+
+        # Safety net: nếu filter quá khắt → fallback về unfiltered
+        # (better than empty — UX không muốn "không có" nếu data chưa đầy đủ)
+        if not related_parts and skipped_pnos:
+            for cat in cats[:2]:
+                for p in _INSTALL_PARTS.get(cat, []):
+                    if p in self.parts:
+                        related_parts.append(self.parts[p])
+
+        # Fallback cuối: tip + nozzle là hay hỏi nhất (khi cats rỗng)
         if not related_parts:
             for p in ["002001","002002","002003","002005","004002","004001"]:
                 if p in self.parts:
-                    related_parts.append(self.parts[p])
+                    part = self.parts[p]
+                    # Vẫn áp filter ở fallback cuối để tránh leak
+                    if _part_compat(part):
+                        related_parts.append(part)
 
         def _adapt_sequence(seq: dict) -> dict:
             steps = seq.get("steps") or []

@@ -314,6 +314,31 @@ class TokinarcCER:
                 return TorchResult.from_dict(v)
         return None
 
+    def resolve_torch(self, model_code: str) -> Optional[TorchResult]:
+        """
+        Alias cho get_torch + thử fuzzy resolve qua DataStore._resolve_torch_model.
+
+        Lý do tồn tại: tool_wrappers.get_replacement_steps gọi cer.resolve_torch(...)
+        (kèm hasattr guard). Method này lấp khoảng trống để CER path activate,
+        đồng thời handle aliases (vd 'ymsa508r' → 'YMSA-508R') qua _torch_fuzzy.
+
+        Returns:
+            TorchResult | None
+        """
+        if not model_code:
+            return None
+        # Try exact / case-insensitive trước
+        result = self.get_torch(model_code)
+        if result:
+            return result
+        # Fallback: fuzzy resolve qua DataStore (strip hyphen/space, case-insensitive)
+        resolver = getattr(self.ds, "_resolve_torch_model", None)
+        if callable(resolver):
+            canonical = resolver(model_code)
+            if canonical:
+                return self.get_torch(canonical)
+        return None
+
     def resolve_part_no(self, code: str) -> Optional[str]:
         """
         Resolve bất kỳ code nào → canonical Tokin Part No.

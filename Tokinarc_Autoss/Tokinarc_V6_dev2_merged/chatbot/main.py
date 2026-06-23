@@ -97,7 +97,7 @@ ASSEMBLY_FILE = _resolve_assembly_path()
 
 class QueryRequestV2(BaseModel):
     """Request chính — V2 tool-use."""
-    query:        str           = Field("", max_length=512)
+    query:        str           = Field("", max_length=4096)
     session_id:   Optional[str] = Field(default=None)
     history:      list          = Field(default_factory=list,
                                        description="Conversation history [{role, parts}]")
@@ -124,7 +124,7 @@ class QueryResponseV2(BaseModel):
 
 # Backward compat — V5 clients vẫn POST lên /api/v5/query với format này
 class QueryRequest(BaseModel):
-    query:        str           = Field("", max_length=512)
+    query:        str           = Field("", max_length=4096)
     session_id:   Optional[str] = Field(default=None)
     image_base64: Optional[str] = Field(default=None)
     image_url:    Optional[str] = Field(default=None)
@@ -399,6 +399,47 @@ class Utf8Middleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(Utf8Middleware)
+
+
+# ── Custom 422 handler — log Pydantic ValidationError ra stderr ──────────────
+# Bug fix 2026-06: default FastAPI không log 422 details → khó debug khi
+# user gửi query quá dài. Handler này log tóm tắt + trả message tiếng Việt.
+
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    errors = exc.errors()
+    summary_parts = []
+    for err in errors:
+        loc = ".".join(str(x) for x in err.get("loc", []))
+        msg = err.get("msg", "")
+        ctx = err.get("ctx") or {}
+        if "max_length" in ctx or "limit_value" in ctx:
+            limit = ctx.get("max_length") or ctx.get("limit_value")
+            summary_parts.append(f"{loc}: {msg} (limit={limit})")
+        else:
+            summary_parts.append(f"{loc}: {msg}")
+
+    client_ip = request.client.host if request.client else "?"
+    log.warning(
+        f"[422] path={request.url.path} client={client_ip} "
+        f"errors={'; '.join(summary_parts)}"
+    )
+
+    has_length_err = any(
+        "length" in (e.get("msg") or "").lower() or "too long" in (e.get("msg") or "").lower()
+        for e in errors
+    )
+    detail_vi = (
+        "Nội dung quá dài. Vui lòng rút gọn câu hỏi (tối đa 4000 ký tự)."
+        if has_length_err
+        else "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại định dạng."
+    )
+    return JSONResponse(
+        status_code=422,
+        content={"detail": detail_vi, "errors": errors, "success": False},
+    )
 
 
 # ── Rate Limiter ──────────────────────────────────────────────────────────────

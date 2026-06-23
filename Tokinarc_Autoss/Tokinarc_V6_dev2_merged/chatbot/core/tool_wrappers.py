@@ -16,9 +16,106 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("tokinarc.tools")
+
+# ── Robot alias resolution ──────────────────────────────────────────────────────
+# Map cách người dùng gõ tự nhiên ("1.4m", "1440", "yaskawa") → robot canonical.
+# Nguồn: data.meta.robot_aliases (patch v11m). Có fallback hard-coded phòng khi
+# data store cũ chưa có field này.
+_ROBOT_ALIASES_FALLBACK = {
+    "ma1440": "MA1440", "ar1440": "MA1440", "1.4m": "MA1440", "1,4m": "MA1440",
+    "1.4 mét": "MA1440", "1.4 met": "MA1440", "1,4 mét": "MA1440", "1,4 met": "MA1440",
+    "1440": "MA1440",
+    "ma2010": "MA2010", "ar2010": "MA2010", "2.0m": "MA2010", "2,0m": "MA2010",
+    "2.0 mét": "MA2010", "2,0 mét": "MA2010", "2010": "MA2010",
+    "ar1730": "AR1730", "mh24": "AR1730", "1.7m": "AR1730", "1,7m": "AR1730",
+    "1.7 mét": "AR1730", "1,7 mét": "AR1730", "1730": "AR1730",
+    "ar700": "AR700", "700": "AR700",
+    "ar900": "AR900", "900": "AR900",
+    "ar1440e": "AR1440E", "1440e": "AR1440E",
+    # Yaskawa + common typos (live log 2026-06-21: user gõ "yaskwa" thiếu 'a')
+    "yaskawa": "Yaskawa AR Series", "yaskwa": "Yaskawa AR Series",
+    "yaskaw": "Yaskawa AR Series", "yasakawa": "Yaskawa AR Series",
+    "motoman": "Yaskawa AR Series", "motorman": "Yaskawa AR Series",
+    "daihen": "Daihen", "otc": "Daihen",
+    "panasonic": "Panasonic", "lincoln": "Lincoln", "miller": "Miller", "binzel": "Binzel",
+}
+
+# Các robot model CỤ THỂ đã biết — khi user hỏi đúng 1 trong số này thì KHÔNG
+# tự gộp súng Universal/Various vào (chỉ trả súng chuyên dụng cho robot đó).
+_KNOWN_ROBOT_MODELS = {
+    "MA1440", "MA2010", "AR1730", "AR1440", "AR2010", "MH24",
+    "AR700", "AR900", "AR1440E",
+}
+
+
+def _robot_aliases() -> dict:
+    """Lấy alias map từ data store, fallback sang bản hard-coded."""
+    try:
+        ds = _get_ds()
+        meta = getattr(ds, "meta", None) or {}
+        amap = meta.get("robot_aliases") if isinstance(meta, dict) else None
+        if amap:
+            return amap
+    except Exception:
+        pass
+    return _ROBOT_ALIASES_FALLBACK
+
+
+def _resolve_robot(user_input: str) -> str:
+    """Chuẩn hóa 1 chuỗi robot do user nhập → canonical model. Không match thì giữ nguyên."""
+    if not user_input:
+        return user_input
+    key = user_input.lower().strip()
+    return _robot_aliases().get(key, user_input)
+
+
+def _robot_match(torch: dict, robot_query: str) -> bool:
+    """
+    Khớp robot với robot_compatibility của torch theo WORD-BOUNDARY (không substring).
+    Lý do: substring khiến '1440' khớp nhầm 'AR1440E' (robot EA khác hẳn MA1440).
+    Có resolve alias trước ('1.4m'/'1440' → 'MA1440').
+
+    Quy tắc 'Universal'/'Various':
+      - Khớp khi user hỏi CHUNG ('yaskawa', 'robot', 'fanuc'...) — vì súng universal
+        gắn được mọi robot qua bracket riêng.
+      - KHÔNG tự động gộp khi user hỏi 1 robot Motoman CỤ THỂ (MA1440/AR700...),
+        để tránh trộn WX/TIG-robotic universal vào danh sách súng Motoman chuyên dụng.
+    """
+    canonical = _resolve_robot(robot_query)
+    rc = torch.get("robot_compatibility") or []
+    if isinstance(rc, str):
+        rc = [rc]
+    cl = canonical.lower().strip()
+    if not cl:
+        return False
+
+    for r in rc:
+        rl = str(r).lower()
+        if rl == cl:
+            return True
+        # token riêng (vd 'ma1440' trong list) — \b chặn '1440' khớp 'ar1440e'
+        if re.search(r"\b" + re.escape(cl) + r"\b", rl):
+            return True
+
+    # Universal/Various: chỉ khớp khi query KHÔNG phải 1 model robot cụ thể đã biết.
+    is_specific_model = canonical in _KNOWN_ROBOT_MODELS
+    if not is_specific_model and any(
+        str(r).lower() in ("various", "universal") for r in rc
+    ):
+        return True
+
+    # Query cấp hãng Yaskawa/Motoman: khớp luôn các súng list robot Motoman cụ thể
+    # (MA1440/MA2010/AR1730...) — vì đó đều là robot Yaskawa.
+    if cl in ("yaskawa ar series", "yaskawa", "motoman"):
+        if any(str(r) in _KNOWN_ROBOT_MODELS or str(r).lower().startswith(("ma", "ar", "mh"))
+               for r in rc):
+            return True
+
+    return False
 
 # ── Lazy singletons ────────────────────────────────────────────────────────────
 
@@ -140,6 +237,25 @@ def _part_to_response(part_dict: dict) -> dict:
 def _torch_to_response(t: dict) -> dict:
     """Chuẩn hóa 1 torch dict → response format."""
     biz = t.get("business") or {}
+
+    # Rated ampere — coalesce qua nhiều schema (MIG/MAG/MIG-nhôm/TIG).
+    # Ưu tiên field thống nhất rated_a (patch v11n), fallback các field cũ.
+    rated_a = (
+        t.get("rated_a")
+        or t.get("rated_co2_a") or t.get("rated_mag_a")
+        or t.get("rated_mig_a") or t.get("rated_dc_a")
+        or t.get("rated_current")
+    )
+    # Cỡ dây/tungsten hiển thị — coalesce wire_size/tungsten_mm.
+    wire_display = (
+        t.get("wire_display")
+        or t.get("wire_size") or t.get("wire_size_mm") or t.get("tungsten_mm")
+    )
+    duty = (
+        t.get("duty_display")
+        or t.get("duty_co2_pct") or t.get("duty_cycle_pct") or t.get("duty_pct")
+    )
+
     return {
         "model_code":          t.get("model_code", ""),
         "display_name_vi":     t.get("display_name_vi") or t.get("model_code", ""),
@@ -147,11 +263,15 @@ def _torch_to_response(t: dict) -> dict:
         "current_class":       t.get("current_class", ""),
         "torch_type":          t.get("torch_type", ""),
         "cooling":             t.get("cooling", "air"),
+        "rated_a":             rated_a,
         "rated_co2_a":         t.get("rated_co2_a"),
         "rated_mag_a":         t.get("rated_mag_a"),
-        "duty_co2_pct":        t.get("duty_co2_pct") or t.get("duty_cycle_pct"),
-        "wire_size":           t.get("wire_size"),
+        "wire_display":        wire_display,
+        "wire_kind":           t.get("wire_kind", "wire"),
+        "wire_size":           t.get("wire_size") or t.get("tungsten_mm"),
+        "duty_co2_pct":        duty,
         "robot_compatibility": t.get("robot_compatibility"),
+        "robot_series":        t.get("robot_series", ""),
         "shock_sensor_type":   t.get("shock_sensor_type", "NONE"),
         "functional_requires": t.get("functional_requires"),
         "coolant_unit_required": t.get("coolant_unit_required"),
@@ -172,7 +292,7 @@ def _fail(reason: str, **extra) -> dict:
 # TOOL 1 — lookup_part
 # ══════════════════════════════════════════════════════════════════════════════
 
-def lookup_part(part_no: str = "") -> dict:
+def lookup_part(part_no: str = "", description: Optional[str] = None) -> dict:
     """
     Tra cứu thông tin đầy đủ 1 part.
     Nhận: Tokin 6 số, mã Panasonic (TET/TGN/TFZ/U...), mã Daihen/OTC (K/L/DAH/U4...).
@@ -193,7 +313,7 @@ def lookup_part(part_no: str = "") -> dict:
         sr_parts = (sr.get("data") or {}).get("parts", [])
         if sr_parts:
             part_no = sr_parts[0].get("tokin_part_no", "")
-            log.info(f"[find_upsell_companions] description='{description}' → resolved part_no={part_no}")
+            log.info(f"[lookup_part] description='{description}' → resolved part_no={part_no}")
     if not part_no:
         return _fail("MISSING_PART_NO")
 
@@ -314,12 +434,8 @@ def search_parts(
         log.info(f"[search_parts] 'linh kiện thân béc' → remap TipBody→Tip")
         category = "Tip"
 
-    # InnerTube không phân biệt hệ N/D → nếu eco=D, search N thay thế
-    _search_eco = ecosystem
+    # InnerTube không phân biệt hệ N/D — flag để dùng sau
     _innertube_fallback = False
-    if category == "InnerTube" and ecosystem and ecosystem.upper() == "D":
-        _search_eco = "N"
-        _innertube_fallback = True
 
     # TipBody + "thân giữ béc" VN context thực ra muốn Tip assembly
     # → giữ TipBody nhưng nếu trả rỗng sẽ fallback sang Tip bên dưới
@@ -338,6 +454,7 @@ def search_parts(
     if category == "InnerTube" and (ecosystem or "").upper() == "D":
         log.info("[search_parts] InnerTube eco=D → fallback eco=N")
         _search_eco = "N"
+        _innertube_fallback = True
 
     def _do_search(eco, ws):
         try:
@@ -533,7 +650,7 @@ def get_consumable_set(
             if cat not in by_cat:
                 continue
             items = sorted(by_cat[cat], key=lambda x: (not x.get("is_mandatory", True)))
-            limit = 3 if cat == "Tip" else 1
+            limit = 3 if cat in ("Tip", "TipBody", "Nozzle") else 1
             for p in items[:limit]:
                 resp = _part_to_response(p)
                 resp["is_mandatory"] = p.get("is_mandatory", True)
@@ -910,7 +1027,7 @@ def find_upsell_companions(
 # TOOL 5 — find_replacement
 # ══════════════════════════════════════════════════════════════════════════════
 
-def find_replacement(part_no: str = "") -> dict:
+def find_replacement(part_no: str = "", description: Optional[str] = None) -> dict:
     """
     Tìm mã Tokin thay thế cho mã hãng khác (Panasonic/Daihen/OTC)
     hoặc tìm alternate part khi discontinued.
@@ -933,7 +1050,7 @@ def find_replacement(part_no: str = "") -> dict:
         sr_parts = (sr.get("data") or {}).get("parts", [])
         if sr_parts:
             part_no = sr_parts[0].get("tokin_part_no", "")
-            log.info(f"[find_upsell_companions] description='{description}' → resolved part_no={part_no}")
+            log.info(f"[find_replacement] description='{description}' → resolved part_no={part_no}")
     if not part_no:
         return _fail("MISSING_PART_NO")
 
@@ -1023,7 +1140,9 @@ def find_replacement(part_no: str = "") -> dict:
 # TOOL 6 — check_compatibility
 # ══════════════════════════════════════════════════════════════════════════════
 
-def check_compatibility(part_no_a: str, part_no_b: str) -> dict:
+def check_compatibility(part_no_a: str, part_no_b: str,
+                        description_a: Optional[str] = None,
+                        description_b: Optional[str] = None) -> dict:
     """
     Kiểm tra 2 parts có tương thích không.
 
@@ -1211,7 +1330,6 @@ def get_torches(
     eco_upper = (ecosystem or "").upper()
     cc_upper  = (current_class or "").upper()
     type_lower = (torch_type or "").lower()
-    robot_lower = (robot_model or "").lower()
 
     if eco_upper:
         results = [t for t in results
@@ -1225,15 +1343,10 @@ def get_torches(
         results = [t for t in results
                    if (t.get("torch_type") or "").lower() == type_lower]
 
-    if robot_lower:
-        def _robot_match(t: dict) -> bool:
-            rc = t.get("robot_compatibility")
-            if isinstance(rc, list):
-                return any(robot_lower in str(r).lower() for r in rc)
-            if isinstance(rc, str):
-                return robot_lower in rc.lower()
-            return False
-        results = [t for t in results if _robot_match(t)]
+    if robot_model:
+        # Word-boundary match + alias resolve ('1.4m'/'1440' -> MA1440).
+        # Tránh substring khiến '1440' khớp nhầm 'AR1440E'.
+        results = [t for t in results if _robot_match(t, robot_model)]
 
     results.sort(key=lambda t: (
         t.get("ecosystem", ""),
@@ -1242,6 +1355,44 @@ def get_torches(
     ))
 
     if not results:
+        # Soft-fail retry: nếu strict filter ra empty và torch_type là 1 trong các filter,
+        # thử lại bỏ torch_type. Lý do: 28% torches trong data có torch_type=None
+        # (vd toàn bộ Yaskawa-compatible YMENS + TR series). Planner LLM hay đoán
+        # torch_type khi user không nói → over-specify → reject hợp lệ records.
+        # Chỉ retry khi còn ít nhất 1 filter khác để tránh trả full list 121 torches.
+        if torch_type and (ecosystem or current_class or robot_model):
+            log.info(
+                f"[get_torches] strict filter empty (torch_type={torch_type!r}); "
+                f"retrying without torch_type"
+            )
+            retry = get_torches(
+                ecosystem=ecosystem,
+                current_class=current_class,
+                torch_type=None,
+                robot_model=robot_model,
+            )
+            if retry.get("success") and isinstance(retry.get("data"), dict):
+                retry["data"]["retry_dropped"] = ["torch_type"]
+            return retry
+
+        # Soft-fail retry 2: drop ecosystem khi robot_model đã đủ xác định.
+        # Lý do: Planner đôi khi tự thêm ecosystem="N" không cần thiết, làm miss
+        # súng HYBRID (TK-308RW, TK-309R1 eco=HYBRID) dù match đúng robot MA1440.
+        if ecosystem and robot_model and not torch_type:
+            log.info(
+                f"[get_torches] ecosystem+robot_model empty (eco={ecosystem!r}); "
+                f"retrying without ecosystem"
+            )
+            retry2 = get_torches(
+                ecosystem=None,
+                current_class=current_class,
+                torch_type=None,
+                robot_model=robot_model,
+            )
+            if retry2.get("success") and isinstance(retry2.get("data"), dict):
+                retry2["data"]["retry_dropped"] = ["ecosystem"]
+            return retry2
+
         return _fail("NO_TORCHES_FOUND", filters={
             "ecosystem": ecosystem, "current_class": current_class,
             "torch_type": torch_type, "robot_model": robot_model,
@@ -1504,7 +1655,9 @@ def get_replacement_steps(
                          category=category, torch_model=torch_model,
                          hint="Thử dùng tên category tiếng Anh: Tip/Liner/Nozzle/InnerTube")
 
-        # Inject related_parts theo category để Gemini có mã để mention
+        # Inject related_parts theo category để Gemini có mã để mention.
+        # FILTERED by torch_model.ecosystem + current_class để tránh mix 350A/500A
+        # hoặc cross-ecosystem (bug fix: 2026-06 — YMSA-508R không được kèm 308RR).
         _CATEGORY_PARTS = {
             "Tip":       ["002001","002002","002003","002005","002017","002004"],
             "Nozzle":    ["001002","033203","001001","001010","001005","001008","001013"],
@@ -1514,21 +1667,121 @@ def get_replacement_steps(
             "TipBody":   ["036001","016403","016051","016503"],
             "Orifice":   ["003002","003001","023014"],
         }
+
         ds = _get_ds()
+
+        # Resolve torch_model -> (ecosystem, current_class)
+        torch_eco, torch_cc = "", ""
+        if torch_model:
+            try:
+                cer = _get_cer()
+                t_obj = cer.resolve_torch(torch_model) if hasattr(cer, "resolve_torch") else None
+                if t_obj is None and hasattr(ds, "torches") and isinstance(ds.torches, dict):
+                    t_obj = ds.torches.get(torch_model)
+                if t_obj is not None:
+                    _get = (t_obj.get if isinstance(t_obj, dict)
+                            else (lambda k, d=None: getattr(t_obj, k, d)))
+                    torch_eco = (_get("ecosystem", "") or "").upper()
+                    torch_cc  = (_get("current_class", "") or "").upper()
+            except Exception as _e:
+                log.debug(f"[get_replacement_steps] torch resolution failed: {_e}")
+
+        # Current-class banding — torch 300A có thể nhận parts 350A, v.v.
+        _CC_BAND = {
+            "200A": {"200A","350A"}, "250A": {"250A","350A"},
+            "300A": {"300A","350A"}, "400A": {"400A","350A","500A"},
+            "450A": {"450A","500A"},
+        }
+        cc_accept = _CC_BAND.get(torch_cc, {torch_cc}) if torch_cc else set()
+
+        def _part_compatible(p: dict) -> bool:
+            """Giữ part nếu khớp eco + cc của torch (hoặc UNIVERSAL/HYBRID)."""
+            if not torch_eco and not torch_cc:
+                return True  # No context → keep all (backward compat)
+            p_eco = (p.get("ecosystem") or "").upper()
+            p_cc  = (p.get("current_class") or "").upper()
+            if torch_eco and p_eco and p_eco not in ("UNIVERSAL","HYBRID"):
+                if p_eco != torch_eco:
+                    return False
+            if cc_accept and p_cc and p_cc != "UNIVERSAL":
+                if p_cc not in cc_accept:
+                    return False
+            return True
+
         related_parts_out = []
+        skipped = []
         for pno in _CATEGORY_PARTS.get(category, _CATEGORY_PARTS.get(category.lower(), [])):
-            if pno in ds.parts:
-                related_parts_out.append(_part_to_response(ds.parts[pno]))
+            p = ds.parts.get(pno)
+            if not p:
+                continue
+            if _part_compatible(p):
+                related_parts_out.append(_part_to_response(p))
+            else:
+                skipped.append(pno)
+
+        if skipped:
+            log.info(
+                f"[get_replacement_steps] torch={torch_model} eco={torch_eco} "
+                f"cc={torch_cc} category={category} skipped_incompatible={skipped}"
+            )
+
+        # Safety net: nếu filter quá khắt → fallback về unfiltered (better than empty)
+        if not related_parts_out:
+            log.warning(
+                f"[get_replacement_steps] no compatible parts for torch={torch_model} "
+                f"category={category} — falling back to unfiltered list"
+            )
+            for pno in _CATEGORY_PARTS.get(category, _CATEGORY_PARTS.get(category.lower(), [])):
+                if pno in ds.parts:
+                    related_parts_out.append(_part_to_response(ds.parts[pno]))
 
         return _ok({
             "procedures":    procs_out,
             "torque_spec":   torque_out,
             "related_parts": related_parts_out,
             "category":      category,
+            "torch_model":   torch_model,
         })
     except Exception as e:
         log.exception(f"[get_replacement_steps] error: {e}")
         return _fail(f"PROCEDURE_ERROR:{e}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TOOL 12 — capture_lead (ghi lead về CRM, một chiều)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def check_stock(part_no: str = "", part_nos: str = "") -> dict:
+    """Tool 13 — Hỏi TÌNH TRẠNG còn hàng (thô) của 1 hay nhiều mã part.
+
+    Trả: Còn hàng / Sắp hết hàng / Hết hàng / Liên hệ. KHÔNG có số lượng chính xác.
+    Dùng khi khách hỏi 'còn hàng không', 'có sẵn không'.
+    """
+    from core.stock_query import fetch_stock
+    codes = [c.strip() for c in (part_nos or part_no).replace(";", ",").split(",") if c.strip()]
+    if not codes:
+        return _fail("Cần mã part để kiểm tra tồn.")
+    data = fetch_stock(codes)
+    if not data:
+        return _fail("Chưa kết nối được kho. Vui lòng liên hệ nhân viên.")
+    items = [{"part_no": c, "status": data.get(c, {}).get("label", "Liên hệ để biết"),
+              "name": data.get(c, {}).get("name", "")} for c in codes]
+    return _ok({"items": items})
+
+
+def capture_lead(name: str = "", phone: str = "", company: str = "",
+                 email: str = "", note: str = "") -> dict:
+    """Ghi LEAD về CRM khi khách CHỦ ĐỘNG để lại liên hệ (ghi-1-chiều, an toàn).
+
+    KHÔNG đọc dữ liệu nội bộ. Chỉ gọi khi khách cung cấp tên/SĐT và muốn được
+    tư vấn / báo giá / liên hệ lại.
+    """
+    from core.lead_capture import push_lead
+    r = push_lead(name=name, phone=phone, company=company, email=email, note=note)
+    if r.get("success") is False or r.get("ok") is False:
+        return _fail(f"LEAD_CAPTURE_FAILED:{r.get('error')}")
+    return _ok({"saved": True, "lead_id": r.get("id")},
+               message="Đã ghi nhận thông tin, bộ phận kinh doanh sẽ liên hệ lại.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1547,6 +1800,8 @@ TOOL_HANDLERS: Dict[str, callable] = {
     "get_troubleshoot":      get_troubleshoot,
     "get_liner_length":      get_liner_length,       # Tool 10 — mới
     "get_replacement_steps": get_replacement_steps,  # Tool 11 — mới
+    "capture_lead":          capture_lead,           # Tool 12 — đẩy lead về CRM
+    "check_stock":           check_stock,            # Tool 13 — tình trạng còn hàng (thô)
 }
 
 

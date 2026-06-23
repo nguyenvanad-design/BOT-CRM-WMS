@@ -34,7 +34,14 @@
       "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.dev PGHOST=localhost PGPORT=5433 python manage.py seed_crm_demo)",
       "Bash(git add *)",
       "Bash(grep -i \"\\\\.env$\")",
-      "Bash(git commit -q -m '@ *)"
+      "Bash(git commit -q -m '@ *)",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.test python manage.py makemigrations accounts crm)",
+      "Bash(DJANGO_SETTINGS_MODULE=tokinarc.settings.test python manage.py check)",
+      "Bash(python -m pytest apps/crm/tests/test_crm_ext.py -q)",
+      "Bash(python -m pytest -q)",
+      "Bash(python -m pytest apps/wms -q)",
+      "Bash(sed -n '/class InboundViewSet/,/class OutboundViewSet/p' apps/wms/views.py)",
+      "Bash(sed -n '/def confirm_pick_and_ship/,/^def /p' apps/wms/services.py)"
     ]
   }
 }

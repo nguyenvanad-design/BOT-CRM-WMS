@@ -160,6 +160,18 @@ _ECOSYSTEM_ALIASES: Dict[str, str] = {
     "tcc-350r":    "TCC", "tcc350r":  "TCC", "tcc 350":  "TCC",
 }
 
+# Robot model aliases — cách user gọi robot Yaskawa/Motoman (normalized không dấu, lowercase)
+# Fallback cứng; runtime ưu tiên ds.meta["robot_aliases"] (v20). Map -> canonical robot model.
+_ROBOT_ALIASES: Dict[str, str] = {
+    "ma1440": "MA1440", "ar1440": "MA1440", "1.4m": "MA1440", "1,4m": "MA1440",
+    "1.4 met": "MA1440", "1.4met": "MA1440", "1440": "MA1440",
+    "ma2010": "MA2010", "ar2010": "MA2010", "2.0m": "MA2010", "2,0m": "MA2010",
+    "2.0 met": "MA2010", "2010": "MA2010",
+    "ar1730": "AR1730", "mh24": "AR1730", "1.7m": "AR1730", "1,7m": "AR1730", "1730": "AR1730",
+    "ar700": "AR700", "ar900": "AR900", "ar1440e": "AR1440E", "1440e": "AR1440E",
+}
+
+
 # Current class aliases — "350A", "350 A", "350a", "tre tram nam muoi"
 _CURRENT_CLASS_PATTERNS = [
     (r'\b(\d{2,3})\s*[aA]\b',  lambda m: f"{m.group(1)}A"),
@@ -195,6 +207,7 @@ class FuzzyResult:
         ecosystem_hint:        Optional[str] — N/D/WX/TIG/TCC
         current_class_hint:    Optional[str] — "350A"
         wire_size_hint:        Optional[float] — 1.2
+        robot_model_hint:      Optional[str] — robot model resolve từ alias (MA1440)
         confidence:      overall confidence (0..1) — min của các correction
     """
     original_query:        str
@@ -206,6 +219,7 @@ class FuzzyResult:
     ecosystem_hint:        Optional[str] = None
     current_class_hint:    Optional[str] = None
     wire_size_hint:        Optional[float] = None
+    robot_model_hint:      Optional[str] = None
     confidence:            float = 1.0
 
     def has_correction(self) -> bool:
@@ -226,6 +240,7 @@ class FuzzyResult:
             "ecosystem_hint":        self.ecosystem_hint,
             "current_class_hint":    self.current_class_hint,
             "wire_size_hint":        self.wire_size_hint,
+            "robot_model_hint":      self.robot_model_hint,
             "confidence":            self.confidence,
         }
 
@@ -422,18 +437,24 @@ class FuzzyCorrector:
 
         # Pattern 2: part code missing hyphen — TK308RR → TK-308RR, MAG350 → MAG-350
         # Chỉ áp dụng cho prefix viết hoa 2-4 ký tự + ≥3 digit
+        _ROBOT_PREFIXES = {"MA", "AR", "MH", "EA", "HP"}  # Yaskawa/Motoman robot series
+        known_prefixes = {"TK", "MAG", "MIG", "TIG", "TL", "TC", "TCC", "ACC", "ACT",
+                          "TS", "YMS", "YMSA", "YMENS", "SRCT", "DSRC", "WX", "TA",
+                          "FX", "FXS", "CSL", "CSH", "CSA", "TLA", "CSHA"}
         code_no_hyphen = re.compile(r"\b([A-Z]{2,4})(\d{2,4}[A-Z0-9]{0,3})\b")
         def _add_hyphen(m):
             prefix, suffix = m.group(1), m.group(2)
-            # Tránh false positive: HR350 dùng theo cá biệt — check
+            # Robot model prefix -> KHONG chen gach (MA1440 giu nguyen)
+            if prefix in _ROBOT_PREFIXES:
+                return m.group(0)
             return f"{prefix}-{suffix}"
         q_new = code_no_hyphen.sub(_add_hyphen, q)
         if q_new != q:
-            # Confidence cao chỉ với prefix biết trước (TK, MAG, MIG, TL, ...)
-            known_prefixes = {"TK", "MAG", "MIG", "TIG", "TL", "TC", "TCC", "ACC", "ACT",
-                              "TS", "YMS", "YMSA", "YMENS"}
-            # Re-check nếu prefix là known
+            # Confidence cao chi voi prefix biet truoc (TK, MAG, MIG, TL, ...)
+            # Re-check neu prefix la known part/torch prefix
             for m in code_no_hyphen.finditer(query):
+                if m.group(1) in _ROBOT_PREFIXES:
+                    continue  # robot model -- bo qua
                 if m.group(1) in known_prefixes:
                     result.corrections.append(FuzzyCorrection(
                         original=m.group(0), corrected=f"{m.group(1)}-{m.group(2)}",
@@ -628,6 +649,37 @@ class FuzzyCorrector:
                 result.wire_size_hint = float(m.group(1))
             except ValueError:
                 pass
+
+        # Robot model hint — resolve alias "1,4 mét"/"1.4m"/"1440" -> MA1440.
+        # Ưu tiên alias từ ds.meta (data v20), fallback _ROBOT_ALIASES cứng.
+        if result.robot_model_hint is None:
+            alias_map = dict(_ROBOT_ALIASES)
+            try:
+                ds = self.ds
+                meta_aliases = getattr(ds, "robot_aliases", None) if ds else None
+                if meta_aliases:
+                    alias_map.update(meta_aliases)
+            except Exception:
+                pass
+            # Chuẩn hóa query: gộp "1,4 mét"/"1.4 m" -> token so sánh được
+            # q_robot: lowercase, bỏ dấu, đổi "," -> ".", gộp "X.Y met"/"X.Y m" -> "X.Ym"
+            q_robot = q_norm.replace(",", ".")
+            q_robot = re.sub(r"(\d)\.(\d)\s*(?:met|m)\b", lambda mm: f"{mm.group(1)}.{mm.group(2)}m", q_robot)
+            # Ưu tiên robot model CỤ THỂ (MA####/AR####) hơn brand chung.
+            # Ví dụ "yaskawa 1440": chọn MA1440 (từ "1440") thay vì "Yaskawa AR Series".
+            matched_specific = None
+            matched_brand = None
+            for alias in sorted(alias_map.keys(), key=len, reverse=True):
+                al = alias.lower()
+                if re.search(r"\b" + re.escape(al) + r"\b", q_robot):
+                    target = alias_map[alias]
+                    if re.match(r"^(MA|AR|MH|EA)\d", str(target)):
+                        if matched_specific is None:
+                            matched_specific = target
+                    elif matched_brand is None:
+                        matched_brand = target
+            result.robot_model_hint = matched_specific or matched_brand
+
 
     # ── Step 5: Fuzzy code candidates ──────────────────────────────────────────
 

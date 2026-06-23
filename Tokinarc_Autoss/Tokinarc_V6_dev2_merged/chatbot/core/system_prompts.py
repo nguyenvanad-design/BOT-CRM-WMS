@@ -13,9 +13,11 @@
 # UTF-8 NO BOM
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TOOL SCHEMA — 9 tools, dựa trên data v14
+# TOOL SCHEMA — 9 tools, dựa trên data v20 (schema v11m)
 # Ecosystem: N / D / WX / TIG / TCC / UNIVERSAL / HYBRID
 # current_class: 80A/125A/150A/180A/200A/225A/250A/280A/300A/310A/350A/400A/410A/450A/500A/700A
+# robot_compatibility: 53 robotic torches có robot_model. Alias resolve qua meta.robot_aliases
+#   (1.4m/1440→MA1440, 2.0m→MA2010, 1.7m/MH24→AR1730). ⚠ AR1440E (EA/YMENS) ≠ MA1440 (MA/YMXA)
 # categories: Tip Nozzle Orifice Insulator TipBody TipAdapter Liner LinerORing
 #             InnerTube WaveWasher WXCenterCeramic InsulationSpacer
 #             Collet ColletBody CeramicNozzle BackCap TorchBody TungstenElectrode
@@ -226,7 +228,14 @@ TOOL_SCHEMA = [
     },
     {
         "name": "get_torches",
-        "description": "Liệt kê model súng hàn theo bộ lọc (ecosystem/current_class/torch_type/robot_model). Dùng khi hỏi: co may loai sung, sung he N 350A, dong TA, sung robot Yaskawa.",
+        "description": (
+            "Liệt kê model súng hàn theo bộ lọc. "
+            "QUAN TRỌNG: CHỈ pass parameter nào user thực sự đề cập rõ ràng. "
+            "KHÔNG đoán torch_type/ecosystem/current_class nếu user không nói. "
+            "Ví dụ: 'súng cho Yaskawa' → CHỈ pass robot_model='yaskawa' "
+            "(không thêm torch_type='semi_auto' tự đoán). "
+            "Dùng khi hỏi: co may loai sung, sung he N 350A, dong TA, sung robot Yaskawa."
+        ),
             "parameters": {
             "type": "object",
             "properties": {
@@ -246,7 +255,7 @@ TOOL_SCHEMA = [
                 },
                 "robot_model": {
                     "type": "string",
-                    "description": "Model robot để filter: MA1440, AR1730, AR1440, MA2010..."
+                    "description": "Model robot hoặc alias để filter. Chấp nhận: MA1440/MA2010/AR1730/AR1440E/AR700/AR900, alias '1.4m'/'1,4 mét'/'1440'→MA1440, '2.0m'→MA2010, '1.7m'/'MH24'→AR1730, hoặc tên hãng 'yaskawa'/'daihen'/'fanuc'. Tool tự resolve alias."
                 }
             }
         }
@@ -326,6 +335,42 @@ TOOL_SCHEMA = [
             },
             "required": ["category"]
         }
+    },
+    {
+        "name": "capture_lead",
+        "description": (
+            "Ghi nhận thông tin liên hệ của khách (LEAD) để bộ phận kinh doanh liên hệ lại. "
+            "CHỈ gọi khi khách CHỦ ĐỘNG cung cấp tên hoặc số điện thoại VÀ thể hiện nhu cầu "
+            "mua/báo giá/được tư vấn thêm. KHÔNG tự bịa thông tin, KHÔNG hỏi ép. "
+            "Không dùng để tra cứu dữ liệu nội bộ."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name":    {"type": "string", "description": "Tên khách hàng"},
+                "phone":   {"type": "string", "description": "Số điện thoại khách cung cấp"},
+                "company": {"type": "string", "description": "Tên công ty (nếu có)"},
+                "email":   {"type": "string", "description": "Email (nếu có)"},
+                "note":    {"type": "string", "description": "Nhu cầu/sản phẩm khách quan tâm"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "check_stock",
+        "description": (
+            "Hỏi TÌNH TRẠNG còn hàng (Còn hàng/Sắp hết/Hết hàng/Liên hệ) của 1 hay nhiều "
+            "mã part. Dùng khi khách hỏi 'còn hàng không', 'có sẵn không', 'còn bao nhiêu'. "
+            "KHÔNG trả số lượng chính xác — chỉ tình trạng."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "part_no":  {"type": "string", "description": "Mã part cần kiểm tra (1 mã)"},
+                "part_nos": {"type": "string", "description": "Nhiều mã, cách nhau dấu phẩy"}
+            },
+            "required": []
+        }
     }
 ]
 
@@ -364,6 +409,11 @@ Wire size → dòng điện thông thường:
 Slang: béc=Tip | chụp=Nozzle | cách điện=Insulator | thân giữ béc=TipBody
        liner=ống dẫn dây | súng=torch | bộ tiêu hao=consumable set
        hệ bắc=N | hệ nam=D | nam ba năm=350A
+
+Tên gọi robot (alias → model chuẩn, dùng cho get_torches):
+  "1.4m"/"1,4 mét"/"AR1440"/"1440" → MA1440 | "2.0m"/"AR2010"/"2010" → MA2010
+  "1.7m"/"MH24"/"1730" → AR1730 | "yaskawa"/"motoman" → mọi súng robot Yaskawa
+  ⚠ AR1440E (EA, dùng YMENS) KHÁC MA1440 (MA, dùng YMXA/YMSA/TK) — đừng nhầm 2 robot này
 
 ━━━ QUY TẮC CỨNG (KHÔNG NGOẠI LỆ) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -697,6 +747,44 @@ MULTI-TOOL BẮT BUỘC — khi query có MÃ + "béc/thân giữ béc/cách đi
   User: "TA-26 giá bao nhiêu"
   → get_torches(query="TA-26") hoặc lookup_part("TA-26")
 
+[13] get_torches — KHÔNG over-specify parameters:
+  Quy tắc: CHỈ pass parameter mà user RÕ RÀNG đề cập. Tránh đoán.
+  Lý do: ~28% torches trong data có torch_type=None (vd toàn bộ YMENS/TR Yaskawa).
+  Nếu Planner đoán torch_type → filter quá khắt → 0 kết quả → bot nói sai "không có".
+
+  ❌ SAI:
+  User: "súng cho robot Yaskawa"
+  → get_torches(robot_model="yaskawa", torch_type="semi_auto", ecosystem="N")
+    (user KHÔNG nói "semi_auto" cũng KHÔNG nói "hệ N")
+
+  ✅ ĐÚNG:
+  User: "súng cho robot Yaskawa"
+  → get_torches(robot_model="yaskawa")  [chỉ filter robot_model]
+
+  User: "súng MIG cho Yaskawa"  [user có nói MIG]
+  → get_torches(robot_model="yaskawa", torch_type="semi_auto")
+
+  User: "súng robot hệ N 500A"  [user nói rõ hệ + amp]
+  → get_torches(ecosystem="N", current_class="500A")
+
+  User: "AR1440 dùng súng gì"
+  → get_torches(robot_model="AR1440")
+
+  User: "súng hàn cho robot 1,4 mét" / "súng cho robot 1.4m"  [alias MA1440]
+  → get_torches(robot_model="1.4m")   [tool tự resolve "1.4m" → MA1440]
+  → KHÔNG liệt kê hết 26-33 súng một lúc — chậm và gây bối rối.
+  → Nhóm theo robot_series, CHỈ nêu 1-2 đại diện mỗi nhóm + hỏi qualify:
+     "Dạ với robot MA1440 (1.4m), em có các dòng súng sau:
+      • **Cáp ngoài (Type MH)**: TK-308RR (350A), TK-508RR (500A), ACC-308RR (độ chính xác cao)
+      • **Cáp trong (Type MA)**: YMXA-308R (không cảm biến), YMSA-308R (có shock sensor)
+      • **Làm mát nước**: TK-308RW, YMSA-500W (500A)
+      Anh/chị hàn dây cỡ mấy mm và cần cảm biến chống va đập không để em tư vấn đúng model ạ?"
+  → Sau khi khách trả lời → lookup_part hoặc search_parts để báo giá cụ thể.
+
+  User: "robot AR1440E dùng súng nào"  [EA series — KHÁC MA1440]
+  → get_torches(robot_model="AR1440E")
+  → Trả 5 súng YMENS. KHÔNG trộn với YMXA/YMSA (đó là robot MA, khác hẳn).
+
 ━━━ ASCII QUERIES — KHÔNG DẤU TIẾNG VIỆT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Từ khóa → category (gọi tool ngay, KHÔNG hỏi lại):
@@ -738,8 +826,9 @@ Ngoại lệ bắt buộc nhớ:
   Rocket tip → CHỈ nozzle 001016 | Long tip → CHỈ nozzle 001004/038042
   WX nozzle → BẮT BUỘC WX orifice (034120/034121)
   TCC tip (025xxx) → KHÔNG dùng TipBody M6 | Béc nhôm 002019 → KHÔNG CO2/MAG
-  Robot AR1440E/AR700/AR900 → YMENS series (mounting ENS)
-  Robot MA1440/MA2010/AR1730 → YMXA/YMSA series (mounting MH)
+  Robot MA1440/MA2010/AR1730 (≡ AR1440/AR2010/MH24) → YMXA/YMSA (Type MA) + TK/ACC/SRCT (Type MH)
+  Robot AR700/AR900/AR1440E → YMENS series (dòng EA — KHÁC nhóm MA)
+  ⚠ AR1440E ≠ MA1440: AR1440E thuộc EA (YMENS), MA1440 thuộc MA (YMXA/YMSA/TK)
 
 ━━━ THÔNG SỐ KỸ THUẬT & LẮP RÁP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -748,7 +837,8 @@ Khi được hỏi spec/thông số/bản vẽ: render đầy đủ các field:
   Nozzle: inner_dia_mm, outer_dia_mm, length_mm, thread_spec
   Insulator: length_mm, outer_dia_mm, inner_dia_mm, insulator_class (S=350A / L=500A)
   TipBody: length_mm, tip_body_type, lực siết 8–12 Nm
-  Torch: rated_co2_a, rated_mag_a, duty_cycle_pct, wire_size, robot_compat
+  Torch: rated_a (ampe — coalesce CO2/MAG/MIG/DC), wire_display (cỡ dây/tungsten),
+         wire_kind (wire|tungsten), duty_display, cooling, mounting, robot_compat, robot_series
 
 Bản vẽ lắp ráp chuẩn N 350A (từ trong ra ngoài):
   [THÂN SÚNG] → [LINER] → [TipBody 036001]
@@ -930,16 +1020,34 @@ Súng CSL-18/20 (200A):
 
 ━━━ C. ROBOT COMPATIBILITY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Yaskawa MA1440 / MA2010 / AR1730:
-  → YMXA-308R, YMXA-500R, YMXA-308RR, YMXA-500RR (mounting MH)
-  → YMSA-308R, YMSA-500R, YMSA-500W (shock sensor YMSA_BRACKET)
+Tên gọi robot — alias người dùng hay dùng:
+  "1.4m" / "1,4 mét" / "AR1440" / "1440"  →  MA1440
+  "2.0m" / "2,0 mét" / "AR2010" / "2010"  →  MA2010
+  "1.7m" / "MH24" / "1730"                →  AR1730
 
-Yaskawa AR1440E / AR700 / AR900:
-  → YMENS-308R, YMENS-500R, YMENS-508R (mounting ENS)
+Yaskawa Motoman MA1440 / MA2010 / AR1730 (≡ AR1440 / AR2010 / MH24):
+  Type MA (cáp đi trong cánh tay):
+    → YMXA-300R/308R/500R/508R/250RA (không cảm biến va đập)
+    → YMSA-300R/308R/500R/508R/250RA (có cảm biến YMSA shock sensor)
+    → YMSA-500W/508W/500AW (water-cooled)
+  Type MH (cáp đi ngoài, thay nhanh, nhiều feeder):
+    → TK-308RR/308RX/308RS, TK-508RR/508RX/508RS, TK-309R1
+    → ACC-308RR/308RX (high-accuracy), SRCT-308R/307R (built-in shock sensor)
+    → TK-308RW (water-cooled), TK-308ALW (water-cooled, hàn nhôm)
 
-Fanuc / Kawasaki / Kuka / ABB:
-  → TR-308R, TR-300R (Universal mounting)
-  → CSL-35/CSH-35 (cầm tay + nhiều robot)
+Yaskawa Motoman EA — AR700 / AR900 / AR1440E:
+  → YMENS-300R/308R/500R/508R/250RA (dòng EA, KHÁC nhóm MA ở trên)
+  ⚠ AR1440E ≠ MA1440 — đừng nhầm. AR1440E thuộc nhóm EA (dùng YMENS).
+
+Universal (gắn được nhiều hãng robot qua bracket/adapter riêng):
+  → TR-300R/308R (Yaskawa AR Series + various)
+  → WX450/451/452/500/702 series (water-cooled robotic)
+  → DSRC-3531 (Daihen direct)
+  → TIG robotic: TA-200CDA, TA-203CDA, TA-301CDW, TA-303CDW, TA-500CDW...
+
+Các hãng robot/feeder khác — qua adapter (KHÔNG phải robot_compatibility):
+  Panasonic (adapter N) | Daihen/OTC (adapter D/DD) | Lincoln (LE) | Miller (MIL) | Binzel (BZ)
+  → TK/ACC series hỗ trợ qua connection_types: N/D/DD/AD/BZ/LE/MIL
 
 Lưu ý: Vật tư tiêu hao robot = GIỐNG súng cầm tay cùng hệ (cùng mã, cùng giá)
 Robot tip 002014 (R-type): độ chính xác cao hơn cho robot tốc độ cao
