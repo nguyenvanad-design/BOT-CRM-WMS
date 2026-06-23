@@ -124,6 +124,47 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
         order.save(update_fields=['status'])
         return Response(SalesOrderDetailSerializer(order).data)
 
+    @action(detail=True, methods=['post'])
+    def amend(self, request, pk=None):
+        """Sửa đơn SAU KÝ (đổi địa chỉ giao / SL dòng / ghi chú) — có audit.
+        Chỉ khi đơn CHƯA giao (draft/pending/active). Manager+ thực hiện."""
+        from decimal import Decimal
+
+        if not is_manager(request.user):
+            return Response({'detail': 'Chỉ quản lý/CEO/admin sửa đơn.'}, status=403)
+        order = self.get_object()
+        if order.status not in ('draft', 'pending', 'active'):
+            return Response({'detail': 'Đơn đang/đã giao — không sửa được. Dùng RMA nếu cần.',
+                             'code': 'CONFLICT'}, status=status.HTTP_409_CONFLICT)
+        diff = {}
+        if 'ship_address' in request.data:
+            order.ship_address = str(request.data['ship_address']).strip()
+            diff['ship_address'] = order.ship_address
+        if 'notes' in request.data:
+            order.notes = str(request.data['notes']).strip()
+            diff['notes'] = order.notes
+        # Sửa số lượng từng dòng (không nhỏ hơn đã giao).
+        line_edits = {str(x.get('id')): x for x in (request.data.get('lines') or [])}
+        if line_edits:
+            for ln in order.lines.all():
+                e = line_edits.get(str(ln.id))
+                if not e or 'qty' not in e:
+                    continue
+                new_qty = int(e['qty'])
+                if new_qty < ln.shipped_qty:
+                    return Response({'detail': f'Dòng {ln.description}: SL {new_qty} < đã giao '
+                                     f'{ln.shipped_qty}.', 'code': 'CONFLICT'}, status=409)
+                unit = Decimal(ln.unit_price) * (Decimal('100') - Decimal(ln.discount_pct)) / 100
+                ln.qty = new_qty
+                ln.line_total = (unit * new_qty).quantize(Decimal('1'))
+                ln.save(update_fields=['qty', 'line_total'])
+                diff[f'line:{ln.id}'] = new_qty
+            order.total_vnd = sum((l.line_total for l in order.lines.all()), Decimal('0'))
+        order.save()
+        AuditLog.record(user=request.user, action='amend', entity='sales.SalesOrder',
+                        entity_id=order.id, diff=diff)
+        return Response(SalesOrderDetailSerializer(order).data)
+
     @action(detail=True, methods=['post'], url_path='create-invoice')
     def create_invoice(self, request, pk=None):
         """Xuất hóa đơn VAT từ đơn bán. Body tùy chọn {tax_pct} (mặc định 8%)."""

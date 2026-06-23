@@ -91,8 +91,8 @@ class SalesOrderDetailSerializer(serializers.ModelSerializer):
         model  = SalesOrder
         fields = ['id', 'code', 'customer', 'order_type', 'parent_order',
                   'issued_date', 'valid_from', 'valid_to', 'total_vnd', 'paid_vnd',
-                  'debt_vnd', 'payment_terms', 'status', 'owner', 'lines', 'notes',
-                  'created_at', 'updated_at']
+                  'debt_vnd', 'payment_terms', 'status', 'owner', 'ship_address',
+                  'lines', 'notes', 'created_at', 'updated_at']
         read_only_fields = ['id', 'total_vnd', 'paid_vnd', 'status', 'created_at', 'updated_at']
         extra_kwargs = {'owner': {'required': False}}
 

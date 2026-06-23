@@ -56,6 +56,7 @@ class SalesOrder(BaseModel, SoftDeleteMixin):
     status       = models.CharField(max_length=20, choices=OrderStatus.choices,
                                     default=OrderStatus.DRAFT, db_index=True)
     owner        = models.ForeignKey('accounts.User', on_delete=models.PROTECT, related_name='owned_orders')
+    ship_address = models.CharField(max_length=300, blank=True)   # địa chỉ giao (sửa được khi chưa giao)
     notes        = models.TextField(blank=True)
 
     class Meta:

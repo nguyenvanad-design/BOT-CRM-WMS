@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ShoppingBag, PenLine, Truck, FileText, Wallet } from 'lucide-react'
+import { ShoppingBag, PenLine, Truck, FileText, Wallet, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { compactVnd, formatVnd, formatDate } from '@/lib/crm'
@@ -16,6 +16,7 @@ import { PageHeader, Button, Tag, TableCard, Th, Td, RowMsg } from '@/components
 interface Order {
   id: string; code: string; customer_name: string; issued_date: string
   total_vnd: string; paid_vnd: string; debt_vnd: string; status: string
+  ship_address?: string; notes?: string
 }
 const LABEL: Record<string, string> = {
   draft: 'Nháp', pending: 'Chờ ký', active: 'Hiệu lực', shipping: 'Đang giao',
@@ -30,6 +31,8 @@ export function OrdersPage() {
   const canMng = isManager(useAuth((s) => s.user?.role))
   const [payFor, setPayFor] = useState<Order | null>(null)
   const [amt, setAmt] = useState('')
+  const [amendFor, setAmendFor] = useState<Order | null>(null)
+  const [addr, setAddr] = useState(''); const [amNotes, setAmNotes] = useState('')
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['orders'],
@@ -49,6 +52,11 @@ export function OrdersPage() {
   const pay = useMutation({
     mutationFn: () => api.post('/sales/payments/', { order: payFor!.id, amount_vnd: Number(amt), paid_at: new Date().toISOString().slice(0, 10), method: 'transfer' }),
     onSuccess: () => { toast.success('Đã thu tiền'); inval(); setPayFor(null); setAmt('') },
+    onError: (e) => toast.error(apiError(e)),
+  })
+  const amend = useMutation({
+    mutationFn: () => api.post(`/sales/orders/${amendFor!.id}/amend/`, { ship_address: addr, notes: amNotes }),
+    onSuccess: () => { toast.success('Đã sửa đơn'); inval(); setAmendFor(null) },
     onError: (e) => toast.error(apiError(e)),
   })
 
@@ -83,6 +91,12 @@ export function OrdersPage() {
                 {['active', 'shipping', 'completed'].includes(o.status) && canMng && (
                   <Button size="sm" variant="ghost" className="mr-1" onClick={() => act.mutate({ id: o.id, what: 'create-invoice' })}><FileText size={13} /> Hóa đơn</Button>
                 )}
+                {['draft', 'pending', 'active'].includes(o.status) && canMng && (
+                  <Button size="sm" variant="ghost" className="mr-1"
+                    onClick={() => { setAmendFor(o); setAddr(o.ship_address ?? ''); setAmNotes(o.notes ?? '') }}>
+                    <Pencil size={13} /> Sửa
+                  </Button>
+                )}
                 {Number(o.debt_vnd) > 0 && canMng && (
                   <Button size="sm" variant="ghost" onClick={() => setPayFor(o)}><Wallet size={13} /> Thu</Button>
                 )}
@@ -98,6 +112,19 @@ export function OrdersPage() {
           <Button onClick={() => pay.mutate()} disabled={pay.isPending || !amt}>Ghi thu</Button></>}>
         <p className="text-sm text-txt-2 mb-2">Còn nợ: <b className="text-warn">{payFor ? formatVnd(payFor.debt_vnd) : ''}</b></p>
         <input placeholder="Số tiền thu" type="number" value={amt} onChange={(e) => setAmt(e.target.value)}
+          className="w-full bg-ink-3 border border-line rounded-md px-3 py-2 text-sm" />
+      </Modal>
+
+      <Modal open={!!amendFor} onClose={() => setAmendFor(null)} title={`Sửa đơn ${amendFor?.code ?? ''}`}
+        icon={<Pencil size={18} className="text-flame" />}
+        footer={<><Button variant="ghost" onClick={() => setAmendFor(null)}>Hủy</Button>
+          <Button onClick={() => amend.mutate()} disabled={amend.isPending}>Lưu</Button></>}>
+        <p className="text-xs text-txt-2 mb-2">Chỉ sửa được khi đơn chưa giao. Thay đổi được ghi nhật ký (audit).</p>
+        <label className="block text-[11px] uppercase tracking-wide text-txt-2 font-semibold mb-1">Địa chỉ giao</label>
+        <input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="VD: KCN Sóng Thần, Bình Dương"
+          className="w-full bg-ink-3 border border-line rounded-md px-3 py-2 text-sm mb-3" />
+        <label className="block text-[11px] uppercase tracking-wide text-txt-2 font-semibold mb-1">Ghi chú</label>
+        <textarea value={amNotes} onChange={(e) => setAmNotes(e.target.value)} rows={3}
           className="w-full bg-ink-3 border border-line rounded-md px-3 py-2 text-sm" />
       </Modal>
     </div>
