@@ -137,5 +137,7 @@ QUOTE_VALID_DAYS = int(os.getenv('QUOTE_VALID_DAYS', '30'))
 # Bot khách gọi POST /api/v1/crm/lead-intake/ kèm header X-Intake-Key = giá trị này.
 # Rỗng = TẮT cổng intake (mọi request bị 401). Đặt qua env ở production.
 LEAD_INTAKE_KEY   = os.getenv('LEAD_INTAKE_KEY', '')
+# Ngưỡng "sắp hết" khi bot khách hỏi tồn (trạng thái thô, không lộ số chính xác).
+PUBLIC_LOW_STOCK_THRESHOLD = int(os.getenv('PUBLIC_LOW_STOCK_THRESHOLD', '10'))
 # Username nhận lead mặc định; rỗng = sale đầu tiên (rồi admin) trong DB.
 LEAD_INTAKE_OWNER = os.getenv('LEAD_INTAKE_OWNER', '')
