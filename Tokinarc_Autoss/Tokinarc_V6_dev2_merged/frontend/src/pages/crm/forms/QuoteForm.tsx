@@ -18,19 +18,27 @@ import { FieldRow, TextInput, TextArea, SelectInput } from '@/components/form'
 
 interface LineForm { part_no: string; part_name: string; qty: number; unit_price_vnd: number }
 interface Form {
-  customer: string; due_date: string; valid_until: string; notes: string; lines: LineForm[]
+  customer: string; due_date: string; valid_until: string; discount_pct: number; notes: string; lines: LineForm[]
 }
 
 const EMPTY_LINE: LineForm = { part_no: '', part_name: '', qty: 1, unit_price_vnd: 0 }
-const EMPTY: Form = { customer: '', due_date: '', valid_until: '', notes: '', lines: [{ ...EMPTY_LINE }] }
+const EMPTY: Form = { customer: '', due_date: '', valid_until: '', discount_pct: 0, notes: '', lines: [{ ...EMPTY_LINE }] }
 
-/** Tổng tạm tính phía client (server tính lại chính thức). */
+/** Tạm tính / chiết khấu / tổng phía client (server tính lại chính thức). */
 function LiveTotal({ control }: { control: Control<Form> }) {
   const lines = useWatch({ control, name: 'lines' })
-  const total = (lines ?? []).reduce(
+  const disc = Number(useWatch({ control, name: 'discount_pct' })) || 0
+  const sub = (lines ?? []).reduce(
     (s, l) => s + (Number(l?.qty) || 0) * (Number(l?.unit_price_vnd) || 0), 0,
   )
-  return <span className="text-flame font-semibold tabular-nums">{compactVnd(total)}</span>
+  const total = Math.round(sub * (1 - disc / 100))
+  return (
+    <span className="tabular-nums">
+      Tạm tính {compactVnd(sub)}
+      {disc > 0 && <> · CK {disc}%</>}
+      {' · '}<span className="text-flame font-semibold">Tổng {compactVnd(total)}</span>
+    </span>
+  )
 }
 
 export function QuoteForm({ open, onClose, editing }: {
@@ -48,6 +56,7 @@ export function QuoteForm({ open, onClose, editing }: {
       customer: editing.customer,
       due_date: editing.due_date ?? '',
       valid_until: editing.valid_until ?? '',
+      discount_pct: Number(editing.discount_pct || 0),
       notes: editing.notes,
       lines: editing.lines.length
         ? editing.lines.map((l) => ({
@@ -64,6 +73,7 @@ export function QuoteForm({ open, onClose, editing }: {
         customer: data.customer,
         due_date: data.due_date || null,
         valid_until: data.valid_until || null,
+        discount_pct: Number(data.discount_pct) || 0,
         notes: data.notes,
         lines: data.lines.map((l) => ({
           part_no: l.part_no, part_name: l.part_name,
@@ -110,7 +120,8 @@ export function QuoteForm({ open, onClose, editing }: {
         </FieldRow>
         <FieldRow>
           <TextInput label="Hạn hiệu lực giá" type="date" {...register('valid_until')} />
-          <div />
+          <TextInput label="Chiết khấu (%)" type="number" step="0.01" min={0} max={100}
+            {...register('discount_pct', { valueAsNumber: true })} />
         </FieldRow>
 
         {/* Line items */}

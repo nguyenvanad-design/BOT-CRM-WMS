@@ -53,13 +53,25 @@ import { CeoForecastPage } from '@/pages/ceo/Forecast'
 import { CeoDebtPage } from '@/pages/ceo/Debt'
 import { CeoInventoryPage } from '@/pages/ceo/Inventory'
 import { CeoAISummaryPage } from '@/pages/ceo/AISummary'
+import { ApprovalsPage } from '@/pages/ceo/Approvals'
+import { AdminUsersPage } from '@/pages/admin/Users'
 import { RequireRole } from '@/components/RequireRole'
 
 const MGR = ['manager', 'ceo', 'admin'] as const
+const WMS_CTRL = ['wh_manager', 'manager', 'ceo', 'admin'] as const   // mua hàng: chỉ quản lý kho trở lên
 
 function Protected({ children }: { children: React.ReactNode }) {
   const isAuthed = useAuth((s) => s.isAuthed)
   return isAuthed ? <>{children}</> : <Navigate to="/login" replace />
+}
+
+/** Trang chủ theo vai trò — mỗi người về đúng "khu" của mình. */
+function RoleHome() {
+  const role = useAuth((s) => s.user?.role)
+  if (role === 'warehouse' || role === 'wh_manager') return <Navigate to="/wms/dashboard" replace />
+  if (role === 'service') return <Navigate to="/tickets" replace />
+  if (role === 'ceo') return <Navigate to="/ceo/overview" replace />
+  return <Navigate to="/dashboard" replace />   // sale, manager, admin → CRM
 }
 
 export function App() {
@@ -75,7 +87,7 @@ export function App() {
             </Protected>
           }
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<RoleHome />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="customers/:id" element={<Customer360Page />} />
@@ -122,18 +134,23 @@ export function App() {
 
           {/* ── Mua hàng ── */}
           <Route path="purchasing" element={<Navigate to="/purchasing/orders" replace />} />
-          <Route path="purchasing/orders" element={<PurchaseOrdersPage />} />
-          <Route path="purchasing/suppliers" element={<SuppliersPage />} />
+          <Route path="purchasing/orders" element={<RequireRole roles={[...WMS_CTRL]}><PurchaseOrdersPage /></RequireRole>} />
+          <Route path="purchasing/suppliers" element={<RequireRole roles={[...WMS_CTRL]}><SuppliersPage /></RequireRole>} />
           <Route path="wms/reports" element={<WmsReportsPage />} />
 
           {/* ── CEO (manager/admin) ── */}
           <Route path="ceo" element={<Navigate to="/ceo/overview" replace />} />
+          <Route path="ceo/approvals" element={<RequireRole roles={[...MGR]}><ApprovalsPage /></RequireRole>} />
           <Route path="ceo/overview" element={<RequireRole roles={[...MGR]}><CeoOverviewPage /></RequireRole>} />
           <Route path="ceo/revenue" element={<RequireRole roles={[...MGR]}><CeoRevenuePage /></RequireRole>} />
           <Route path="ceo/forecast" element={<RequireRole roles={[...MGR]}><CeoForecastPage /></RequireRole>} />
           <Route path="ceo/debt" element={<RequireRole roles={[...MGR]}><CeoDebtPage /></RequireRole>} />
           <Route path="ceo/inventory" element={<RequireRole roles={[...MGR]}><CeoInventoryPage /></RequireRole>} />
           <Route path="ceo/ai-summary" element={<RequireRole roles={[...MGR]}><CeoAISummaryPage /></RequireRole>} />
+
+          {/* ── Quản trị (admin/superuser) ── */}
+          <Route path="admin" element={<Navigate to="/admin/users" replace />} />
+          <Route path="admin/users" element={<RequireRole roles={['admin']}><AdminUsersPage /></RequireRole>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

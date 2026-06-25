@@ -49,6 +49,9 @@ export function ScanPage() {
   const [qty, setQty] = useState('')
   const [log, setLog] = useState<EntryLog[]>([])
 
+  // Camera chỉ chạy ở "secure context" (HTTPS hoặc localhost). Mở qua http://<IP> → bị chặn.
+  const cameraReady = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
+
   const stop = () => { readerRef.current?.reset(); setScanning(false) }
   useEffect(() => () => { readerRef.current?.reset() }, [])
 
@@ -88,6 +91,12 @@ export function ScanPage() {
 
   const start = async () => {
     setCamError(''); setResult(null)
+    if (!cameraReady) {
+      setCamError('Không bật được camera vì trang đang chạy HTTP (không bảo mật). '
+        + 'Camera chỉ hoạt động khi mở bằng https://… hoặc localhost. '
+        + 'Tạm thời hãy NHẬP MÃ BẰNG TAY ở ô bên dưới, hoặc dùng máy quét USB.')
+      return
+    }
     const reader = new BrowserMultiFormatReader()
     readerRef.current = reader; setScanning(true)
     try {
@@ -128,7 +137,13 @@ export function ScanPage() {
       <Card className="mb-4">
         <div className="aspect-video bg-ink rounded-lg overflow-hidden mb-3 grid place-items-center relative">
           <video ref={videoRef} className={`w-full h-full object-cover ${scanning ? '' : 'hidden'}`} />
-          {!scanning && <div className="text-txt-2 text-sm flex flex-col items-center gap-2"><Camera size={28} /> Camera tắt</div>}
+          {!scanning && cameraReady && <div className="text-txt-2 text-sm flex flex-col items-center gap-2"><Camera size={28} /> Camera tắt</div>}
+          {!scanning && !cameraReady && (
+            <div className="text-txt-2 text-xs flex flex-col items-center gap-2 px-6 text-center">
+              <CameraOff size={28} className="text-warn" />
+              <span>Camera bị chặn vì trang không chạy <b>HTTPS</b>.<br />Hãy <b>nhập mã bằng tay</b> bên dưới hoặc mở app qua <b>https://…</b></span>
+            </div>
+          )}
           {scanning && <div className="absolute inset-x-8 top-1/2 h-0.5 bg-flame/70 animate-pulse" />}
         </div>
         {camError && <p className="text-danger text-xs mb-2">{camError}</p>}

@@ -3,15 +3,19 @@
  * Tra cứu sản phẩm THẬT từ catalog (838 phụ tùng + 122 súng hàn).
  * 2 tab: Phụ tùng / Súng hàn — search + phân trang.
  */
-import { useState } from 'react'
-import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { Wrench, Flame } from 'lucide-react'
-import { apiError } from '@/lib/api'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { Wrench, Flame, Coins } from 'lucide-react'
+import { api, apiError } from '@/lib/api'
+import { toast } from 'sonner'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
 import { useDebounced } from '@/lib/useDebounced'
+import { formatVnd } from '@/lib/crm'
+import { useAuth, isManager } from '@/lib/auth/store'
 import type { CatalogPart, CatalogTorch } from '@/lib/types'
+import { Modal } from '@/components/Modal'
 import {
-  PageHeader, SearchInput, Tag, TableCard, Th, Td, RowMsg, Pagination,
+  PageHeader, SearchInput, Tag, TableCard, Th, Td, RowMsg, Pagination, Button,
 } from '@/components/ui'
 
 type TabKey = 'parts' | 'torches'
@@ -63,23 +67,27 @@ function PriceCell({ display, contact }: { display: string; contact: boolean }) 
 }
 
 function PartsTable({ search, page, setPage }: { search: string; page: number; setPage: (f: (p: number) => number) => void }) {
+  const canSeeCost = isManager(useAuth((s) => s.user?.role))
+  const [costPart, setCostPart] = useState<string | null>(null)
   const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: ['catalog-parts', search, page],
     queryFn: () => fetchPage<CatalogPart>('/catalog/parts/', { search: search || undefined, page }),
     placeholderData: keepPreviousData,
   })
   const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1
+  const cols = canSeeCost ? 6 : 5
   return (
     <>
       {data && <p className="text-xs text-txt-2 mb-2">{data.count} phụ tùng</p>}
       <TableCard>
         <thead><tr className="border-b border-line">
-          <Th>Mã</Th><Th>Tên</Th><Th>Nhóm</Th><Th>Hệ</Th><Th className="text-right">Giá</Th>
+          <Th>Mã</Th><Th>Tên</Th><Th>Nhóm</Th><Th>Hệ</Th><Th className="text-right">Giá bán</Th>
+          {canSeeCost && <Th className="text-right">Giá vốn</Th>}
         </tr></thead>
         <tbody>
-          {isLoading && <RowMsg colSpan={5}>Đang tải…</RowMsg>}
-          {isError && <RowMsg colSpan={5} danger>Lỗi: {apiError(error)}</RowMsg>}
-          {data?.results.length === 0 && <RowMsg colSpan={5}>Không tìm thấy phụ tùng.</RowMsg>}
+          {isLoading && <RowMsg colSpan={cols}>Đang tải…</RowMsg>}
+          {isError && <RowMsg colSpan={cols} danger>Lỗi: {apiError(error)}</RowMsg>}
+          {data?.results.length === 0 && <RowMsg colSpan={cols}>Không tìm thấy phụ tùng.</RowMsg>}
           {data?.results.map((p) => (
             <tr key={p.tokin_part_no} className="border-b border-line/50 last:border-0 hover:bg-ink-3/40">
               <Td className="font-mono text-flame">{p.tokin_part_no}{p.is_priority_sell && <Tag tone="warn"> ưu tiên</Tag>}</Td>
@@ -87,6 +95,13 @@ function PartsTable({ search, page, setPage }: { search: string; page: number; s
               <Td className="text-txt-2">{p.category || '—'}</Td>
               <Td className="text-txt-2">{p.ecosystem || '—'}</Td>
               <Td className="text-right"><PriceCell display={p.price_display} contact={p.is_contact_price} /></Td>
+              {canSeeCost && (
+                <Td className="text-right">
+                  <Button variant="ghost" size="sm" onClick={() => setCostPart(p.tokin_part_no)}>
+                    <Coins size={13} /> Giá vốn
+                  </Button>
+                </Td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -95,7 +110,74 @@ function PartsTable({ search, page, setPage }: { search: string; page: number; s
         <Pagination page={page} totalPages={totalPages} fetching={isFetching}
           onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)} />
       )}
+      <CostModal partNo={costPart} open={!!costPart} onClose={() => setCostPart(null)} />
     </>
+  )
+}
+
+interface CostData { part_no: string; name: string; cost_vnd: number | null; price_vnd: number; margin_vnd: number | null; margin_pct: number | null }
+
+function CostModal({ partNo, open, onClose }: { partNo: string | null; open: boolean; onClose: () => void }) {
+  const qc = useQueryClient()
+  const [cost, setCost] = useState('')
+  const { data, isLoading } = useQuery({
+    queryKey: ['part-cost', partNo],
+    queryFn: async () => (await api.get<CostData>(`/catalog/parts/${encodeURIComponent(partNo!)}/cost/`)).data,
+    enabled: open && !!partNo,
+  })
+  useEffect(() => { if (data) setCost(data.cost_vnd != null ? String(data.cost_vnd) : '') }, [data])
+  const save = useMutation({
+    mutationFn: () => api.patch(`/catalog/parts/${encodeURIComponent(partNo!)}/cost/`,
+      { cost_vnd: cost.trim() === '' ? null : Number(cost) }),
+    onSuccess: () => {
+      toast.success('Đã lưu giá vốn')
+      qc.invalidateQueries({ queryKey: ['part-cost', partNo] })
+      onClose()
+    },
+    onError: (e) => toast.error(apiError(e)),
+  })
+  return (
+    <Modal open={open} onClose={onClose} title={`Giá vốn — ${partNo ?? ''}`}
+      icon={<Coins size={18} className="text-flame" />}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Đóng</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>Lưu</Button>
+        </>
+      }>
+      {isLoading && <p className="text-sm text-txt-2">Đang tải…</p>}
+      {data && (
+        <div className="space-y-3">
+          <p className="text-sm font-medium">{data.name}</p>
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <Box label="Giá bán" value={formatVnd(data.price_vnd)} />
+            <Box label="Lãi gộp" value={data.margin_vnd != null ? formatVnd(data.margin_vnd) : '—'}
+              tone={data.margin_vnd != null && data.margin_vnd < 0 ? 'danger' : 'ok'} />
+            <Box label="Biên LN" value={data.margin_pct != null ? `${data.margin_pct}%` : '—'}
+              tone={data.margin_pct != null && data.margin_pct < 0 ? 'danger' : 'ok'} />
+          </div>
+          <div>
+            <label className="block text-[11px] uppercase tracking-wide text-txt-2 font-semibold mb-1">
+              Giá vốn (₫) — để trống nếu chưa có
+            </label>
+            <input type="number" min={0} value={cost} onChange={(e) => setCost(e.target.value)}
+              className="w-full bg-ink-3 border border-line rounded-md px-3 py-2 text-sm focus:border-flame focus:outline-none" />
+            <p className="text-[11px] text-txt-2 mt-1">
+              Giá vốn tự cập nhật bình quân khi nhập kho theo Đơn mua. Chỉ chỉnh tay khi cần (tồn đầu kỳ…).
+            </p>
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+function Box({ label, value, tone }: { label: string; value: string; tone?: 'ok' | 'danger' }) {
+  return (
+    <div className="bg-ink-3 rounded-md px-3 py-2">
+      <div className="text-[10px] uppercase tracking-wide text-txt-2">{label}</div>
+      <div className={`font-semibold tabular-nums ${tone === 'danger' ? 'text-danger' : tone === 'ok' ? 'text-ok' : ''}`}>{value}</div>
+    </div>
   )
 }
 

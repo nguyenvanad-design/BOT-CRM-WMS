@@ -16,11 +16,11 @@ import { Button } from '@/components/ui'
 import { FieldRow, TextInput, TextArea, SelectInput } from '@/components/form'
 
 interface Form {
-  customer: string; title: string; value_vnd: number; paid_vnd: number
+  customer: string; title: string; discount_pct: number; value_vnd: number; paid_vnd: number
   status: string; start_date: string; end_date: string; notes: string
 }
 const EMPTY: Form = {
-  customer: '', title: '', value_vnd: 0, paid_vnd: 0,
+  customer: '', title: '', discount_pct: 0, value_vnd: 0, paid_vnd: 0,
   status: 'draft', start_date: '', end_date: '', notes: '',
 }
 
@@ -35,6 +35,7 @@ export function ContractForm({ open, onClose, editing }: {
     if (!open) return
     reset(editing ? {
       customer: editing.customer, title: editing.title,
+      discount_pct: Number(editing.discount_pct || 0),
       value_vnd: Number(editing.value_vnd || 0), paid_vnd: Number(editing.paid_vnd || 0),
       status: editing.status, start_date: editing.start_date ?? '', end_date: editing.end_date ?? '',
       notes: editing.notes,
@@ -78,7 +79,8 @@ export function ContractForm({ open, onClose, editing }: {
         </FieldRow>
         <FieldRow>
           <SelectInput label="Trạng thái" options={optionsFromLabels(CONTRACT_STATUS_LABEL)} {...register('status')} />
-          <div />
+          <TextInput label="Chiết khấu (%)" type="number" step="0.01" min={0} max={100}
+            {...register('discount_pct', { valueAsNumber: true })} />
         </FieldRow>
         <FieldRow>
           <TextInput label="Hiệu lực từ" type="date" {...register('start_date')} />

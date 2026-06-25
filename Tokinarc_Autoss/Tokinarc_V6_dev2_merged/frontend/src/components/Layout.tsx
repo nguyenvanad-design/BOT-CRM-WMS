@@ -10,12 +10,13 @@ import {
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
   Package, AlertTriangle, Barcode, History, Inbox, PackageCheck,
   Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Boxes, Gauge,
-  ShoppingCart, Building, Undo2, CalendarDays, PieChart,
+  ShoppingCart, Building, Undo2, CalendarDays, PieChart, UserCog,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { useAuth, isWmsControl, isManager } from '@/lib/auth/store'
+import { useAuth, isWmsControl, isManager, isAdmin } from '@/lib/auth/store'
 import { ChatWidget } from '@/components/ChatWidget'
 import { NotificationBell } from '@/components/NotificationBell'
+import { ProfileModal } from '@/components/ProfileModal'
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin', ceo: 'CEO', manager: 'Quản lý', sales: 'Sale',
@@ -45,6 +46,11 @@ const CRM_NAV: NavGroup[] = [
     { to: '/invoices', icon: <FileText size={16} />, label: 'Hóa đơn (MISA)', mgr: true },
     { to: '/receivables', icon: <Wallet size={16} />, label: 'Công nợ', mgr: true },
   ]},
+  { group: 'Điều hành (quản lý)', items: [
+    { to: '/ceo/overview', icon: <Crown size={16} />, label: 'Bảng điều hành', mgr: true },
+    { to: '/ceo/revenue', icon: <TrendingUp size={16} />, label: 'Doanh thu', mgr: true },
+    { to: '/ceo/inventory', icon: <Package size={16} />, label: 'Giá trị tồn', mgr: true },
+  ]},
   { group: 'Hoạt động', items: [
     { to: '/my-activity', icon: <CalendarDays size={16} />, label: 'Nhật ký của tôi' },
     { to: '/visits', icon: <MapPin size={16} />, label: 'Visit Report' },
@@ -72,6 +78,10 @@ const WMS_NAV: NavGroup[] = [
     { to: '/wms/lots', icon: <Boxes size={16} />, label: 'Lô hàng' },
     { to: '/wms/movements', icon: <History size={16} />, label: 'Lịch sử kho' },
   ]},
+  { group: 'Mua hàng', items: [
+    { to: '/purchasing/orders', icon: <ShoppingCart size={16} />, label: 'Đơn mua', ctrl: true },
+    { to: '/purchasing/suppliers', icon: <Building size={16} />, label: 'Nhà cung cấp', ctrl: true },
+  ]},
   { group: 'Nhập kho', items: [
     { to: '/wms/asn', icon: <Inbox size={16} />, label: 'ASN' },
     { to: '/wms/inbound', icon: <PackageCheck size={16} />, label: 'Nhập kho' },
@@ -89,14 +99,10 @@ const WMS_NAV: NavGroup[] = [
   ]},
 ]
 
-const PUR_NAV: NavGroup[] = [
-  { group: 'Mua hàng', items: [
-    { to: '/purchasing/orders', icon: <ShoppingCart size={16} />, label: 'Đơn mua' },
-    { to: '/purchasing/suppliers', icon: <Building size={16} />, label: 'Nhà cung cấp' },
-  ]},
-]
-
 const CEO_NAV: NavGroup[] = [
+  { group: 'Phê duyệt', items: [
+    { to: '/ceo/approvals', icon: <ClipboardCheck size={16} />, label: 'Cần duyệt' },
+  ]},
   { group: 'Tổng quan', items: [
     { to: '/ceo/overview', icon: <Crown size={16} />, label: 'Bảng điều hành' },
     { to: '/ceo/ai-summary', icon: <Bot size={16} />, label: 'AI Summary' },
@@ -113,15 +119,35 @@ const CEO_NAV: NavGroup[] = [
   ]},
 ]
 
-// Phạm vi module theo role (FE ẩn tab; backend vẫn là rào cứng).
-const WMS_ROLES = ['warehouse', 'wh_manager', 'manager', 'ceo', 'admin']
-const MGR_ROLES = ['manager', 'ceo', 'admin']
-const PUR_ROLES = ['warehouse', 'wh_manager', 'manager', 'ceo', 'admin']
+const SERVICE_NAV: NavGroup[] = [
+  { group: 'Dịch vụ', items: [
+    { to: '/tickets', icon: <TicketIcon size={16} />, label: 'Hàng chờ Ticket' },
+    { to: '/warranty', icon: <ShieldCheck size={16} />, label: 'Bảo hành' },
+    { to: '/returns', icon: <Undo2 size={16} />, label: 'Trả hàng (RMA)' },
+  ]},
+  { group: 'Tra cứu', items: [
+    { to: '/customers', icon: <Building2 size={16} />, label: 'Khách hàng' },
+    { to: '/products', icon: <Wrench size={16} />, label: 'Sản phẩm' },
+  ]},
+]
+
+const ADMIN_NAV: NavGroup[] = [
+  { group: 'Hệ thống', items: [
+    { to: '/admin/users', icon: <UserCog size={16} />, label: 'Người dùng & quyền' },
+  ]},
+]
+
+// Cô lập tab theo vai trò: mỗi người chỉ thấy "khu" của mình (admin thấy tất cả).
+//   CRM  = phòng kinh doanh (sale + manager kinh doanh + dịch vụ)
+//   WMS  = phòng kho (NV kho + QL kho)
+//   CEO  = điều hành (ceo)
+//   Quản trị = admin
 const MODULES = [
-  { key: 'crm', label: 'CRM', nav: CRM_NAV, home: '/dashboard', roles: null },
-  { key: 'wms', label: 'WMS', nav: WMS_NAV, home: '/wms/dashboard', roles: WMS_ROLES },
-  { key: 'mua', label: 'Mua', nav: PUR_NAV, home: '/purchasing/orders', roles: PUR_ROLES },
-  { key: 'ceo', label: 'CEO', nav: CEO_NAV, home: '/ceo/overview', roles: MGR_ROLES },
+  { key: 'crm', label: 'CRM', nav: CRM_NAV, home: '/dashboard', roles: ['sales', 'manager'] },
+  { key: 'wms', label: 'WMS', nav: WMS_NAV, home: '/wms/dashboard', roles: ['warehouse', 'wh_manager'] },
+  { key: 'service', label: 'Dịch vụ', nav: SERVICE_NAV, home: '/tickets', roles: ['service'] },
+  { key: 'ceo', label: 'CEO', nav: CEO_NAV, home: '/ceo/overview', roles: ['ceo'] },
+  { key: 'admin', label: 'Quản trị', nav: ADMIN_NAV, home: '/admin/users', roles: ['admin'] },
 ] as const
 
 export function Layout() {
@@ -129,16 +155,21 @@ export function Layout() {
   const nav = useNavigate()
   const loc = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const role = user?.role
   const canCtrl = isWmsControl(role)
   const canMgr = isManager(role)
   const navVisible = (it: NavItem) => (!it.ctrl || canCtrl) && (!it.mgr || canMgr)
-  const visibleModules = MODULES.filter((m) => !m.roles || (role && m.roles.includes(role)))
-  const moduleKey = loc.pathname.startsWith('/wms') ? 'wms'
-    : loc.pathname.startsWith('/purchasing') ? 'mua'
-    : loc.pathname.startsWith('/ceo') ? 'ceo' : 'crm'
-  const current = MODULES.find((m) => m.key === moduleKey)!
+  // Admin thấy MỌI tab; vai trò khác chỉ thấy tab của mình.
+  const visibleModules = MODULES.filter((m) =>
+    isAdmin(user) ? true : (!!role && (m.roles as readonly string[]).includes(role)))
+  const pathKey = loc.pathname.startsWith('/wms') || loc.pathname.startsWith('/purchasing') ? 'wms'
+    : loc.pathname.startsWith('/ceo') ? 'ceo'
+    : loc.pathname.startsWith('/admin') ? 'admin' : 'crm'
+  // Nếu path thuộc tab user KHÔNG có (vd manager mở trang tài chính /ceo/*) → hiện nav tab của mình.
+  const moduleKey = visibleModules.some((m) => m.key === pathKey) ? pathKey : (visibleModules[0]?.key ?? 'crm')
+  const current = MODULES.find((m) => m.key === moduleKey) ?? MODULES[0]
 
   const onLogout = async () => { await logout(); nav('/login', { replace: true }) }
   const closeDrawer = () => setMobileOpen(false)
@@ -204,10 +235,11 @@ export function Layout() {
           </button>
           <div className="flex-1" />
           <NotificationBell />
-          <div className="text-right leading-tight">
+          <button onClick={() => setProfileOpen(true)} title="Tài khoản của tôi"
+            className="text-right leading-tight hover:opacity-80 transition-opacity">
             <div className="text-sm font-medium truncate max-w-[40vw]">{user?.display_name || user?.username}</div>
             <div className="text-xs text-txt-2">{ROLE_LABEL[user?.role ?? ''] ?? user?.role}</div>
-          </div>
+          </button>
           <button
             onClick={onLogout}
             className="flex items-center gap-1.5 text-sm text-txt-2 hover:text-txt
@@ -221,6 +253,7 @@ export function Layout() {
         </main>
         <ChatWidget />
       </div>
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   )
 }

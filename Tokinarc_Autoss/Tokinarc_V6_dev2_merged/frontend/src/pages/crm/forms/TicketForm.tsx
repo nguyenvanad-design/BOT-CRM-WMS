@@ -4,7 +4,7 @@
  */
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ticket as TicketIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
@@ -17,12 +17,12 @@ import { FieldRow, TextInput, TextArea, SelectInput } from '@/components/form'
 
 interface Form {
   customer: string; title: string; description: string
-  status: string; priority: string; serial_no: string
+  status: string; priority: string; serial_no: string; assignee: string
 }
 
 const EMPTY: Form = {
   customer: '', title: '', description: '',
-  status: 'open', priority: 'medium', serial_no: '',
+  status: 'open', priority: 'medium', serial_no: '', assignee: '',
 }
 
 export function TicketForm({ open, onClose, editing }: {
@@ -30,6 +30,11 @@ export function TicketForm({ open, onClose, editing }: {
 }) {
   const qc = useQueryClient()
   const { options: customers, isLoading: custLoading } = useCustomerOptions()
+  const engineers = useQuery({
+    queryKey: ['engineers'],
+    queryFn: async () => (await api.get<{ id: string; name: string; role: string }[]>('/accounts/engineers/')).data,
+    enabled: open,
+  })
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Form>({ defaultValues: EMPTY })
 
   useEffect(() => {
@@ -37,13 +42,17 @@ export function TicketForm({ open, onClose, editing }: {
     reset(editing ? {
       customer: editing.customer, title: editing.title, description: editing.description,
       status: editing.status, priority: editing.priority, serial_no: editing.serial_no,
+      assignee: editing.assignee ?? '',
     } : EMPTY)
   }, [open, editing, reset])
 
   const save = useMutation({
-    mutationFn: (data: Form) => editing
-      ? api.patch(`/crm/tickets/${editing.id}/`, data)
-      : api.post('/crm/tickets/', data),
+    mutationFn: (data: Form) => {
+      const payload = { ...data, assignee: data.assignee || null }
+      return editing
+        ? api.patch(`/crm/tickets/${editing.id}/`, payload)
+        : api.post('/crm/tickets/', payload)
+    },
     onSuccess: () => {
       toast.success(editing ? 'Đã cập nhật ticket' : 'Đã tạo ticket')
       qc.invalidateQueries({ queryKey: ['tickets'] })
@@ -82,7 +91,9 @@ export function TicketForm({ open, onClose, editing }: {
         </FieldRow>
         <FieldRow>
           <TextInput label="Serial sản phẩm" {...register('serial_no')} />
-          <div />
+          <SelectInput label="Giao kỹ sư" placeholder="— Chưa giao —"
+            options={(engineers.data ?? []).map((e) => ({ value: e.id, label: e.name }))}
+            {...register('assignee')} />
         </FieldRow>
         <TextArea label="Mô tả" {...register('description')} />
       </form>

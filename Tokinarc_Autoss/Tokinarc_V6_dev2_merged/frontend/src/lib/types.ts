@@ -15,6 +15,7 @@ export interface User {
   role: Role
   customer: string | null
   is_active: boolean
+  is_admin: boolean
   date_joined: string
 }
 
@@ -138,6 +139,7 @@ export interface InventoryItem {
   part: string | null
   torch: string | null
   item_name: string
+  category?: string
   qty_on_hand: number
   qty_reserved: number
   qty_available: number
@@ -182,6 +184,7 @@ export interface InboundLine {
   id?: string
   part: string | null
   torch: string | null
+  part_name?: string
   qty_expected: number
   qty_received: number
   target_bin: string | null
@@ -209,6 +212,7 @@ export interface OutboundLine {
   id?: string
   part: string | null
   torch: string | null
+  part_name?: string
   qty_ordered: number
   qty_picked: number
   order_idx: number
@@ -372,8 +376,11 @@ export interface Quote {
   status_display: string
   due_date: string | null
   valid_until?: string | null
+  discount_pct?: string
+  subtotal_vnd?: number
   total_vnd: string
   requires_l2: boolean
+  margin?: { cost_total_vnd: number; margin_vnd: number; margin_pct: number | null; missing_cost_lines: number } | null
   owner: string
   owner_username: string
   approved_by: string | null
@@ -388,7 +395,7 @@ export interface Quote {
   updated_at: string
 }
 
-export type ContractStatus = 'draft' | 'pending_sign' | 'active' | 'expired' | 'cancelled'
+export type ContractStatus = 'draft' | 'pending_ceo' | 'rejected' | 'pending_sign' | 'active' | 'expired' | 'cancelled'
 
 export interface Contract {
   id: string
@@ -397,6 +404,7 @@ export interface Contract {
   customer_name: string
   quote: string | null
   title: string
+  discount_pct?: string
   value_vnd: string
   paid_vnd: string
   debt_vnd: number
@@ -407,6 +415,7 @@ export interface Contract {
   owner: string
   owner_username: string
   notes: string
+  requires_l2?: boolean
   created_at: string
   updated_at: string
 }
@@ -459,6 +468,9 @@ export interface Ticket {
   priority_display: string
   serial_no: string
   assignee: string | null
+  assignee_name?: string
+  assignee_username?: string
+  resolution?: string
   created_owner: string
   resolved_at: string | null
   created_at: string

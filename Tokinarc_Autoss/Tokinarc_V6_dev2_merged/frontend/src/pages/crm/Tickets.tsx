@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Ticket as TicketIcon, Check, Plus } from 'lucide-react'
+import { Ticket as TicketIcon, Check, Plus, PlayCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { fetchAll } from '@/lib/list'
@@ -31,15 +31,25 @@ export function TicketsPage() {
     queryFn: () => fetchAll<Ticket>('/crm/tickets/'),
   })
 
-  const resolve = useMutation({
-    mutationFn: (id: string) => api.post(`/crm/tickets/${id}/resolve/`),
-    onSuccess: () => {
-      toast.success('Đã đánh dấu giải quyết')
-      qc.invalidateQueries({ queryKey: ['tickets'] })
-      qc.invalidateQueries({ queryKey: ['dash'] })
-    },
+  const inval = () => {
+    qc.invalidateQueries({ queryKey: ['tickets'] })
+    qc.invalidateQueries({ queryKey: ['dash'] })
+  }
+  const accept = useMutation({
+    mutationFn: (id: string) => api.post(`/crm/tickets/${id}/accept/`),
+    onSuccess: () => { toast.success('Đã nhận xử lý'); inval() },
     onError: (e) => toast.error(apiError(e)),
   })
+  const resolve = useMutation({
+    mutationFn: (v: { id: string; resolution: string }) =>
+      api.post(`/crm/tickets/${v.id}/resolve/`, { resolution: v.resolution }),
+    onSuccess: () => { toast.success('Đã giải quyết — đã báo người tạo'); inval() },
+    onError: (e) => toast.error(apiError(e)),
+  })
+  const onResolve = (id: string) => {
+    const resolution = window.prompt('Cách xử lý / kết quả khắc phục:') ?? ''
+    if (resolution !== null) resolve.mutate({ id, resolution })
+  }
 
   const items = data?.items ?? []
   const count = (s: Ticket['status']) => items.filter((t) => t.status === s).length
@@ -63,29 +73,35 @@ export function TicketsPage() {
       <TableCard>
         <thead>
           <tr className="border-b border-line">
-            <Th>Mã</Th><Th>Khách hàng</Th><Th>Tiêu đề</Th>
+            <Th>Mã</Th><Th>Khách hàng</Th><Th>Tiêu đề</Th><Th>Kỹ sư</Th>
             <Th>Ưu tiên</Th><Th>Trạng thái</Th><Th className="text-right">Hành động</Th>
           </tr>
         </thead>
         <tbody>
-          {isLoading && <RowMsg colSpan={6}>Đang tải…</RowMsg>}
-          {isError && <RowMsg colSpan={6} danger>Lỗi: {apiError(error)}</RowMsg>}
-          {data && items.length === 0 && <RowMsg colSpan={6}>Chưa có ticket nào.</RowMsg>}
+          {isLoading && <RowMsg colSpan={7}>Đang tải…</RowMsg>}
+          {isError && <RowMsg colSpan={7} danger>Lỗi: {apiError(error)}</RowMsg>}
+          {data && items.length === 0 && <RowMsg colSpan={7}>Chưa có ticket nào.</RowMsg>}
           {items.map((t) => (
             <tr key={t.id} onClick={() => openEdit(t)}
               className="border-b border-line/50 last:border-0 hover:bg-ink-3/40 cursor-pointer">
               <Td className="font-mono text-flame">{t.code}</Td>
               <Td className="text-txt-2">{t.customer_name}</Td>
               <Td className="font-medium">{t.title}</Td>
+              <Td className="text-txt-2">{t.assignee_name || t.assignee_username || <span className="text-warn">chưa giao</span>}</Td>
               <Td><Tag tone={TICKET_PRIORITY_TONE[t.priority]}>{TICKET_PRIORITY_LABEL[t.priority]}</Tag></Td>
               <Td><Tag tone={TICKET_STATUS_TONE[t.status]}>{TICKET_STATUS_LABEL[t.status]}</Tag></Td>
-              <Td className="text-right" onClick={(e) => e.stopPropagation()}>
-                {t.status === 'open' || t.status === 'in_progress' ? (
-                  <Button
-                    variant="success" size="sm"
-                    disabled={resolve.isPending && resolve.variables === t.id}
-                    onClick={() => resolve.mutate(t.id)}
-                  >
+              <Td className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                {t.status === 'open' && (
+                  <Button variant="ghost" size="sm" className="mr-1"
+                    disabled={accept.isPending && accept.variables === t.id}
+                    onClick={() => accept.mutate(t.id)}>
+                    <PlayCircle size={13} /> Nhận xử lý
+                  </Button>
+                )}
+                {(t.status === 'open' || t.status === 'in_progress') ? (
+                  <Button variant="success" size="sm"
+                    disabled={resolve.isPending && resolve.variables?.id === t.id}
+                    onClick={() => onResolve(t.id)}>
                     <Check size={13} /> Giải quyết
                   </Button>
                 ) : (

@@ -9,8 +9,11 @@ import { useAuth } from '@/lib/auth/store'
 import type { Role } from '@/lib/types'
 
 export function RequireRole({ roles, children }: { roles: Role[]; children: ReactNode }) {
-  const role = useAuth((s) => s.user?.role)
-  if (role && roles.includes(role)) return <>{children}</>
+  const user = useAuth((s) => s.user)
+  const role = user?.role
+  // superuser (is_admin) luôn vào được mục dành cho 'admin' dù role gốc khác.
+  const ok = (role && roles.includes(role)) || (roles.includes('admin') && !!user?.is_admin)
+  if (ok) return <>{children}</>
   return (
     <div className="max-w-md mx-auto mt-20 text-center">
       <ShieldAlert size={36} className="text-danger mx-auto mb-3" />

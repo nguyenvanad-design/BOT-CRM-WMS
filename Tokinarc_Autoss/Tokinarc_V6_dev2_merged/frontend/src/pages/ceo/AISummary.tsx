@@ -80,8 +80,9 @@ export function CeoAISummaryPage() {
       </Card>
 
       <p className="text-[11px] text-txt-2 mt-3">
-        Số liệu lấy trực tiếp từ DB (doanh thu, công nợ, pipeline, ticket, tồn kho…); AI chỉ
-        diễn giải, không bịa số. Mỗi lần “Làm mới” gọi 1 lượt Gemini.
+        Tổng hợp từ DB: số liệu (doanh thu, công nợ, pipeline, ticket, tồn kho) <b>+ hoạt động 30 ngày</b>
+        (recap cuộc gặp/gọi khách, đếm ghi âm, hoạt động kho nhập/xuất/kiểm kê). AI chỉ diễn giải,
+        không bịa. Mỗi lần “Làm mới” gọi 1 lượt Gemini.
       </p>
     </div>
   )

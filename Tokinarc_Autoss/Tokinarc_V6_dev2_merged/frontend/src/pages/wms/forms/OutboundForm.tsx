@@ -3,7 +3,7 @@
  * Tạo đơn xuất kho kèm dòng hàng. POST /wms/outbound/.
  */
 import { useEffect } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PackageCheck, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -30,6 +30,10 @@ export function OutboundForm({ open, onClose }: { open: boolean; onClose: () => 
   const { options: customers } = useCustomerOptions()
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<Form>({ defaultValues: EMPTY })
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' })
+  const watched = (useWatch({ control, name: 'lines' }) as LineForm[] | undefined) ?? []
+  const itemLabel = (v: string) => items.find((o) => o.value === v)?.label ?? v
+  const filled = watched.filter((l) => l?.item)
+  const totalQty = filled.reduce((s, l) => s + (Number(l.qty_ordered) || 0), 0)
 
   useEffect(() => { if (open) reset(EMPTY) }, [open, reset])
 
@@ -101,6 +105,22 @@ export function OutboundForm({ open, onClose }: { open: boolean; onClose: () => 
             </div>
           ))}
         </div>
+
+        {/* Xem trước nội dung sắp tạo */}
+        {filled.length > 0 && (
+          <div className="border-t border-line pt-2 mt-1">
+            <div className="text-[11px] uppercase tracking-wide text-txt-2 mb-1">Xem trước</div>
+            <ul className="text-sm space-y-0.5">
+              {filled.map((l, i) => (
+                <li key={i} className="flex justify-between">
+                  <span className="truncate">{itemLabel(l.item)}</span>
+                  <span className="tabular-nums text-txt-2 ml-3">× {Number(l.qty_ordered) || 0}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="text-xs text-txt-2 mt-1">{filled.length} mặt hàng · tổng SL xuất <b className="text-txt">{totalQty}</b></div>
+          </div>
+        )}
       </form>
     </Modal>
   )

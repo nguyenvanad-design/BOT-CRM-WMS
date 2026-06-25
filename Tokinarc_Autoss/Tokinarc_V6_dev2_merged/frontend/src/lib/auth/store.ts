@@ -6,6 +6,9 @@ import { create } from 'zustand'
 import { api, tokens } from '@/lib/api'
 import type { User, Role } from '@/lib/types'
 
+/** Quản trị hệ thống = superuser hoặc role 'admin' (khớp is_admin từ backend). */
+export const isAdmin = (user?: User | null) => !!user?.is_admin
+
 const USER_KEY = 'tokinarc_user'
 
 function loadUser(): User | null {
@@ -22,6 +25,7 @@ interface AuthState {
   isAuthed: boolean
   login: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  updateUser: (u: User) => void
   hasRole: (...roles: Role[]) => boolean
 }
 
@@ -49,6 +53,11 @@ export const useAuth = create<AuthState>((set, get) => ({
     tokens.clear()
     localStorage.removeItem(USER_KEY)
     set({ user: null, isAuthed: false })
+  },
+
+  updateUser: (u) => {
+    localStorage.setItem(USER_KEY, JSON.stringify(u))
+    set({ user: u })
   },
 
   hasRole: (...roles) => {

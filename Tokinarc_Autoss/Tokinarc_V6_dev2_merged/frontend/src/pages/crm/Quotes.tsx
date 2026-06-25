@@ -9,9 +9,10 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { FileText, Check, ArrowRight, Plus, ShieldCheck, X } from 'lucide-react'
+import { FileText, Check, ArrowRight, Plus, ShieldCheck, X, Eye, Download, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
+import { downloadFile } from '@/lib/download'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
 import { compactVnd, formatDate, QUOTE_STATUS_LABEL, QUOTE_STATUS_TONE } from '@/lib/crm'
 import { useAuth, isManager, isCeo } from '@/lib/auth/store'
@@ -20,6 +21,7 @@ import {
   PageHeader, Tag, Button, TableCard, Th, Td, RowMsg, Pagination,
 } from '@/components/ui'
 import { QuoteForm } from '@/pages/crm/forms/QuoteForm'
+import { QuoteDetailModal } from '@/pages/crm/QuoteDetailModal'
 
 export function QuotesPage() {
   const qc = useQueryClient()
@@ -29,9 +31,11 @@ export function QuotesPage() {
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Quote | null>(null)
+  const [detail, setDetail] = useState<Quote | null>(null)
   const openCreate = () => { setEditing(null); setFormOpen(true) }
-  // Chỉ cho sửa khi còn nháp (draft) — đã gửi/duyệt thì khóa.
-  const openEdit = (q: Quote) => { if (q.status === 'draft') { setEditing(q); setFormOpen(true) } }
+  // Sửa khi báo giá CHƯA chốt (nháp / đã gửi / chờ CEO) — đã duyệt/chuyển thì khóa.
+  const EDITABLE = ['draft', 'sent', 'pending_ceo']
+  const openEdit = (q: Quote) => { if (EDITABLE.includes(q.status)) { setEditing(q); setFormOpen(true) } }
 
   const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: ['quotes', page],
@@ -98,14 +102,26 @@ export function QuotesPage() {
           {isError && <RowMsg colSpan={6} danger>Lỗi: {apiError(error)}</RowMsg>}
           {data?.results.length === 0 && <RowMsg colSpan={6}>Chưa có báo giá nào.</RowMsg>}
           {data?.results.map((q) => (
-            <tr key={q.id} onClick={() => openEdit(q)}
-              className={`border-b border-line/50 last:border-0 hover:bg-ink-3/40 ${q.status === 'draft' ? 'cursor-pointer' : ''}`}>
+            <tr key={q.id} onClick={() => setDetail(q)}
+              className="border-b border-line/50 last:border-0 hover:bg-ink-3/40 cursor-pointer">
               <Td className="font-mono text-flame">{q.code}</Td>
               <Td className="font-medium">{q.customer_name}</Td>
               <Td className="text-right tabular-nums">{compactVnd(q.total_vnd)}</Td>
               <Td className="text-txt-2">{formatDate(q.due_date)}</Td>
               <Td><Tag tone={QUOTE_STATUS_TONE[q.status]}>{QUOTE_STATUS_LABEL[q.status]}</Tag></Td>
               <Td className="text-right" onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="sm" className="mr-1" onClick={() => setDetail(q)}>
+                  <Eye size={13} /> Xem
+                </Button>
+                <Button variant="ghost" size="sm" className="mr-1"
+                  onClick={() => downloadFile(`/crm/quotes/${q.id}/export-xlsx/`, `bao_gia_${q.code}.xlsx`)}>
+                  <Download size={13} /> Excel
+                </Button>
+                {EDITABLE.includes(q.status) && (
+                  <Button variant="ghost" size="sm" className="mr-1" onClick={() => openEdit(q)}>
+                    <Pencil size={13} /> Sửa
+                  </Button>
+                )}
                 {/* Cấp 1: manager/CEO/admin duyệt báo giá nháp/đã gửi */}
                 {(q.status === 'draft' || q.status === 'sent') && canApprove && (
                   <Button
@@ -179,6 +195,7 @@ export function QuotesPage() {
       )}
 
       <QuoteForm open={formOpen} onClose={() => setFormOpen(false)} editing={editing} />
+      <QuoteDetailModal quote={detail} open={!!detail} onClose={() => setDetail(null)} />
     </div>
   )
 }

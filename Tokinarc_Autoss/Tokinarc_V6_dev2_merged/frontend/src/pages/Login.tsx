@@ -22,7 +22,7 @@ export function LoginPage() {
     setBusy(true)
     try {
       await login(data.username, data.password)
-      nav('/customers', { replace: true })
+      nav('/', { replace: true })   // RoleHome điều hướng về đúng tab theo vai trò
     } catch (e) {
       toast.error(apiError(e))
     } finally {

@@ -96,11 +96,12 @@ export const TICKET_PRIORITY_TONE: Record<TicketPriority, TagTone> = {
 
 // ── Contract ──────────────────────────────────────────────────────────────
 export const CONTRACT_STATUS_LABEL: Record<string, string> = {
-  draft: 'Nháp', pending_sign: 'Chờ ký', active: 'Hiệu lực',
-  expired: 'Hết hạn', cancelled: 'Hủy',
+  draft: 'Nháp', pending_ceo: 'Chờ CEO duyệt', rejected: 'Từ chối',
+  pending_sign: 'Chờ ký', active: 'Hiệu lực', expired: 'Hết hạn', cancelled: 'Hủy',
 }
 export const CONTRACT_STATUS_TONE: Record<string, TagTone> = {
-  draft: 'gray', pending_sign: 'warn', active: 'ok', expired: 'danger', cancelled: 'gray',
+  draft: 'gray', pending_ceo: 'warn', rejected: 'danger',
+  pending_sign: 'warn', active: 'ok', expired: 'danger', cancelled: 'gray',
 }
 
 // ── Activity ──────────────────────────────────────────────────────────────

@@ -5,27 +5,36 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ShoppingCart, Plus, Check, PackageCheck, Wallet, Trash2 } from 'lucide-react'
+import { ShoppingCart, Plus, Check, PackageCheck, Wallet, Trash2, Eye, ShieldCheck, X, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
+import { downloadFile } from '@/lib/download'
 import { compactVnd, formatVnd } from '@/lib/crm'
-import { isManager, useAuth } from '@/lib/auth/store'
+import { isManager, isCeo, useAuth } from '@/lib/auth/store'
 import { Modal } from '@/components/Modal'
 import { PageHeader, Button, StatCard, Tag, TableCard, Th, Td, RowMsg } from '@/components/ui'
+import { PODetailModal, type PODetail } from '@/pages/purchasing/PODetailModal'
 
-interface POLine { id?: string; part: string; description?: string; qty: number; unit_cost: number; qty_received?: number }
+interface POLine { id?: string; part: string; part_name?: string; description?: string; qty: number; unit_cost: number; qty_received?: number }
 interface PO {
   id: string; code: string; supplier_name: string; warehouse_code: string
-  status: string; status_display: string; total_vnd: string; paid_vnd: string; debt_vnd: number; lines: POLine[]
+  status: string; status_display: string; total_vnd: string; paid_vnd: string; debt_vnd: number
+  requires_l2?: boolean; owner_username?: string; notes?: string; lines: POLine[]
 }
-const TONE: Record<string, 'gray' | 'blue' | 'warn' | 'ok' | 'danger'> = {
-  draft: 'gray', ordered: 'blue', partial: 'warn', received: 'ok', cancelled: 'danger',
+const TONE: Record<string, 'gray' | 'blue' | 'warn' | 'ok' | 'danger' | 'purple'> = {
+  draft: 'gray', pending_ceo: 'warn', approved: 'blue', rejected: 'danger',
+  ordered: 'purple', partial: 'warn', received: 'ok', cancelled: 'danger',
 }
 
 export function PurchaseOrdersPage() {
   const qc = useQueryClient()
-  const canManage = isManager(useAuth((s) => s.user?.role))
+  const role = useAuth((s) => s.user?.role)
+  const canManage = isManager(role)
+  const canApproveL2 = isCeo(role)
+  // QL kho lập đơn mua + trả NCC (Mua hàng nằm trong tab WMS); duyệt vẫn là manager/CEO.
+  const canPurchase = canManage || role === 'wh_manager'
   const [open, setOpen] = useState(false)
+  const [detail, setDetail] = useState<PODetail | null>(null)
   const [payFor, setPayFor] = useState<PO | null>(null)
   const [supplier, setSupplier] = useState(''); const [warehouse, setWarehouse] = useState('')
   const [lines, setLines] = useState<POLine[]>([{ part: '', qty: 1, unit_cost: 0 }])
@@ -45,11 +54,30 @@ export function PurchaseOrdersPage() {
     onSuccess: (r) => { toast.success(`Đã tạo ${r.data.code}`); invalidate(); setOpen(false); setLines([{ part: '', qty: 1, unit_cost: 0 }]); setSupplier('') },
     onError: (e) => toast.error(apiError(e)),
   })
+  const ACT_MSG: Record<string, string> = {
+    confirm: 'Đã đặt hàng', receive: 'Đã nhận → cộng tồn',
+    approve: 'Đã duyệt đơn mua', 'approve-l2': 'CEO đã duyệt cấp 2',
+  }
   const act = useMutation({
-    mutationFn: (v: { id: string; what: 'confirm' | 'receive' }) => api.post(`/purchasing/orders/${v.id}/${v.what}/`),
-    onSuccess: (_r, v) => { toast.success(v.what === 'confirm' ? 'Đã đặt hàng' : 'Đã nhận → cộng tồn'); invalidate() },
+    mutationFn: (v: { id: string; what: 'confirm' | 'receive' | 'approve' | 'approve-l2' }) =>
+      api.post(`/purchasing/orders/${v.id}/${v.what}/`),
+    onSuccess: (r, v) => {
+      const msg = v.what === 'approve' && r.data?.status === 'pending_ceo'
+        ? 'Đã duyệt cấp 1 — chuyển CEO duyệt cấp 2' : (ACT_MSG[v.what] ?? 'Đã cập nhật')
+      toast.success(msg); invalidate()
+    },
     onError: (e) => toast.error(apiError(e)),
   })
+  const reject = useMutation({
+    mutationFn: (v: { id: string; reason: string }) =>
+      api.post(`/purchasing/orders/${v.id}/reject/`, { reason: v.reason }),
+    onSuccess: () => { toast.success('Đã từ chối đơn mua'); invalidate() },
+    onError: (e) => toast.error(apiError(e)),
+  })
+  const onReject = (id: string) => {
+    const reason = window.prompt('Lý do từ chối đơn mua?') ?? ''
+    if (reason !== null) reject.mutate({ id, reason })
+  }
   const pay = useMutation({
     mutationFn: () => api.post('/purchasing/payments/', { po: payFor!.id, amount_vnd: Number(payAmt), paid_at: new Date().toISOString().slice(0, 10) }),
     onSuccess: () => { toast.success('Đã ghi thanh toán'); invalidate(); setPayFor(null); setPayAmt('') },
@@ -62,7 +90,7 @@ export function PurchaseOrdersPage() {
         subtitle={orders.data ? `${orders.data.length} đơn` : undefined}
         actions={
           <>
-            {canManage && (
+            {canPurchase && (
               <Button variant="ghost" onClick={async () => {
                 try {
                   const res = await api.get('/purchasing/payments/export-misa/', { responseType: 'blob' })
@@ -72,7 +100,7 @@ export function PurchaseOrdersPage() {
                 } catch (e) { toast.error(apiError(e)) }
               }}><Wallet size={14} /> Xuất phiếu chi (MISA)</Button>
             )}
-            {canManage && <Button onClick={() => setOpen(true)}><Plus size={14} /> Tạo PO</Button>}
+            {canPurchase && <Button onClick={() => setOpen(true)}><Plus size={14} /> Tạo PO</Button>}
           </>
         } />
 
@@ -97,13 +125,39 @@ export function PurchaseOrdersPage() {
               <Td className="text-right tabular-nums">{o.debt_vnd > 0 ? <span className="text-warn">{formatVnd(o.debt_vnd)}</span> : <span className="text-ok">Đã trả</span>}</Td>
               <Td><Tag tone={TONE[o.status] ?? 'gray'}>{o.status_display}</Tag></Td>
               <Td className="text-right whitespace-nowrap">
+                <Button size="sm" variant="ghost" className="mr-1" onClick={() => setDetail(o as PODetail)}>
+                  <Eye size={13} /> Xem
+                </Button>
+                <Button size="sm" variant="ghost" className="mr-1"
+                  onClick={() => downloadFile(`/purchasing/orders/${o.id}/export-xlsx/`, `don_mua_${o.code}.xlsx`)}>
+                  <Download size={13} /> Excel
+                </Button>
+                {/* Duyệt cấp 1 (manager+) cho đơn nháp */}
                 {o.status === 'draft' && canManage && (
+                  <>
+                    <Button size="sm" variant="success" className="mr-1" onClick={() => act.mutate({ id: o.id, what: 'approve' })}>
+                      <Check size={13} /> Duyệt{o.requires_l2 ? ' (cấp 1)' : ''}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="mr-1" onClick={() => onReject(o.id)}><X size={13} /> Từ chối</Button>
+                  </>
+                )}
+                {/* Duyệt cấp 2 (CEO) cho đơn vượt ngưỡng */}
+                {o.status === 'pending_ceo' && canApproveL2 && (
+                  <Button size="sm" variant="success" className="mr-1" onClick={() => act.mutate({ id: o.id, what: 'approve-l2' })}>
+                    <ShieldCheck size={13} /> Duyệt cấp 2 (CEO)
+                  </Button>
+                )}
+                {o.status === 'pending_ceo' && !canApproveL2 && (
+                  <span className="text-[11px] text-txt-2 mr-1">Chờ CEO duyệt</span>
+                )}
+                {/* Đặt hàng sau khi đã duyệt */}
+                {o.status === 'approved' && canPurchase && (
                   <Button size="sm" className="mr-1" onClick={() => act.mutate({ id: o.id, what: 'confirm' })}><Check size={13} /> Đặt</Button>
                 )}
                 {(o.status === 'ordered' || o.status === 'partial') && (
                   <Button size="sm" variant="success" className="mr-1" onClick={() => act.mutate({ id: o.id, what: 'receive' })}><PackageCheck size={13} /> Nhận</Button>
                 )}
-                {o.debt_vnd > 0 && canManage && (
+                {o.debt_vnd > 0 && canPurchase && (
                   <Button size="sm" variant="ghost" onClick={() => setPayFor(o)}><Wallet size={13} /> Trả</Button>
                 )}
               </Td>
@@ -149,6 +203,8 @@ export function PurchaseOrdersPage() {
         <input placeholder="Số tiền trả" type="number" value={payAmt} onChange={(e) => setPayAmt(e.target.value)}
           className="w-full bg-ink-3 border border-line rounded-md px-3 py-2 text-sm" />
       </Modal>
+
+      <PODetailModal po={detail} open={!!detail} onClose={() => setDetail(null)} />
     </div>
   )
 }

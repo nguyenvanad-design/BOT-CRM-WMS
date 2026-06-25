@@ -5,9 +5,10 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { PackageCheck, Check, Plus, ScanLine } from 'lucide-react'
+import { PackageCheck, Check, Plus, ScanLine, Eye, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
+import { downloadFile } from '@/lib/download'
 import { fetchAll } from '@/lib/list'
 import { formatDate } from '@/lib/crm'
 import { INBOUND_STATUS_LABEL, INBOUND_STATUS_TONE } from '@/lib/wms'
@@ -17,11 +18,13 @@ import {
 } from '@/components/ui'
 import { InboundForm } from '@/pages/wms/forms/InboundForm'
 import { ScanOrderModal } from '@/pages/wms/ScanOrderModal'
+import { OrderLinesModal } from '@/pages/wms/OrderLinesModal'
 
 export function InboundPage() {
   const qc = useQueryClient()
   const [formOpen, setFormOpen] = useState(false)
   const [scanId, setScanId] = useState<string | null>(null)
+  const [viewOrder, setViewOrder] = useState<InboundOrder | null>(null)
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['wms-inbound-list'],
     queryFn: () => fetchAll<InboundOrder>('/wms/inbound/'),
@@ -67,6 +70,14 @@ export function InboundPage() {
               <Td className="text-txt-2">{formatDate(o.received_at)}</Td>
               <Td><Tag tone={INBOUND_STATUS_TONE[o.status]}>{INBOUND_STATUS_LABEL[o.status]}</Tag></Td>
               <Td className="text-right">
+                <span className="inline-flex gap-1.5 items-center">
+                <Button variant="ghost" size="sm" onClick={() => setViewOrder(o)}>
+                  <Eye size={13} /> Xem
+                </Button>
+                <Button variant="ghost" size="sm"
+                  onClick={() => downloadFile(`/wms/inbound/${o.id}/export-xlsx/`, `phieu_nhap_${o.code}.xlsx`)}>
+                  <Download size={13} /> Excel
+                </Button>
                 {(o.status === 'draft' || o.status === 'confirmed' || o.status === 'partial') ? (
                   <span className="inline-flex gap-1.5">
                     <Button variant="ghost" size="sm" onClick={() => setScanId(o.id)}>
@@ -83,7 +94,8 @@ export function InboundPage() {
                       <Check size={13} /> Nhận đủ
                     </Button>
                   </span>
-                ) : <span className="text-[11px] text-txt-2">—</span>}
+                ) : null}
+                </span>
               </Td>
             </tr>
           ))}
@@ -92,6 +104,20 @@ export function InboundPage() {
 
       <InboundForm open={formOpen} onClose={() => setFormOpen(false)} />
       <ScanOrderModal open={!!scanId} onClose={() => setScanId(null)} kind="inbound" orderId={scanId} />
+      <OrderLinesModal
+        open={!!viewOrder} onClose={() => setViewOrder(null)}
+        title={`Phiếu nhập ${viewOrder?.code ?? ''}`}
+        meta={viewOrder && (
+          <div className="text-sm text-txt-2">
+            Trạng thái: <Tag tone={INBOUND_STATUS_TONE[viewOrder.status]}>{INBOUND_STATUS_LABEL[viewOrder.status]}</Tag>
+          </div>
+        )}
+        q1Label="SL dự kiến" q2Label="Đã nhận"
+        lines={(viewOrder?.lines ?? []).map((l, i) => ({
+          key: l.id ?? String(i), name: l.part_name ?? '', code: l.part ?? l.torch ?? '—',
+          q1: l.qty_expected, q2: l.qty_received,
+        }))}
+      />
     </div>
   )
 }

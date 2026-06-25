@@ -5,9 +5,10 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { PackageCheck, Truck, ClipboardList, Plus, ScanLine } from 'lucide-react'
+import { PackageCheck, Truck, ClipboardList, Plus, ScanLine, Eye, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
+import { downloadFile } from '@/lib/download'
 import { fetchAll } from '@/lib/list'
 import { OUTBOUND_STATUS_LABEL, OUTBOUND_STATUS_TONE, RULE_LABEL } from '@/lib/wms'
 import type { OutboundOrder } from '@/lib/types'
@@ -17,6 +18,7 @@ import {
 import { Modal } from '@/components/Modal'
 import { OutboundForm } from '@/pages/wms/forms/OutboundForm'
 import { ScanOrderModal } from '@/pages/wms/ScanOrderModal'
+import { OrderLinesModal } from '@/pages/wms/OrderLinesModal'
 
 interface Pick { id: string; bin_code: string; qty: number; is_picked: boolean; serial: string | null }
 
@@ -26,6 +28,7 @@ export function OutboundPage() {
   const [pickFor, setPickFor] = useState<OutboundOrder | null>(null)
   const [picks, setPicks] = useState<Pick[] | null>(null)
   const [scanId, setScanId] = useState<string | null>(null)
+  const [viewOrder, setViewOrder] = useState<OutboundOrder | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['wms-outbound-list'],
@@ -86,6 +89,13 @@ export function OutboundPage() {
               <Td className="text-right tabular-nums">{o.lines?.length ?? 0}</Td>
               <Td><Tag tone={OUTBOUND_STATUS_TONE[o.status]}>{OUTBOUND_STATUS_LABEL[o.status]}</Tag></Td>
               <Td className="text-right whitespace-nowrap">
+                <Button variant="ghost" size="sm" className="mr-1.5" onClick={() => setViewOrder(o)}>
+                  <Eye size={13} /> Xem
+                </Button>
+                <Button variant="ghost" size="sm" className="mr-1.5"
+                  onClick={() => downloadFile(`/wms/outbound/${o.id}/export-xlsx/`, `phieu_xuat_${o.code}.xlsx`)}>
+                  <Download size={13} /> Excel
+                </Button>
                 <Button variant="ghost" size="sm" className="mr-1.5"
                   disabled={viewPicks.isPending} onClick={() => viewPicks.mutate(o)}>
                   <ClipboardList size={13} /> Pick-list
@@ -118,6 +128,21 @@ export function OutboundPage() {
 
       <OutboundForm open={formOpen} onClose={() => setFormOpen(false)} />
       <ScanOrderModal open={!!scanId} onClose={() => setScanId(null)} kind="outbound" orderId={scanId} />
+      <OrderLinesModal
+        open={!!viewOrder} onClose={() => setViewOrder(null)}
+        title={`Phiếu xuất ${viewOrder?.code ?? ''}`}
+        meta={viewOrder && (
+          <div className="text-sm text-txt-2 flex gap-4">
+            <span>Trạng thái: <Tag tone={OUTBOUND_STATUS_TONE[viewOrder.status]}>{OUTBOUND_STATUS_LABEL[viewOrder.status]}</Tag></span>
+            {viewOrder.sales_order_code && <span>Đơn bán: <span className="font-mono">{viewOrder.sales_order_code}</span></span>}
+          </div>
+        )}
+        q1Label="SL đặt" q2Label="Đã soạn"
+        lines={(viewOrder?.lines ?? []).map((l, i) => ({
+          key: l.id ?? String(i), name: l.part_name ?? '', code: l.part ?? l.torch ?? '—',
+          q1: l.qty_ordered, q2: l.qty_picked,
+        }))}
+      />
 
       <Modal open={!!pickFor} onClose={() => setPickFor(null)}
         title={`Pick-list — ${pickFor?.code ?? ''}`}
