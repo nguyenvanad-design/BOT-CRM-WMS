@@ -30,11 +30,14 @@ class Supplier(BaseModel, SoftDeleteMixin):
 
 
 class PurchaseStatus(models.TextChoices):
-    DRAFT     = 'draft',     'Nháp'
-    ORDERED   = 'ordered',   'Đã đặt'
-    PARTIAL   = 'partial',   'Nhận một phần'
-    RECEIVED  = 'received',  'Đã nhận đủ'
-    CANCELLED = 'cancelled', 'Hủy'
+    DRAFT       = 'draft',       'Nháp'            # đề xuất — chờ duyệt cấp 1
+    PENDING_CEO = 'pending_ceo', 'Chờ CEO duyệt'   # qua cấp 1, vượt ngưỡng
+    APPROVED    = 'approved',    'Đã duyệt'        # duyệt xong — chờ đặt hàng
+    REJECTED    = 'rejected',    'Từ chối'
+    ORDERED     = 'ordered',     'Đã đặt'
+    PARTIAL     = 'partial',     'Nhận một phần'
+    RECEIVED    = 'received',    'Đã nhận đủ'
+    CANCELLED   = 'cancelled',   'Hủy'
 
 
 class PurchaseOrder(BaseModel, SoftDeleteMixin):
@@ -52,6 +55,15 @@ class PurchaseOrder(BaseModel, SoftDeleteMixin):
                                     related_name='purchase_orders')
     notes       = models.TextField(blank=True)
     received_at = models.DateTimeField(null=True, blank=True)
+    # Duyệt 2 cấp (giống Báo giá): cấp 1 = manager, cấp 2 = CEO (vượt ngưỡng).
+    l1_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name='l1_approved_pos')
+    l1_approved_at = models.DateTimeField(null=True, blank=True)
+    l2_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name='l2_approved_pos')
+    l2_approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name='approved_pos')
 
     class Meta:
         db_table = 'pur_order'
@@ -68,6 +80,12 @@ class PurchaseOrder(BaseModel, SoftDeleteMixin):
     def recompute_total(self):
         agg = self.lines.aggregate(s=models.Sum('line_total'))
         self.total_vnd = agg['s'] or 0
+
+    def requires_l2(self) -> bool:
+        """Đơn mua ≥ ngưỡng PO_L2_THRESHOLD_VND cần duyệt cấp 2 (CEO)."""
+        from django.conf import settings as dj_settings
+        threshold = getattr(dj_settings, 'PO_L2_THRESHOLD_VND', 100_000_000)
+        return (self.total_vnd or 0) >= threshold
 
 
 class PurchaseOrderLine(models.Model):

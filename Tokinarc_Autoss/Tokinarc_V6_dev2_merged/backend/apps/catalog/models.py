@@ -76,6 +76,8 @@ class Torch(models.Model):
 
     # Pricing (flatten từ business)
     price_vnd         = models.DecimalField(max_digits=14, decimal_places=0, null=True, blank=True)
+    # Giá vốn bình quân gia quyền (WAC) — NHẠY CẢM, chỉ manager+ xem. Tự cập nhật khi nhập kho.
+    cost_vnd          = models.DecimalField(max_digits=14, decimal_places=0, null=True, blank=True)
     price_unit        = models.CharField(max_length=10, default='cái')
     price_note        = models.TextField(blank=True)
     is_contact_price  = models.BooleanField(default=False)
@@ -139,6 +141,8 @@ class Part(models.Model):
 
     # Pricing (flatten từ business)
     price_vnd        = models.DecimalField(max_digits=14, decimal_places=0, null=True, blank=True)
+    # Giá vốn bình quân (WAC) — NHẠY CẢM, chỉ manager+ xem. Tự cập nhật khi nhập kho.
+    cost_vnd         = models.DecimalField(max_digits=14, decimal_places=0, null=True, blank=True)
     price_unit       = models.CharField(max_length=10, default='cái')
     price_note       = models.TextField(blank=True)
     is_contact_price = models.BooleanField(default=False)

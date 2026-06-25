@@ -8,10 +8,14 @@ from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 
 from apps.accounts.roles import (
-    INTERNAL_ROLES, MANAGER_ROLES, WMS_OP_ROLES, role_of,
+    CEO_ROLES, INTERNAL_ROLES, MANAGER_ROLES, WMS_OP_ROLES, Role,
+    is_ceo, is_manager, role_of,
 )
-from apps.common.models import AuditLog
+from apps.common.models import AuditLog, notify, notify_roles
 from apps.wms import services as wms_services
+
+# Nhân viên kho (NV kho + quản lý kho) — nhận noti "đơn mua đã duyệt, hàng sắp về".
+WAREHOUSE_STAFF = frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER})
 
 from .models import PurchaseOrder, PurchasePayment, PurchaseStatus, Supplier
 from .serializers import (
@@ -19,20 +23,29 @@ from .serializers import (
 )
 
 
+PO_WRITE_ROLES = MANAGER_ROLES | {Role.WAREHOUSE_MANAGER}   # QL kho lập đơn mua (Mua hàng ở tab WMS)
+
+
 class PurchasingPermission(permissions.BasePermission):
-    """Đọc: nhân viên nội bộ. Ghi (tạo/sửa PO, NCC, thanh toán): manager/CEO/admin."""
+    """Đọc: nhân viên nội bộ. Tạo/sửa PO+NCC: QL kho + manager/CEO/admin.
+    Duyệt: kiểm tra is_manager/is_ceo trong từng action (CEO duyệt đơn mua)."""
     message = "Bạn không có quyền với phân hệ Mua hàng."
 
     def has_permission(self, request, view):
         r = role_of(request.user) if request.user.is_authenticated else None
         if not r or r not in INTERNAL_ROLES:
             return False
+        action = getattr(view, 'action', None)
         if request.method in SAFE_METHODS:
-            return True
+            # Nhân viên kho THUẦN không xem danh sách Mua hàng / NCC (việc của QL kho trở lên);
+            # vẫn cho xem chi tiết 1 PO (retrieve) để phục vụ nhận hàng.
+            if r in PO_WRITE_ROLES:
+                return True
+            return action == 'retrieve' and r in WMS_OP_ROLES
         # Nhận hàng theo PO: cho phép vai trò kho (kiểm tra kỹ trong action).
-        if getattr(view, 'action', None) == 'receive':
+        if action == 'receive':
             return r in WMS_OP_ROLES
-        return r in MANAGER_ROLES
+        return r in PO_WRITE_ROLES
 
 
 class SupplierViewSet(viewsets.ModelViewSet):
@@ -58,13 +71,122 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
                              created_by=self.request.user, updated_by=self.request.user)
         AuditLog.record(user=self.request.user, action='create', entity='pur.PurchaseOrder',
                         entity_id=po.id, diff={'code': po.code})
+        # Báo manager+: có đơn mua mới cần duyệt (trừ người tạo).
+        notify_roles(MANAGER_ROLES, 'po_approval',
+                     f"Đơn mua {po.code} ({po.supplier.name}) cần duyệt.",
+                     link='/ceo/approvals', exclude_user=self.request.user)
+
+    def _finalize_approved(self, po, request):
+        """Hoàn tất duyệt → APPROVED; báo người tạo + nhân viên kho (hàng sắp về)."""
+        po.approved_by = request.user
+        po.status = PurchaseStatus.APPROVED
+        po.save(update_fields=['status', 'approved_by', 'updated_at'])
+        notify(po.owner, 'po_approved',
+               f"Đơn mua {po.code} đã được duyệt — có thể đặt hàng.", link='/purchasing/orders')
+        notify_roles(WAREHOUSE_STAFF, 'po_approved',
+                     f"Đơn mua {po.code} ({po.supplier.name}) đã duyệt — hàng sắp về, chuẩn bị nhận.",
+                     link='/wms/inbound')
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Duyệt cấp 1 (manager/CEO/admin). Vượt ngưỡng → chờ CEO duyệt cấp 2."""
+        if not is_manager(request.user):
+            return Response({'detail': 'Chỉ quản lý/CEO/admin được duyệt đơn mua.'}, status=403)
+        po = self.get_object()
+        if po.status != PurchaseStatus.DRAFT:
+            return Response({'detail': 'Chỉ duyệt được đơn ở trạng thái nháp.', 'code': 'CONFLICT'}, status=409)
+        now = timezone.now()
+        po.l1_approved_by = request.user
+        po.l1_approved_at = now
+        if po.requires_l2():
+            po.status = PurchaseStatus.PENDING_CEO
+            po.save(update_fields=['status', 'l1_approved_by', 'l1_approved_at', 'updated_at'])
+            notify_roles(CEO_ROLES, 'po_approval',
+                         f"Đơn mua {po.code} ({po.supplier.name}) chờ CEO duyệt cấp 2.",
+                         link='/ceo/approvals')
+            AuditLog.record(user=request.user, action='approve_l1', entity='pur.PurchaseOrder',
+                            entity_id=po.id, diff={'next': 'pending_ceo'})
+        else:
+            po.save(update_fields=['l1_approved_by', 'l1_approved_at', 'updated_at'])
+            self._finalize_approved(po, request)
+            AuditLog.record(user=request.user, action='approve', entity='pur.PurchaseOrder',
+                            entity_id=po.id, diff={'level': 1})
+        return Response(PurchaseOrderSerializer(po).data)
+
+    @action(detail=True, methods=['post'], url_path='approve-l2')
+    def approve_l2(self, request, pk=None):
+        """Duyệt cấp 2 (CEO/admin) cho đơn mua vượt ngưỡng đang chờ."""
+        po = self.get_object()
+        if not is_ceo(request.user):
+            return Response({'detail': 'Chỉ CEO/admin được duyệt cấp 2.'}, status=403)
+        if po.status != PurchaseStatus.PENDING_CEO:
+            return Response({'detail': f'Đơn mua ở trạng thái {po.status}, không chờ CEO duyệt.',
+                             'code': 'CONFLICT'}, status=409)
+        if role_of(request.user) != 'admin' and request.user.id in (po.owner_id, po.l1_approved_by_id):
+            return Response({'detail': 'Không thể tự duyệt cấp 2 đơn mình tạo/đã duyệt cấp 1.'}, status=403)
+        po.l2_approved_by = request.user
+        po.l2_approved_at = timezone.now()
+        po.save(update_fields=['l2_approved_by', 'l2_approved_at', 'updated_at'])
+        self._finalize_approved(po, request)
+        AuditLog.record(user=request.user, action='approve', entity='pur.PurchaseOrder',
+                        entity_id=po.id, diff={'level': 2})
+        return Response(PurchaseOrderSerializer(po).data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Từ chối đơn mua (manager+) kèm lý do; báo người tạo."""
+        if not is_manager(request.user):
+            return Response({'detail': 'Chỉ quản lý/CEO/admin được từ chối.'}, status=403)
+        po = self.get_object()
+        if po.status not in (PurchaseStatus.DRAFT, PurchaseStatus.PENDING_CEO):
+            return Response({'detail': 'Chỉ từ chối được đơn đang chờ duyệt.', 'code': 'CONFLICT'}, status=409)
+        reason = str(request.data.get('reason', '')).strip()
+        po.status = PurchaseStatus.REJECTED
+        if reason:
+            po.notes = (po.notes + f'\n[Từ chối] {reason}').strip()
+        po.save(update_fields=['status', 'notes', 'updated_at'])
+        notify(po.owner, 'po_rejected',
+               f"Đơn mua {po.code} bị từ chối. {reason}".strip(), link='/purchasing/orders')
+        AuditLog.record(user=request.user, action='reject', entity='pur.PurchaseOrder',
+                        entity_id=po.id, diff={'reason': reason})
+        return Response(PurchaseOrderSerializer(po).data)
+
+    @action(detail=False, methods=['get'], url_path='pending-approvals')
+    def pending_approvals(self, request):
+        """Đơn mua đang chờ duyệt cho trang Duyệt tập trung (manager+ thấy tất cả)."""
+        qs = (self.get_queryset()
+              .filter(status__in=[PurchaseStatus.DRAFT, PurchaseStatus.PENDING_CEO])
+              .order_by('-created_at'))
+        return Response({'results': PurchaseOrderSerializer(qs, many=True).data, 'count': qs.count()})
+
+    @action(detail=True, methods=['get'], url_path='export-xlsx')
+    def export_xlsx(self, request, pk=None):
+        """Xuất đề xuất/đơn mua ra Excel (đầu trang NCC + bảng dòng + ô duyệt)."""
+        from apps.common.company import vnd_to_words
+        from apps.common.excel import make_document_xlsx, supplier_party, xlsx_response
+        po = self.get_object()
+        rows = [(l.part_id, getattr(l.part, 'display_name_vi', '') or '', l.qty,
+                 int(l.unit_cost or 0), int(l.line_total or 0)) for l in po.lines.all()]
+        data = make_document_xlsx(
+            sheet_title='DonMua', doc_title='ĐỀ XUẤT / ĐƠN MUA HÀNG', doc_code=po.code,
+            doc_date=po.created_at.strftime('%d/%m/%Y'),
+            party_label='NHÀ CUNG CẤP:', party=supplier_party(po.supplier),
+            meta=[('Kho nhận:', po.warehouse.code),
+                  ('Người đề xuất:', po.owner.username if po.owner_id else '—'),
+                  ('Trạng thái:', po.get_status_display())],
+            columns=[('Mã part', 16, 'text'), ('Tên hàng', 40, 'text'), ('SL', 8, 'int'),
+                     ('Đơn giá', 16, 'money'), ('Thành tiền', 18, 'money')],
+            rows=rows, total_label='TỔNG CỘNG', total_value=int(po.total_vnd or 0),
+            amount_words=vnd_to_words(po.total_vnd),
+            signatures=['NGƯỜI ĐỀ XUẤT', 'DUYỆT CẤP 1 (QL)', 'DUYỆT CẤP 2 (CEO)'])
+        return xlsx_response(data, f'don_mua_{po.code}.xlsx')
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
-        """Đặt hàng: draft → ordered."""
+        """Đặt hàng: approved → ordered (chỉ sau khi đã duyệt)."""
         po = self.get_object()
-        if po.status != PurchaseStatus.DRAFT:
-            return Response({'detail': 'Chỉ đặt được đơn nháp.', 'code': 'CONFLICT'}, status=409)
+        if po.status != PurchaseStatus.APPROVED:
+            return Response({'detail': 'Chỉ đặt được đơn đã duyệt.', 'code': 'CONFLICT'}, status=409)
         po.status = PurchaseStatus.ORDERED
         po.order_date = po.order_date or timezone.now().date()
         po.save(update_fields=['status', 'order_date'])
@@ -97,6 +219,9 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
                 return Response({'detail': f'Kho {po.warehouse.code} chưa có ô (bin) để nhận.'}, status=400)
             wms_services.receive_stock(bin_obj=bin_obj, part=line.part, qty=take,
                                        user=request.user, ref_id=po.code)
+            # Kết chuyển giá vốn bình quân (WAC) từ giá mua thực của dòng.
+            from apps.catalog.costing import update_wac
+            update_wac(line.part, take, line.unit_cost)
             line.qty_received += take
             line.save(update_fields=['qty_received'])
             received_any = True
@@ -152,10 +277,15 @@ class PurchasePaymentViewSet(viewsets.ModelViewSet):
         if request.query_params.get('to'):
             qs = qs.filter(paid_at__lte=request.query_params['to'])
         wb = Workbook(); ws = wb.active; ws.title = 'PhieuChi_MISA'
-        ws.append(['Ngay', 'Don mua', 'Ma NCC', 'Ten NCC', 'So tien', 'Hinh thuc', 'Tham chieu'])
+        ws.append(['Ngay', 'Don mua', 'Ma NCC', 'Ten NCC', 'MST', 'Dien thoai', 'Dia chi',
+                   'So tien', 'Hinh thuc', 'Tham chieu'])
         for p in qs:
-            ws.append([p.paid_at.isoformat(), p.po.code, p.po.supplier.code,
-                       p.po.supplier.name, int(p.amount_vnd), p.method, p.reference])
+            s = p.po.supplier
+            ws.append([p.paid_at.isoformat(), p.po.code, s.code, s.name,
+                       s.tax_code or '', s.phone or '', s.address or '',
+                       int(p.amount_vnd), p.method, p.reference])
+        from apps.common.excel import style_table_sheet
+        style_table_sheet(ws, widths=[12, 14, 10, 28, 14, 14, 36, 14, 12, 16])
         buf = io.BytesIO(); wb.save(buf); buf.seek(0)
         resp = HttpResponse(buf.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

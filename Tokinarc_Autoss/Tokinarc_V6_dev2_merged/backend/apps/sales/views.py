@@ -10,8 +10,11 @@ from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.accounts.roles import is_manager
-from apps.common.models import AuditLog
+from apps.accounts.roles import Role, is_manager
+from apps.common.models import AuditLog, notify_roles
+
+# Nhân viên kho (NV kho + quản lý kho) — nhận noti "có việc kho mới".
+WAREHOUSE_STAFF = frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER})
 
 from . import services
 from .models import Invoice, Payment, SalesOrder
@@ -28,6 +31,15 @@ def _publish(channel, payload):
         publish(channel, payload)
     except Exception:
         pass
+
+
+def _customer_contact_addr(cust):
+    """Trả (SĐT người liên hệ chính, địa chỉ chuỗi) của KH — cho xuất Excel."""
+    addr = cust.address if isinstance(cust.address, dict) else {}
+    address = ', '.join(x for x in [addr.get('street'), addr.get('district'),
+                                    addr.get('city')] if x)
+    pc = cust.contacts.filter(is_primary=True).first() or cust.contacts.first()
+    return (pc.phone if pc else ''), address
 
 
 def _create_outbound_for_order(order, user) -> str | None:
@@ -56,6 +68,10 @@ def _create_outbound_for_order(order, user) -> str | None:
             OutboundLine.objects.create(
                 outbound=ob, part=Part.objects.filter(pk=ol.part_id).first(),
                 qty_ordered=ol.qty, order_idx=idx)
+    # Báo nhân viên kho: có phiếu xuất mới cần soạn/giao hàng.
+    notify_roles(WAREHOUSE_STAFF, 'outbound_created',
+                 f"Phiếu xuất {code} cần soạn hàng cho KH {order.customer.name}.",
+                 link='/wms/outbound')
     return code
 
 
@@ -247,10 +263,16 @@ class PaymentViewSet(viewsets.ModelViewSet):
         if request.query_params.get('to'):
             qs = qs.filter(paid_at__lte=request.query_params['to'])
         wb = Workbook(); ws = wb.active; ws.title = 'PhieuThu_MISA'
-        ws.append(['Ngay', 'Don hang', 'Ma KH', 'Ten KH', 'So tien', 'Hinh thuc', 'Tham chieu'])
+        ws.append(['Ngay', 'Don hang', 'Ma KH', 'Ten KH', 'MST', 'Dien thoai', 'Dia chi',
+                   'So tien', 'Hinh thuc', 'Tham chieu'])
         for p in qs:
-            ws.append([p.paid_at.isoformat(), p.order.code, p.order.customer.code,
-                       p.order.customer.name, int(p.amount_vnd), p.method, p.reference])
+            cust = p.order.customer
+            phone, address = _customer_contact_addr(cust)
+            ws.append([p.paid_at.isoformat(), p.order.code, cust.code, cust.name,
+                       cust.tax_code or '', phone, address,
+                       int(p.amount_vnd), p.method, p.reference])
+        from apps.common.excel import style_table_sheet
+        style_table_sheet(ws, widths=[12, 14, 10, 28, 14, 14, 36, 14, 12, 16])
         buf = io.BytesIO(); wb.save(buf); buf.seek(0)
         resp = HttpResponse(buf.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -283,13 +305,16 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
         if request.query_params.get('all') != '1':
             qs = qs.filter(misa_status='pending')
         wb = Workbook(); ws = wb.active; ws.title = 'HoaDon_MISA'
-        ws.append(['Ma de nghi', 'Ngay', 'Ma KH', 'Ten KH', 'MST', 'Don hang',
-                   'Tien hang', 'Thue %', 'Tien thue', 'Tong cong'])
+        ws.append(['Ma de nghi', 'Ngay', 'Ma KH', 'Ten KH', 'MST', 'Dien thoai', 'Dia chi',
+                   'Don hang', 'Tien hang', 'Thue %', 'Tien thue', 'Tong cong'])
         for inv in qs.select_related('customer', 'order'):
+            phone, address = _customer_contact_addr(inv.customer)
             ws.append([inv.code, inv.issue_date.isoformat(), inv.customer.code,
-                       inv.customer.name, inv.customer.tax_code, inv.order.code,
-                       int(inv.subtotal_vnd), float(inv.tax_pct), int(inv.tax_vnd),
-                       int(inv.total_vnd)])
+                       inv.customer.name, inv.customer.tax_code or '', phone, address,
+                       inv.order.code, int(inv.subtotal_vnd), float(inv.tax_pct),
+                       int(inv.tax_vnd), int(inv.total_vnd)])
+        from apps.common.excel import style_table_sheet
+        style_table_sheet(ws, widths=[14, 12, 10, 28, 14, 14, 36, 14, 14, 8, 14, 16])
         buf = io.BytesIO(); wb.save(buf); buf.seek(0)
         resp = HttpResponse(buf.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

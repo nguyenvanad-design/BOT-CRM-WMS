@@ -29,16 +29,23 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     supplier_name = serializers.CharField(source='supplier.name', read_only=True)
     warehouse_code = serializers.CharField(source='warehouse.code', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    owner_username = serializers.CharField(source='owner.username', read_only=True)
     debt_vnd = serializers.IntegerField(read_only=True)
+    requires_l2 = serializers.SerializerMethodField()
 
     class Meta:
         model = PurchaseOrder
         fields = ['id', 'code', 'supplier', 'supplier_name', 'warehouse', 'warehouse_code',
                   'status', 'status_display', 'order_date', 'expected_date',
-                  'total_vnd', 'paid_vnd', 'debt_vnd', 'owner', 'notes',
-                  'received_at', 'lines', 'created_at']
+                  'total_vnd', 'paid_vnd', 'debt_vnd', 'owner', 'owner_username', 'notes',
+                  'received_at', 'requires_l2', 'l1_approved_by', 'l2_approved_by', 'approved_by',
+                  'lines', 'created_at']
         read_only_fields = ['id', 'code', 'status', 'total_vnd', 'paid_vnd', 'owner',
-                            'received_at', 'created_at']
+                            'received_at', 'l1_approved_by', 'l2_approved_by', 'approved_by',
+                            'created_at']
+
+    def get_requires_l2(self, obj) -> bool:
+        return obj.requires_l2()
 
     @transaction.atomic
     def create(self, validated):

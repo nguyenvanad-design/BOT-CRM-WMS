@@ -48,6 +48,8 @@ def test_po_full_flow(manager, warehouse_user, part, wh):
     assert po.status_code == 201
     assert int(po.data['total_vnd']) == 5_000_000
     pid = po.data['id']
+    # Duyệt (dưới ngưỡng → manager duyệt là approved) → mới đặt được
+    assert mc.post(f'/api/v1/purchasing/orders/{pid}/approve/').data['status'] == 'approved'
     # Đặt hàng
     assert mc.post(f'/api/v1/purchasing/orders/{pid}/confirm/').data['status'] == 'ordered'
     # NV kho nhận hàng → cộng tồn
@@ -65,6 +67,7 @@ def test_po_partial_receive(manager, warehouse_user, part, wh):
         'supplier': str(sup.id), 'warehouse': str(wh.id),
         'lines': [{'part': '001002', 'qty': 50, 'unit_cost': 1000}],
     }, format='json').data
+    mc.post(f"/api/v1/purchasing/orders/{po['id']}/approve/")   # duyệt trước
     mc.post(f"/api/v1/purchasing/orders/{po['id']}/confirm/")
     kc = APIClient(); kc.force_authenticate(warehouse_user)
     line_id = po['lines'][0]['id']

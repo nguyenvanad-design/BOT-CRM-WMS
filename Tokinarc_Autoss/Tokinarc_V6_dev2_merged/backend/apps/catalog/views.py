@@ -24,7 +24,7 @@ from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, filters
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.catalog.models import Part, Torch
@@ -50,6 +50,31 @@ class PartViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
 
     def get_serializer_class(self):
         return PartDetailSerializer if self.action == 'retrieve' else PartLiteSerializer
+
+    @action(detail=True, methods=['get', 'patch'], permission_classes=[IsAuthenticated])
+    def cost(self, request, tokin_part_no=None):
+        """Giá vốn (NHẠY CẢM — chỉ manager+). GET: xem vốn + lãi gộp. PATCH: chỉnh vốn."""
+        from apps.accounts.roles import is_manager
+        from apps.catalog.pricing import get_effective_price
+        if not is_manager(request.user):
+            return Response({'detail': 'Chỉ quản lý/CEO/admin được xem/sửa giá vốn.'}, status=403)
+        part = self.get_object()
+        if request.method == 'PATCH':
+            raw = request.data.get('cost_vnd')
+            try:
+                part.cost_vnd = int(raw) if raw not in (None, '') else None
+            except (TypeError, ValueError):
+                return Response({'detail': 'Giá vốn không hợp lệ.'}, status=400)
+            part.save(update_fields=['cost_vnd'])
+        sell = int(get_effective_price(part) or 0)
+        cost = int(part.cost_vnd or 0)
+        margin = sell - cost
+        return Response({
+            'part_no': part.pk, 'name': part.display_name_vi,
+            'cost_vnd': cost or None, 'price_vnd': sell,
+            'margin_vnd': margin if cost else None,
+            'margin_pct': round(margin / sell * 100, 1) if (sell and cost) else None,
+        })
 
     @action(detail=False, methods=['get'])
     def search(self, request):
