@@ -1,13 +1,15 @@
 /**
  * Tokinarc frontend — src/pages/wms/Scan.tsx
- * Quét barcode/QR bằng camera điện thoại (@zxing/library) — 3 chế độ:
+ * Quét barcode/QR bằng camera điện thoại (zxing-wasm — zxing-cpp/WASM) — 3 chế độ:
  *   - Tra cứu: quét → tìm phụ tùng (catalog) + serial (WMS).
  *   - Nhập kho: quét mã hàng + ô (bin) + SL → cộng tồn (POST scan-entry receive).
  *   - Kiểm kê: quét mã hàng + ô + số đếm → set tồn (POST scan-entry count).
+ * Đọc đa định dạng (QR + Code128/EAN/UPC…), chạy cả Android & iOS. Cần HTTPS/localhost.
  * Có ô nhập tay khi không dùng được camera.
  */
 import { useEffect, useRef, useState } from 'react'
-import { BrowserMultiFormatReader } from '@zxing/library'
+import { readBarcodes, prepareZXingModule } from 'zxing-wasm/reader'
+import wasmUrl from 'zxing-wasm/reader/zxing_reader.wasm?url'
 import { ScanLine, Camera, CameraOff, Search, PackagePlus, PackageMinus, ClipboardCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
@@ -16,6 +18,9 @@ import { SERIAL_STATUS_LABEL, SERIAL_STATUS_TONE } from '@/lib/wms'
 import type { CatalogPart, SerialNumber } from '@/lib/types'
 import { Card, PageHeader, Button, Tag } from '@/components/ui'
 import { useAuth, isWmsControl } from '@/lib/auth/store'
+
+// Nạp WASM từ bundle local (kho có thể offline — không phụ thuộc CDN).
+prepareZXingModule({ overrides: { locateFile: (p, prefix) => (p.endsWith('.wasm') ? wasmUrl : prefix + p) } })
 
 type Mode = 'lookup' | 'receive' | 'issue' | 'count'
 type Target = 'code' | 'bin'
@@ -33,7 +38,9 @@ export function ScanPage() {
   const canControl = isWmsControl(useAuth((s) => s.user?.role))
   const visibleModes = MODES.filter((m) => m.key !== 'count' || canControl)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const rafRef = useRef<number>(0)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [mode, setMode] = useState<Mode>('lookup')
   const [scanning, setScanning] = useState(false)
   const [camError, setCamError] = useState('')
@@ -52,8 +59,15 @@ export function ScanPage() {
   // Camera chỉ chạy ở "secure context" (HTTPS hoặc localhost). Mở qua http://<IP> → bị chặn.
   const cameraReady = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
 
-  const stop = () => { readerRef.current?.reset(); setScanning(false) }
-  useEffect(() => () => { readerRef.current?.reset() }, [])
+  const stop = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = 0
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+    setScanning(false)
+  }
+  useEffect(() => () => stop(), [])   // dọn camera khi rời trang
 
   const lookup = async (c: string) => {
     const q = c.trim(); if (!q) return
@@ -97,19 +111,49 @@ export function ScanPage() {
         + 'Tạm thời hãy NHẬP MÃ BẰNG TAY ở ô bên dưới, hoặc dùng máy quét USB.')
       return
     }
-    const reader = new BrowserMultiFormatReader()
-    readerRef.current = reader; setScanning(true)
     try {
-      await reader.decodeFromVideoDevice(null, videoRef.current!, (res) => {
-        if (res) {
-          const text = res.getText()
-          onCode(text)
-          if (mode === 'lookup') stop()   // tra cứu: quét 1 lần; nhập/kiểm kê: quét liên tục
-        }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }, audio: false,
       })
+      streamRef.current = stream
+      const v = videoRef.current!
+      v.srcObject = stream
+      v.setAttribute('playsinline', 'true')   // iOS Safari: không bật fullscreen
+      await v.play()
+      setScanning(true)
+      scanLoop()
     } catch (e) {
-      setCamError(e instanceof Error ? e.message : 'Không mở được camera.'); setScanning(false)
+      setCamError(e instanceof Error ? e.message : 'Không mở được camera.')
+      stop()
     }
+  }
+
+  // Vòng lặp: mỗi frame → vẽ vào canvas → readBarcodes(zxing-wasm) → có mã thì xử lý.
+  const scanLoop = () => {
+    const canvas = canvasRef.current ?? (canvasRef.current = document.createElement('canvas'))
+    let reading = false
+    const tick = async () => {
+      const v = videoRef.current
+      if (!v || v.readyState < 2 || !streamRef.current) { rafRef.current = requestAnimationFrame(tick); return }
+      if (!reading) {
+        reading = true
+        try {
+          canvas.width = v.videoWidth; canvas.height = v.videoHeight
+          const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+          ctx.drawImage(v, 0, 0, canvas.width, canvas.height)
+          const img = ctx.getImageData(0, 0, canvas.width, canvas.height)
+          const results = await readBarcodes(img, { tryHarder: true, maxNumberOfSymbols: 1 })
+          const text = results[0]?.text
+          if (text) {
+            onCode(text)
+            if (mode === 'lookup') { stop(); return }
+          }
+        } catch { /* bỏ qua frame lỗi */ }
+        reading = false
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
   }
 
   const entryMode = mode === 'receive' || mode === 'issue' || mode === 'count'
@@ -180,7 +224,7 @@ export function ScanPage() {
         {entryMode && (
           <div className="mt-3 pt-3 border-t border-line space-y-2">
             <Field label="Mã hàng" value={code} onChange={setCode} placeholder="Quét/nhập mã phụ tùng hoặc súng hàn" />
-            <Field label="Mã ô (bin)" value={binCode} onChange={setBinCode} placeholder="VD HCM-A-R01-B03" />
+            <Field label="Mã ô (bin)" value={binCode} onChange={setBinCode} placeholder="VD HCM-A-K01-T1-03" />
             <Field label={mode === 'receive' ? 'Số lượng nhập' : mode === 'issue' ? 'Số lượng xuất' : 'Số đếm thực tế'}
               value={qty} onChange={setQty} placeholder="0" type="number" />
             <Button onClick={submitEntry} disabled={busy}>
