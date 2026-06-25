@@ -30,7 +30,7 @@ export default defineConfig({
           react: ['react', 'react-dom', 'react-router-dom'],
           charts: ['recharts'],
           query: ['@tanstack/react-query'],
-          scan: ['@zxing/library'],
+          scan: ['zxing-wasm/reader'],
         },
       },
     },
