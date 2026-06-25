@@ -55,13 +55,14 @@ def _own_filter(qs, user, field='owner_id'):
 
 
 def _next_code(model, prefix):
-    """Sinh code tăng dần: prefix-0001. Đơn giản, đủ cho dev (prod nên dùng sequence)."""
-    last = model.all_objects.order_by('-created_at').first() if hasattr(model, 'all_objects') \
-        else model.objects.order_by('-created_at').first()
+    """Sinh code tăng dần: prefix-0001. Lấy theo MÃ LỚN NHẤT (không theo created_at,
+    tránh trùng khi thứ tự tạo ≠ thứ tự mã). Đủ cho dev; prod nên dùng sequence."""
+    mgr = model.all_objects if hasattr(model, 'all_objects') else model.objects
+    last = mgr.filter(code__startswith=f'{prefix}-').order_by('-code').first()
     n = 1
-    if last and getattr(last, 'code', '').startswith(prefix + '-'):
+    if last:
         try:
-            n = int(last.code.split('-')[1]) + 1
+            n = int(last.code.rsplit('-', 1)[1]) + 1
         except (IndexError, ValueError):
             n = 1
     return f"{prefix}-{n:04d}"
@@ -77,6 +78,26 @@ class LeadViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         obj = serializer.save(owner=self.request.user)
         _audit(self.request, 'create', 'Lead', obj.id)
+
+    @action(detail=True, methods=['post'])
+    def assign(self, request, pk=None):
+        """Giao lead cho sale khác (chỉ quản lý+) → báo người nhận."""
+        from django.contrib.auth import get_user_model
+        if not is_manager(request.user):
+            return Response({'detail': 'Chỉ quản lý được giao lead.'}, status=403)
+        lead = self.get_object()
+        owner = get_user_model().objects.filter(pk=request.data.get('owner'), is_active=True).first()
+        if owner is None:
+            return Response({'detail': 'Người nhận không hợp lệ.'}, status=400)
+        lead.owner = owner
+        lead.save(update_fields=['owner', 'updated_at'])
+        _audit(request, 'assign', 'Lead', lead.id)
+        if owner.id != request.user.id:
+            notify(owner, 'lead_assigned',
+                   f"Bạn được giao lead {lead.name}"
+                   + (f" ({lead.phone})" if lead.phone else '') + " — liên hệ khách.",
+                   link='/leads')
+        return Response(LeadSerializer(lead).data)
 
     @action(detail=True, methods=['post'])
     def convert(self, request, pk=None):
@@ -176,7 +197,63 @@ class QuoteViewSet(viewsets.ModelViewSet):
             days = getattr(settings, 'QUOTE_VALID_DAYS', 30)
             extra['valid_until'] = timezone.now().date() + timedelta(days=days)
         obj = serializer.save(**extra)
-        _audit(self.request, 'create', 'Quote', obj.id, {'total_vnd': str(obj.total_vnd)})
+        _audit(self.request, 'create', 'Quote', obj.id, {'discount_pct': str(obj.discount_pct)})
+        # Định tuyến duyệt theo % chiết khấu.
+        if obj.within_sale_authority():
+            # ≤ hạn mức sale → tự động duyệt, sale dùng ngay.
+            obj.status = QuoteStatus.APPROVED
+            obj.approved_by = self.request.user
+            obj.save(update_fields=['status', 'approved_by', 'updated_at'])
+            notify(self.request.user, 'quote_approved',
+                   f"Báo giá {obj.code} (CK {obj.discount_pct}%) tự duyệt — trong hạn mức sale.",
+                   link='/quotes')
+        else:
+            # > hạn mức sale → cần manager (và CEO nếu vượt hạn mức manager).
+            notify_roles(MANAGER_ROLES, 'quote_approval',
+                         f"Báo giá {obj.code} ({obj.customer.name}) — chiết khấu {obj.discount_pct}% cần duyệt.",
+                         link='/ceo/approvals', exclude_user=self.request.user)
+
+    @action(detail=False, methods=['get'], url_path='pending-approvals')
+    def pending_approvals(self, request):
+        """Hàng chờ duyệt cho trang Duyệt tập trung (manager+ thấy tất cả).
+
+        Trả báo giá đang chờ quyết định để FE tách 2 nhóm:
+          - cấp 1: draft/sent   → manager+ duyệt
+          - cấp 2: pending_ceo  → CEO duyệt
+        get_queryset() đã lọc theo quyền (sale chỉ thấy của mình).
+        """
+        qs = (self.get_queryset()
+              .filter(status__in=[QuoteStatus.DRAFT, QuoteStatus.SENT, QuoteStatus.PENDING_CEO])
+              .select_related('customer')
+              .order_by('-created_at'))
+        ser = QuoteSerializer(qs, many=True, context={'request': request})
+        return Response({'results': ser.data, 'count': qs.count()})
+
+    @action(detail=True, methods=['get'], url_path='export-xlsx')
+    def export_xlsx(self, request, pk=None):
+        """Xuất báo giá ra Excel dạng chứng từ (đầu trang thông tin KH + bảng dòng)."""
+        from apps.common.company import vnd_to_words
+        from apps.common.excel import customer_party, make_document_xlsx, xlsx_response
+        q = self.get_object()
+        rows = [(l.part_no, l.part_name or '', l.qty, int(l.unit_price_vnd or 0),
+                 int(l.qty * (l.unit_price_vnd or 0))) for l in q.lines.all()]
+        sub = int(q.subtotal_vnd)
+        disc = float(q.discount_pct or 0)
+        extra = [('Tạm tính', sub),
+                 (f'Chiết khấu {disc:g}%', -(sub - int(q.total_vnd or 0)))] if disc > 0 else None
+        data = make_document_xlsx(
+            sheet_title='BaoGia', doc_title='BÁO GIÁ', doc_code=q.code,
+            doc_date=q.created_at.strftime('%d/%m/%Y'),
+            party_label='KÍNH GỬI (KHÁCH HÀNG):', party=customer_party(q.customer),
+            meta=[('Trạng thái:', q.get_status_display()),
+                  ('Hạn hiệu lực:', q.valid_until.strftime('%d/%m/%Y') if q.valid_until else '—')],
+            columns=[('Mã part', 16, 'text'), ('Tên hàng', 40, 'text'), ('SL', 8, 'int'),
+                     ('Đơn giá', 16, 'money'), ('Thành tiền', 18, 'money')],
+            rows=rows, extra_totals=extra,
+            total_label='TỔNG CỘNG', total_value=int(q.total_vnd or 0),
+            amount_words=vnd_to_words(q.total_vnd),
+            signatures=['NGƯỜI LẬP BÁO GIÁ', 'XÁC NHẬN KHÁCH HÀNG'])
+        return xlsx_response(data, f'bao_gia_{q.code}.xlsx')
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
@@ -372,12 +449,49 @@ class TicketViewSet(viewsets.ModelViewSet):
         obj = serializer.save(created_owner=self.request.user,
                               code=_next_code(Ticket, 'TK'))
         _audit(self.request, 'create', 'Ticket', obj.id)
+        self._notify_assignee(obj, None)
+
+    def perform_update(self, serializer):
+        before = serializer.instance.assignee_id
+        obj = serializer.save()
+        self._notify_assignee(obj, before)
+
+    def _notify_assignee(self, obj, before_assignee_id):
+        """Báo kỹ sư khi ticket được giao (mới hoặc đổi assignee), trừ người tự giao."""
+        if (obj.assignee_id and obj.assignee_id != before_assignee_id
+                and obj.assignee_id != self.request.user.id):
+            notify(obj.assignee, 'ticket_assigned',
+                   f"Bạn được giao ticket {obj.code}: {obj.title}", link='/tickets')
+
+    @action(detail=True, methods=['post'])
+    def accept(self, request, pk=None):
+        """Kỹ sư NHẬN xử lý: open → in_progress; tự gán mình nếu ticket chưa có người."""
+        ticket = self.get_object()
+        if ticket.status not in ('open', 'in_progress'):
+            return Response({'detail': 'Ticket đã giải quyết/đóng.', 'code': 'CONFLICT'}, status=409)
+        ticket.status = 'in_progress'
+        fields = ['status', 'updated_at']
+        if ticket.assignee_id is None:
+            ticket.assignee = request.user
+            fields.append('assignee')
+        ticket.save(update_fields=fields)
+        _audit(request, 'accept', 'Ticket', ticket.id)
+        return Response(TicketSerializer(ticket).data)
 
     @action(detail=True, methods=['post'])
     def resolve(self, request, pk=None):
+        """Giải quyết: ghi CÁCH XỬ LÝ + báo người tạo ticket."""
         ticket = self.get_object()
         ticket.status = 'resolved'
         ticket.resolved_at = timezone.now()
-        ticket.save(update_fields=['status', 'resolved_at', 'updated_at'])
-        _audit(request, 'resolve', 'Ticket', ticket.id)
+        res = str(request.data.get('resolution', '')).strip()
+        if res:
+            ticket.resolution = res
+        ticket.save(update_fields=['status', 'resolved_at', 'resolution', 'updated_at'])
+        _audit(request, 'resolve', 'Ticket', ticket.id, {'resolution': res[:120]})
+        # Báo người tạo ticket: đã xử lý xong.
+        if ticket.created_owner_id and ticket.created_owner_id != request.user.id:
+            notify(ticket.created_owner, 'ticket_resolved',
+                   f"Ticket {ticket.code} ({ticket.customer.name}) đã được xử lý xong.",
+                   link='/tickets')
         return Response(TicketSerializer(ticket).data)

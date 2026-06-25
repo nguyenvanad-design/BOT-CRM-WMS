@@ -20,12 +20,14 @@ from __future__ import annotations
 from django.conf import settings
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from apps.accounts.roles import Role, role_of
 from apps.common.models import AuditLog
 
 from . import services
@@ -95,6 +97,21 @@ class MeView(APIView):
     def get(self, request):
         return Response(UserSerializer(request.user).data)
 
+    def patch(self, request):
+        """Tự quản lý tài khoản của chính mình: sửa hồ sơ + đổi mật khẩu.
+        KHÔNG cho tự đổi role/quyền (đó là việc của admin)."""
+        u = request.user
+        for f in ('display_name', 'phone', 'email'):
+            if f in request.data:
+                setattr(u, f, str(request.data[f]).strip())
+        pwd = request.data.get('password')
+        if pwd:
+            if len(str(pwd)) < 6:
+                return Response({'detail': 'Mật khẩu tối thiểu 6 ký tự.'}, status=400)
+            u.set_password(str(pwd))
+        u.save()
+        return Response(UserSerializer(u).data)
+
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -132,20 +149,49 @@ class JWKSView(APIView):
         return Response({'keys': []})
 
 
+class AssignableEngineersView(APIView):
+    """Danh sách kỹ sư dịch vụ (+ quản lý) để giao ticket — nhân viên nội bộ xem được."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = User.objects.filter(role__in=[Role.SERVICE, Role.MANAGER], is_active=True).order_by('username')
+        return Response([{'id': str(u.id), 'name': u.display_name or u.username, 'role': u.role}
+                         for u in qs])
+
+
+class IsSystemAdmin(BasePermission):
+    """Quản trị người dùng: chỉ superuser hoặc role 'admin'."""
+    message = 'Chỉ quản trị viên hệ thống (admin) được quản lý người dùng.'
+
+    def has_permission(self, request, view):
+        u = request.user
+        return bool(u and u.is_authenticated and (u.is_superuser or role_of(u) == Role.ADMIN))
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('username')
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSystemAdmin]
 
     def get_serializer_class(self):
         return UserSerializer if self.action in ('list', 'retrieve') else UserWriteSerializer
+
+    def perform_destroy(self, instance):
+        # Tránh tự xóa mình → mất quyền quản trị; FE nên dùng "khóa" (is_active) thay vì xóa.
+        if instance.id == self.request.user.id:
+            raise ValidationError('Không thể xóa tài khoản của chính bạn.')
+        instance.delete()
 
     @action(detail=True, methods=['post'], url_path='set-role')
     def set_role(self, request, pk=None):
         user = self.get_object()
         ser = SetRoleSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+        new_role = ser.validated_data['role']
+        # Chặn tự hạ quyền admin của chính mình (tránh khóa cứng hệ thống).
+        if user.id == request.user.id and new_role != Role.ADMIN and not request.user.is_superuser:
+            return Response({'detail': 'Không thể tự bỏ quyền admin của chính mình.'}, status=400)
         before = user.role
-        user.role = ser.validated_data['role']
+        user.role = new_role
         user.save(update_fields=['role'])
         AuditLog.record(user=request.user, action='set_role', entity='accounts.User',
                         entity_id=user.id, diff={'before': before, 'after': user.role},

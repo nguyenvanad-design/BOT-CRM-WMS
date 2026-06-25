@@ -18,6 +18,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from apps.accounts.roles import Role
+from apps.common.models import notify
 
 from .models import Lead, LeadStatus
 
@@ -68,5 +69,10 @@ class LeadIntakeView(APIView):
             notes=(data.get('note') or data.get('need') or '').strip(),
             owner=owner,
         )
+        # Báo sale chủ lead: có khách mới từ chatbot — gọi ngay.
+        notify(owner, 'lead_new',
+               f"Lead mới từ chatbot: {lead.name}"
+               + (f" ({lead.phone})" if lead.phone else '') + ' — gọi khách.',
+               link='/leads')
         return Response({'ok': True, 'id': str(lead.id), 'name': lead.name},
                         status=status.HTTP_201_CREATED)

@@ -99,6 +99,30 @@ class CustomerViewSet(viewsets.ModelViewSet):
             ip=self._ip(), user_agent=self._ua(),
         )
 
+    @action(detail=True, methods=['post'])
+    def assign(self, request, pk=None):
+        """Giao khách hàng cho sale khác (chỉ quản lý+) → báo người nhận."""
+        from django.contrib.auth import get_user_model
+
+        from apps.common.models import notify
+        from .permissions import is_manager
+        if not is_manager(request.user):
+            return Response({'detail': 'Chỉ quản lý được giao khách.'}, status=403)
+        customer = self.get_object()
+        owner = get_user_model().objects.filter(pk=request.data.get('owner'), is_active=True).first()
+        if owner is None:
+            return Response({'detail': 'Người nhận không hợp lệ.'}, status=400)
+        customer.owner = owner
+        customer.save(update_fields=['owner', 'updated_at'])
+        AuditLog.record(user=request.user, action='assign', entity='crm.Customer',
+                        entity_id=customer.id, diff={'owner': owner.username},
+                        ip=self._ip(), user_agent=self._ua())
+        if owner.id != request.user.id:
+            notify(owner, 'customer_assigned',
+                   f"Bạn được giao khách hàng {customer.name} — chăm sóc & theo dõi.",
+                   link=f'/customers/{customer.id}')
+        return Response({'detail': f'Đã giao {customer.name} cho {owner.username}.'})
+
     # ── /360/ — customer 360 view ────────────────────────────────────────────
     @action(detail=True, methods=['get'], url_path='360', url_name='360')
     def customer_360(self, request, pk=None):

@@ -10,15 +10,20 @@ from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    is_admin  = serializers.SerializerMethodField()
 
     class Meta:
         model  = User
         fields = ['id', 'username', 'display_name', 'full_name', 'email',
-                  'phone', 'role', 'customer', 'is_active', 'date_joined']
+                  'phone', 'role', 'customer', 'is_active', 'is_admin', 'date_joined']
         read_only_fields = ['id', 'date_joined']
 
     def get_full_name(self, obj) -> str:
         return obj.display_name or obj.get_full_name() or obj.username
+
+    def get_is_admin(self, obj) -> bool:
+        """Quản trị hệ thống: superuser hoặc role 'admin' — dùng để FE hiện tab Quản trị."""
+        return bool(obj.is_superuser or obj.role == 'admin')
 
 
 class UserWriteSerializer(serializers.ModelSerializer):

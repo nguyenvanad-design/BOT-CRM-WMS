@@ -358,6 +358,12 @@ def tool_create_quote(user, customer_name: str, items: list[dict]) -> str:
                 f"({', '.join(missing)}).")
     quote.recompute_total()
     quote.save(update_fields=['total_vnd'])
+    # Báo manager+: báo giá tạo qua bot cũng cần duyệt (đồng bộ với đường API).
+    from apps.accounts.roles import MANAGER_ROLES
+    from apps.common.models import notify_roles
+    notify_roles(MANAGER_ROLES, 'quote_approval',
+                 f"Báo giá {quote.code} ({cust.name}) cần duyệt.",
+                 link='/ceo/approvals', exclude_user=user)
 
     rows = '\n'.join(f"• {n} (`{pn}`) × {qty} = {_vnd(p * qty)}" for pn, n, qty, p in found)
     note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
@@ -694,6 +700,23 @@ def _template_summary(m: dict) -> str:
         "**Kho vận**",
         f"• Giá trị tồn kho {_vnd(m['inventory_value'])} ({m['sku_count']} SKU), {m['low_stock']} mặt hàng sắp hết.",
     ]
+    hd = m.get('hoat_dong')
+    if hd:
+        wh = hd.get('hoat_dong_kho', {})
+        lines += [
+            "",
+            "**Hoạt động nổi bật** (30 ngày)",
+            f"• Sales: {hd['so_cuoc_gap']} cuộc gặp ({hd['cuoc_gap_co_ghi_am']} có ghi âm), "
+            f"{hd['so_cuoc_goi_email']} cuộc gọi/email ({hd['goi_email_co_ghi_am']} có ghi âm).",
+        ]
+        for r in hd.get('recap_cuoc_gap', [])[:5]:
+            tail = f" → {r['viec_tiep']}" if r['viec_tiep'] else ""
+            mic = " 🎙" if r['co_ghi_am'] else ""
+            lines.append(f"  - {r['kh']} ({r['ngay']}){mic}: {r['recap']}{tail}")
+        lines.append(
+            f"• Kho: {wh.get('phieu_nhap', 0)} lượt nhập, {wh.get('phieu_xuat', 0)} lượt xuất, "
+            f"{wh.get('dieu_chinh_ton', 0)} điều chỉnh tồn"
+            + (f", {wh['kiem_ke']} phiên kiểm kê." if 'kiem_ke' in wh else "."))
     return "\n".join(lines)
 
 
@@ -705,11 +728,16 @@ def _llm_summary(m: dict) -> str | None:
     model = _gemini_model()
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
     prompt = (
-        "Bạn là trợ lý điều hành. Dưới đây là SỐ LIỆU THẬT (VND) của công ty phân phối "
-        "súng hàn Tokinarc theo từng phòng ban. Hãy viết một bản TÓM TẮT ĐIỀU HÀNH ngắn "
-        "gọn bằng tiếng Việt cho Giám đốc, gồm 4 mục in đậm: **Tổng quan**, **Điểm tích "
-        "cực**, **Cần chú ý**, **Khuyến nghị tuần này**. CHỈ dùng đúng số liệu cho sẵn, "
-        "KHÔNG bịa thêm số. Ngắn gọn, súc tích.\n\nSỐ LIỆU:\n" + json.dumps(m, ensure_ascii=False)
+        "Bạn là trợ lý điều hành. Dưới đây là DỮ LIỆU THẬT của công ty phân phối súng hàn "
+        "Tokinarc theo từng phòng ban: phần SỐ LIỆU (VND) và phần 'hoat_dong' gồm RECAP các "
+        "cuộc gặp/gọi khách gần đây + hoạt động kho. Hãy viết bản TÓM TẮT ĐIỀU HÀNH bằng "
+        "tiếng Việt cho Giám đốc, gồm 5 mục in đậm: **Tổng quan**, **Điểm tích cực**, "
+        "**Cần chú ý**, **Hoạt động nổi bật**, **Khuyến nghị tuần này**.\n"
+        "- Mục 'Hoạt động nổi bật': tóm tắt NỘI DUNG các cuộc gặp/gọi (khách nói gì, nhu cầu, "
+        "phàn nàn, việc cần follow-up) dựa trên recap, nêu rõ tên khách; nêu hoạt động kho "
+        "(nhập/xuất/kiểm kê/điều chỉnh) và số cuộc CÓ GHI ÂM.\n"
+        "CHỈ dùng đúng dữ liệu cho sẵn, KHÔNG bịa số/nội dung. Súc tích.\n\nDỮ LIỆU:\n"
+        + json.dumps(m, ensure_ascii=False)
     )
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
@@ -725,9 +753,68 @@ def _llm_summary(m: dict) -> str | None:
         return None
 
 
+def _gather_activities(days: int = 30, max_items: int = 12) -> dict:
+    """Gom HOẠT ĐỘNG gần đây: recap cuộc gặp/gọi + đếm ghi âm + hoạt động kho."""
+    from datetime import timedelta
+
+    from django.utils import timezone as _tz
+
+    from apps.crm.models import Activity, Visit
+    from apps.wms.models import StockMovement
+    try:
+        from apps.wms.models import CycleCount
+    except Exception:  # noqa: BLE001
+        CycleCount = None
+
+    today = date.today()
+    since_d = today - timedelta(days=days)
+    since_dt = _tz.now() - timedelta(days=days)
+
+    visits = (Visit.objects.filter(visit_date__gte=since_d)
+              .select_related('customer', 'owner').order_by('-visit_date'))
+    acts = (Activity.objects.filter(activity_date__gte=since_dt)
+            .select_related('customer', 'owner').order_by('-activity_date'))
+
+    def _clip(s, n=240):
+        return (s or '').strip().replace('\n', ' ')[:n]
+
+    visit_recaps = [{
+        'kh': v.customer.name if v.customer_id else '',
+        'ngay': str(v.visit_date), 'sale': v.owner.username if v.owner_id else '',
+        'recap': _clip(v.recap_text or v.summary), 'co_ghi_am': bool(v.recording_id),
+        'viec_tiep': v.next_action or '',
+    } for v in visits[:max_items] if (v.recap_text or v.summary)]
+
+    call_recaps = [{
+        'kh': a.customer.name if a.customer_id else '',
+        'loai': a.get_activity_type_display(),
+        'recap': _clip(a.recap_text or a.content), 'co_ghi_am': bool(a.recording_id),
+    } for a in acts[:max_items] if (a.recap_text or a.content)]
+
+    wh = {
+        'phieu_nhap': StockMovement.objects.filter(ts__gte=since_dt, delta__gt=0).count(),
+        'phieu_xuat': StockMovement.objects.filter(ts__gte=since_dt, delta__lt=0).count(),
+        'dieu_chinh_ton': StockMovement.objects.filter(ts__gte=since_dt, reason='adjust').count(),
+    }
+    if CycleCount is not None:
+        wh['kiem_ke'] = CycleCount.objects.filter(created_at__gte=since_dt).count()
+
+    return {
+        'ky_ngay': days,
+        'so_cuoc_gap': visits.count(),
+        'cuoc_gap_co_ghi_am': visits.exclude(recording__isnull=True).count(),
+        'so_cuoc_goi_email': acts.count(),
+        'goi_email_co_ghi_am': acts.exclude(recording__isnull=True).count(),
+        'recap_cuoc_gap': visit_recaps,
+        'recap_cuoc_goi': call_recaps,
+        'hoat_dong_kho': wh,
+    }
+
+
 def executive_summary() -> dict:
     """Tóm tắt toàn bộ hoạt động phòng ban. Số liệu thật, lời do LLM (fallback template)."""
     m = _gather_metrics()
+    m['hoat_dong'] = _gather_activities()
     ai = _llm_summary(m)
     return {
         'summary': ai or _template_summary(m),

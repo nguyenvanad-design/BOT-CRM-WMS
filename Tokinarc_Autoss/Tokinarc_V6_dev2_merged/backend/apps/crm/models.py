@@ -239,7 +239,8 @@ class Quote(BaseModel, SoftDeleteMixin):
     )
     due_date  = models.DateField(null=True, blank=True)   # ngày dự kiến chốt
     valid_until = models.DateField(null=True, blank=True)  # hạn hiệu lực giá báo
-    total_vnd = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    discount_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # % chiết khấu cả báo giá
+    total_vnd = models.DecimalField(max_digits=15, decimal_places=0, default=0)    # = tạm tính × (1 − ck%)
     owner     = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='owned_quotes',
@@ -275,17 +276,24 @@ class Quote(BaseModel, SoftDeleteMixin):
     def __str__(self) -> str:
         return f"{self.code} — {self.customer.name}"
 
+    @property
+    def subtotal_vnd(self):
+        """Tạm tính = tổng dòng (trước chiết khấu)."""
+        agg = self.lines.aggregate(s=models.Sum(models.F('qty') * models.F('unit_price_vnd')))
+        return agg['s'] or 0
+
     def recompute_total(self) -> None:
-        """Tính lại total_vnd từ lines. Gọi sau khi thêm/sửa line."""
-        agg = self.lines.aggregate(
-            s=models.Sum(models.F('qty') * models.F('unit_price_vnd'))
-        )
-        self.total_vnd = agg['s'] or 0
+        """Tổng = tạm tính × (1 − chiết khấu%). Gọi sau khi thêm/sửa line/ck."""
+        sub = self.subtotal_vnd
+        self.total_vnd = int(round(float(sub) * (1 - float(self.discount_pct or 0) / 100)))
+
+    def within_sale_authority(self) -> bool:
+        """Chiết khấu ≤ hạn mức sale → không cần duyệt (tự duyệt)."""
+        return float(self.discount_pct or 0) <= getattr(settings, 'DISCOUNT_SALE_MAX_PCT', 5)
 
     def requires_l2(self) -> bool:
-        """Báo giá ≥ ngưỡng QUOTE_L2_THRESHOLD_VND cần duyệt cấp 2 (CEO)."""
-        threshold = getattr(settings, 'QUOTE_L2_THRESHOLD_VND', 100_000_000)
-        return self.total_vnd >= threshold
+        """Chiết khấu > hạn mức manager → cần CEO duyệt (cấp 2)."""
+        return float(self.discount_pct or 0) > getattr(settings, 'DISCOUNT_MANAGER_MAX_PCT', 10)
 
 
 class QuoteLine(models.Model):
@@ -387,6 +395,7 @@ class Ticket(BaseModel, SoftDeleteMixin):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_tickets',
     )
+    resolution = models.TextField(blank=True)   # cách xử lý / kết quả khắc phục của kỹ sư
     resolved_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -407,11 +416,13 @@ class Ticket(BaseModel, SoftDeleteMixin):
 # ════════════════════════════════════════════════════════════════════════
 
 class ContractStatus(models.TextChoices):
-    DRAFT     = 'draft',        'Nháp'
-    PENDING   = 'pending_sign', 'Chờ ký'
-    ACTIVE    = 'active',       'Hiệu lực'
-    EXPIRED   = 'expired',      'Hết hạn'
-    CANCELLED = 'cancelled',    'Hủy'
+    DRAFT       = 'draft',        'Nháp'            # soạn — chờ duyệt cấp 1
+    PENDING_CEO = 'pending_ceo',  'Chờ CEO duyệt'   # qua cấp 1, vượt ngưỡng
+    REJECTED    = 'rejected',     'Từ chối'
+    PENDING     = 'pending_sign', 'Chờ ký'          # đã duyệt xong — chờ ký
+    ACTIVE      = 'active',       'Hiệu lực'
+    EXPIRED     = 'expired',      'Hết hạn'
+    CANCELLED   = 'cancelled',    'Hủy'
 
 
 class Contract(BaseModel, SoftDeleteMixin):
@@ -424,6 +435,7 @@ class Contract(BaseModel, SoftDeleteMixin):
         Quote, on_delete=models.SET_NULL, null=True, blank=True, related_name='contracts',
     )
     title      = models.CharField(max_length=200, blank=True)
+    discount_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # % chiết khấu — định tuyến duyệt
     value_vnd  = models.DecimalField(max_digits=15, decimal_places=0, default=0)
     paid_vnd   = models.DecimalField(max_digits=15, decimal_places=0, default=0)
     status     = models.CharField(
@@ -436,6 +448,15 @@ class Contract(BaseModel, SoftDeleteMixin):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='owned_contracts',
     )
     notes      = models.TextField(blank=True)
+    # Duyệt 2 cấp (như Báo giá / Đơn mua): cấp 1 = manager, cấp 2 = CEO (vượt ngưỡng).
+    l1_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name='l1_approved_contracts')
+    l1_approved_at = models.DateTimeField(null=True, blank=True)
+    l2_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name='l2_approved_contracts')
+    l2_approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name='approved_contracts')
 
     class Meta:
         db_table = 'crm_contract'
@@ -447,6 +468,14 @@ class Contract(BaseModel, SoftDeleteMixin):
 
     def __str__(self) -> str:
         return f"{self.code} — {self.customer.name}"
+
+    def within_sale_authority(self) -> bool:
+        """Chiết khấu ≤ hạn mức sale → không cần duyệt (tự duyệt)."""
+        return float(self.discount_pct or 0) <= getattr(settings, 'DISCOUNT_SALE_MAX_PCT', 5)
+
+    def requires_l2(self) -> bool:
+        """Chiết khấu > hạn mức manager → cần CEO duyệt (cấp 2)."""
+        return float(self.discount_pct or 0) > getattr(settings, 'DISCOUNT_MANAGER_MAX_PCT', 10)
 
 
 class ActivityType(models.TextChoices):

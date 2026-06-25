@@ -6,9 +6,12 @@ tokinarc/urls.py:
     path('api/v1/accounts/', include('apps.accounts.urls')),
     path('.well-known/jwks.json', JWKSView.as_view()),
 """
+from django.urls import path
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet
+from .views import AssignableEngineersView, UserViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
-urlpatterns = router.urls
+urlpatterns = router.urls + [
+    path('engineers/', AssignableEngineersView.as_view(), name='engineers'),
+]

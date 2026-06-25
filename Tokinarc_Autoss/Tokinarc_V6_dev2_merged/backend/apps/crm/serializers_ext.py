@@ -13,6 +13,8 @@ from __future__ import annotations
 from django.db import transaction
 from rest_framework import serializers
 
+from apps.accounts.roles import is_manager
+
 from .models import (
     Lead, Opportunity, Quote, QuoteLine, Ticket, Visit,
 )
@@ -74,12 +76,15 @@ class QuoteSerializer(serializers.ModelSerializer):
     customer_name  = serializers.CharField(source='customer.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     requires_l2    = serializers.SerializerMethodField()
+    subtotal_vnd   = serializers.SerializerMethodField()
+    margin         = serializers.SerializerMethodField()
 
     class Meta:
         model = Quote
         fields = [
             'id', 'code', 'customer', 'customer_name', 'opportunity',
-            'status', 'status_display', 'due_date', 'valid_until', 'total_vnd', 'requires_l2',
+            'status', 'status_display', 'due_date', 'valid_until',
+            'discount_pct', 'subtotal_vnd', 'total_vnd', 'requires_l2', 'margin',
             'owner', 'owner_username', 'approved_by', 'contract_order_code',
             'l1_approved_by', 'l1_approved_at', 'l2_approved_by', 'l2_approved_at',
             'lines', 'notes', 'created_at', 'updated_at',
@@ -93,6 +98,34 @@ class QuoteSerializer(serializers.ModelSerializer):
 
     def get_requires_l2(self, obj) -> bool:
         return obj.requires_l2()
+
+    def get_subtotal_vnd(self, obj) -> int:
+        return int(obj.subtotal_vnd)
+
+    def get_margin(self, obj):
+        """Lãi gộp = tổng bán − tổng giá vốn. CHỈ trả cho manager+ (sale → None)."""
+        req = self.context.get('request')
+        if not req or not is_manager(req.user):
+            return None
+        from apps.catalog.models import Part
+        lines = list(obj.lines.all())
+        costs = dict(Part.objects.filter(pk__in=[l.part_no for l in lines])
+                     .values_list('tokin_part_no', 'cost_vnd'))
+        cost_total, missing = 0, 0
+        for l in lines:
+            c = costs.get(l.part_no)
+            if c:
+                cost_total += int(c) * l.qty
+            else:
+                missing += 1
+        total = int(obj.total_vnd or 0)
+        margin = total - cost_total
+        return {
+            'cost_total_vnd': cost_total,
+            'margin_vnd': margin,
+            'margin_pct': round(margin / total * 100, 1) if total else None,
+            'missing_cost_lines': missing,   # số dòng chưa có giá vốn → lãi gộp chưa đủ
+        }
 
     @transaction.atomic
     def create(self, validated):
@@ -113,7 +146,7 @@ class QuoteSerializer(serializers.ModelSerializer):
             instance.lines.all().delete()
             for ld in lines_data:
                 QuoteLine.objects.create(quote=instance, **ld)
-            instance.recompute_total()
+        instance.recompute_total()   # luôn tính lại (chiết khấu có thể đổi)
         instance.save()
         return instance
 
@@ -152,19 +185,22 @@ class VisitSerializer(serializers.ModelSerializer):
 
 # ── Ticket ────────────────────────────────────────────────────────────────
 class TicketSerializer(serializers.ModelSerializer):
-    customer_name    = serializers.CharField(source='customer.name', read_only=True)
-    status_display   = serializers.CharField(source='get_status_display', read_only=True)
-    priority_display = serializers.CharField(source='get_priority_display', read_only=True)
+    customer_name     = serializers.CharField(source='customer.name', read_only=True)
+    status_display    = serializers.CharField(source='get_status_display', read_only=True)
+    priority_display  = serializers.CharField(source='get_priority_display', read_only=True)
+    assignee_name     = serializers.CharField(source='assignee.display_name', read_only=True)
+    assignee_username = serializers.CharField(source='assignee.username', read_only=True)
 
     class Meta:
         model = Ticket
         fields = [
             'id', 'code', 'customer', 'customer_name', 'title', 'description',
             'status', 'status_display', 'priority', 'priority_display',
-            'serial_no', 'assignee', 'created_owner', 'resolved_at',
+            'serial_no', 'assignee', 'assignee_name', 'assignee_username',
+            'resolution', 'created_owner', 'resolved_at',
             'created_at', 'updated_at',
         ]
         read_only_fields = [
-            'id', 'code', 'created_owner', 'resolved_at',
+            'id', 'code', 'created_owner', 'resolved_at', 'resolution',
             'created_at', 'updated_at',
         ]

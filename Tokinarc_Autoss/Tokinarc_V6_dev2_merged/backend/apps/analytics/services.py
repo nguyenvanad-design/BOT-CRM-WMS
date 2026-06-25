@@ -110,18 +110,26 @@ def debt_aging() -> list[dict]:
 
 
 def inventory_value(warehouse_code: str | None = None) -> dict:
-    """Dùng `apps.catalog.pricing.get_effective_price()` (V6.C-fix #5)."""
+    """Định giá tồn theo GIÁ VỐN (cost_vnd). Mã chưa có giá vốn → bỏ qua khỏi tổng
+    (đếm riêng) để con số không bị thổi phồng theo giá bán."""
     from apps.wms.models import InventoryItem
-    from apps.catalog.pricing import get_effective_price
 
     qs = InventoryItem.objects.filter(part__isnull=False).select_related('part')
     if warehouse_code:
         qs = qs.filter(bin__zone__warehouse__code=warehouse_code)
-    total = sum((i.qty_on_hand * get_effective_price(i.part)) for i in qs)
+    total = 0
+    missing_cost = 0
+    for i in qs:
+        cost = int(i.part.cost_vnd or 0)
+        if cost > 0:
+            total += i.qty_on_hand * cost
+        elif i.qty_on_hand > 0:
+            missing_cost += 1
     return {
         'warehouse':           warehouse_code or 'all',
-        'inventory_value_vnd': total,
+        'inventory_value_vnd': total,           # theo giá vốn
         'sku_count':           qs.count(),
+        'sku_missing_cost':    missing_cost,     # số mã còn tồn nhưng chưa có giá vốn
     }
 
 

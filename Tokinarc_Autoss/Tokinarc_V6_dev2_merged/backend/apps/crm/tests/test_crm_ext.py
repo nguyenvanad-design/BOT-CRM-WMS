@@ -148,11 +148,12 @@ def test_approve_quote_blocks_self_approve(api, sale):
 @pytest.mark.django_db
 def test_manager_approve_then_to_contract(manager, sale):
     cust = CustomerFactory(owner=sale)
-    # sale tạo quote
+    # sale tạo quote CK 8% (>5% → cần manager duyệt, không tự duyệt)
     sc = APIClient(); sc.force_authenticate(sale)
-    q = sc.post('/api/v1/crm/quotes/', {'customer': str(cust.id),
+    q = sc.post('/api/v1/crm/quotes/', {'customer': str(cust.id), 'discount_pct': 8,
                 'lines': [{'part_no': 'X', 'qty': 2, 'unit_price_vnd': 5000}]},
                 format='json').data
+    assert q['status'] == 'draft'
     # manager approve
     mc = APIClient(); mc.force_authenticate(manager)
     ra = mc.post(f"/api/v1/crm/quotes/{q['id']}/approve/")
@@ -164,21 +165,21 @@ def test_manager_approve_then_to_contract(manager, sale):
     assert rc.data['contract_order_code'].startswith('HD-')
 
 
-# ─── Duyệt 2 cấp (manager → CEO) ──────────────────────────────────────────
-def _make_quote(sale, cust, unit_price, qty=1):
+# ─── Duyệt theo % CHIẾT KHẤU (sale ≤5% tự duyệt · manager ≤10% · CEO >10%) ──
+def _make_quote(sale, cust, unit_price, qty=1, discount_pct=0):
     sc = APIClient(); sc.force_authenticate(sale)
-    return sc.post('/api/v1/crm/quotes/', {'customer': str(cust.id),
+    return sc.post('/api/v1/crm/quotes/', {'customer': str(cust.id), 'discount_pct': discount_pct,
                    'lines': [{'part_no': 'X', 'qty': qty, 'unit_price_vnd': unit_price}]},
                    format='json').data
 
 
 @pytest.mark.django_db
-def test_quote_over_threshold_needs_ceo(manager, ceo, sale, settings):
-    """Báo giá ≥ ngưỡng: manager duyệt → pending_ceo, chưa được to-contract."""
-    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
+def test_quote_over_threshold_needs_ceo(manager, ceo, sale):
+    """Chiết khấu > 10%: manager duyệt → pending_ceo, chưa được to-contract."""
     cust = CustomerFactory(owner=sale)
-    q = _make_quote(sale, cust, unit_price=150_000_000)   # vượt ngưỡng
+    q = _make_quote(sale, cust, unit_price=10_000_000, discount_pct=15)   # CK 15% > 10%
     assert q['requires_l2'] is True
+    assert q['status'] == 'draft'   # >5% nên KHÔNG tự duyệt
 
     mc = APIClient(); mc.force_authenticate(manager)
     r1 = mc.post(f"/api/v1/crm/quotes/{q['id']}/approve/")
@@ -197,12 +198,12 @@ def test_quote_over_threshold_needs_ceo(manager, ceo, sale, settings):
 
 
 @pytest.mark.django_db
-def test_quote_under_threshold_skips_ceo(manager, sale, settings):
-    """Báo giá dưới ngưỡng: manager duyệt → approved luôn (không cần CEO)."""
-    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
+def test_quote_under_threshold_skips_ceo(manager, sale):
+    """Chiết khấu 5-10%: manager duyệt → approved luôn (không cần CEO)."""
     cust = CustomerFactory(owner=sale)
-    q = _make_quote(sale, cust, unit_price=5_000_000)   # dưới ngưỡng
+    q = _make_quote(sale, cust, unit_price=5_000_000, discount_pct=8)   # 5<CK≤10
     assert q['requires_l2'] is False
+    assert q['status'] == 'draft'
     mc = APIClient(); mc.force_authenticate(manager)
     r = mc.post(f"/api/v1/crm/quotes/{q['id']}/approve/")
     assert r.status_code == 200
@@ -210,11 +211,19 @@ def test_quote_under_threshold_skips_ceo(manager, sale, settings):
 
 
 @pytest.mark.django_db
-def test_manager_cannot_approve_l2(manager, sale, settings):
-    """Manager (cấp 1) không được duyệt cấp 2 → 403."""
-    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
+def test_quote_within_sale_authority_auto_approved(sale):
+    """Chiết khấu ≤5%: tự động duyệt ngay khi tạo (quyền sale)."""
     cust = CustomerFactory(owner=sale)
-    q = _make_quote(sale, cust, unit_price=150_000_000)
+    q = _make_quote(sale, cust, unit_price=5_000_000, discount_pct=3)
+    assert q['status'] == 'approved'
+    assert q['requires_l2'] is False
+
+
+@pytest.mark.django_db
+def test_manager_cannot_approve_l2(manager, sale):
+    """Manager (cấp 1) không được duyệt cấp 2 → 403."""
+    cust = CustomerFactory(owner=sale)
+    q = _make_quote(sale, cust, unit_price=10_000_000, discount_pct=15)
     mc = APIClient(); mc.force_authenticate(manager)
     mc.post(f"/api/v1/crm/quotes/{q['id']}/approve/")   # → pending_ceo
     r = mc.post(f"/api/v1/crm/quotes/{q['id']}/approve-l2/")
@@ -222,11 +231,10 @@ def test_manager_cannot_approve_l2(manager, sale, settings):
 
 
 @pytest.mark.django_db
-def test_ceo_cannot_l2_own_l1(ceo, sale, settings):
+def test_ceo_cannot_l2_own_l1(ceo, sale):
     """CEO tự duyệt cấp 1 rồi cấp 2 cùng báo giá → cấp 2 bị chặn (4-eyes)."""
-    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
     cust = CustomerFactory(owner=sale)
-    q = _make_quote(sale, cust, unit_price=150_000_000)
+    q = _make_quote(sale, cust, unit_price=10_000_000, discount_pct=15)
     cc = APIClient(); cc.force_authenticate(ceo)
     assert cc.post(f"/api/v1/crm/quotes/{q['id']}/approve/").data['status'] == 'pending_ceo'
     r = cc.post(f"/api/v1/crm/quotes/{q['id']}/approve-l2/")
@@ -236,9 +244,10 @@ def test_ceo_cannot_l2_own_l1(ceo, sale, settings):
 @pytest.mark.django_db
 def test_to_contract_requires_approved(api, sale):
     cust = CustomerFactory(owner=sale)
-    q = api.post('/api/v1/crm/quotes/', {'customer': str(cust.id),
-                 'lines': [{'part_no': 'X', 'qty': 1, 'unit_price_vnd': 100}]},
+    q = api.post('/api/v1/crm/quotes/', {'customer': str(cust.id), 'discount_pct': 8,
+                 'lines': [{'part_no': 'X', 'qty': 1, 'unit_price_vnd': 1000}]},
                  format='json').data
+    assert q['status'] == 'draft'   # CK 8% > 5% → cần duyệt, chưa approved
     r = api.post(f"/api/v1/crm/quotes/{q['id']}/to-contract/")
     assert r.status_code == 400   # chưa approved
 
@@ -306,12 +315,11 @@ def test_quote_to_order_creates_salesorder(sale):
 
 # ─── N2.5 Reject quote ───────────────────────────────────────────────────
 @pytest.mark.django_db
-def test_notification_on_pending_ceo(manager, ceo, sale, settings):
-    """Báo giá vượt ngưỡng → manager duyệt cấp 1 → CEO nhận thông báo."""
+def test_notification_on_pending_ceo(manager, ceo, sale):
+    """Báo giá CK >10% → manager duyệt cấp 1 → CEO nhận thông báo."""
     from apps.common.models import Notification
-    settings.QUOTE_L2_THRESHOLD_VND = 100_000_000
     cust = CustomerFactory(owner=sale)
-    q = _make_quote(sale, cust, unit_price=150_000_000)
+    q = _make_quote(sale, cust, unit_price=10_000_000, discount_pct=15)
     mc = APIClient(); mc.force_authenticate(manager)
     mc.post(f"/api/v1/crm/quotes/{q['id']}/approve/")
     assert Notification.objects.filter(user=ceo, kind='quote_approval', is_read=False).exists()
