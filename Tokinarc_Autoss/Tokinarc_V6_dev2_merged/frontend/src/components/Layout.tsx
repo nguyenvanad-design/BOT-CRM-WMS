@@ -8,8 +8,8 @@ import {
   Flame, LogOut, LayoutDashboard, TrendingUp, Building2,
   Radar, Target, Filter, FileText, ScrollText, MapPin, Phone,
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
-  Package, AlertTriangle, Barcode, History, Inbox, PackageCheck,
-  Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Boxes, Gauge,
+  Package, Barcode, History, Inbox, PackageCheck,
+  Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Gauge,
   ShoppingCart, Building, Undo2, CalendarDays, UserCog,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -66,9 +66,7 @@ const WMS_NAV: NavGroup[] = [
   ]},
   { group: 'Tồn kho', items: [
     { to: '/wms/inventory', icon: <Package size={16} />, label: 'Tồn kho' },
-    { to: '/wms/low-stock', icon: <AlertTriangle size={16} />, label: 'Sắp hết hàng' },
-    { to: '/wms/serials', icon: <Barcode size={16} />, label: 'Serial' },
-    { to: '/wms/lots', icon: <Boxes size={16} />, label: 'Lô hàng' },
+    { to: '/wms/trace', icon: <Barcode size={16} />, label: 'Truy xuất (Serial/Lô)' },
     { to: '/wms/movements', icon: <History size={16} />, label: 'Lịch sử kho' },
   ]},
   { group: 'Mua hàng', items: [

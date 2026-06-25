@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { Package, AlertTriangle, SlidersHorizontal, ArrowLeftRight } from 'lucide-react'
 import { apiError } from '@/lib/api'
-import { fetchPage, fetchAll, PAGE_SIZE } from '@/lib/list'
+import { fetchPage, fetchAll, fetchCount, PAGE_SIZE } from '@/lib/list'
 import { useDebounced } from '@/lib/useDebounced'
 import type { InventoryItem } from '@/lib/types'
 import type { Option } from '@/components/form'
@@ -19,15 +19,20 @@ import { TransferForm } from '@/pages/wms/forms/TransferForm'
 
 interface BinLite { id: string; full_code: string }
 
-export function InventoryPage({ lowStock = false }: { lowStock?: boolean }) {
+export function InventoryPage({ lowStock: initialLow = false }: { lowStock?: boolean }) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [lowStock, setLowStock] = useState(initialLow)
   const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null)
   const [transferItem, setTransferItem] = useState<InventoryItem | null>(null)
   const debounced = useDebounced(search, 350, () => setPage(1))
 
   const bins = useQuery({ queryKey: ['wms-bins-opt'], queryFn: () => fetchAll<BinLite>('/wms/bins/') })
   const binOptions: Option[] = (bins.data?.items ?? []).map((b) => ({ value: b.id, label: b.full_code }))
+  const lowCount = useQuery({
+    queryKey: ['wms-low-count'],
+    queryFn: () => fetchCount('/wms/inventory/', { low_stock: 'true' }),
+  })
 
   const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: ['wms-inventory', lowStock, debounced, page],
@@ -43,10 +48,19 @@ export function InventoryPage({ lowStock = false }: { lowStock?: boolean }) {
   return (
     <div className="max-w-6xl">
       <PageHeader
-        icon={lowStock ? <AlertTriangle size={20} className="text-danger" /> : <Package size={20} className="text-flame" />}
-        title={lowStock ? 'Sắp hết hàng' : 'Tồn kho'}
-        subtitle={data ? `${data.count} dòng tồn` : undefined}
-        actions={<SearchInput value={search} onChange={setSearch} placeholder="Tìm mặt hàng, vị trí…" />}
+        icon={<Package size={20} className="text-flame" />}
+        title="Tồn kho"
+        subtitle={data ? `${data.count} dòng tồn${lowStock ? ' · đang lọc sắp hết' : ''}` : undefined}
+        actions={
+          <>
+            <button onClick={() => { setLowStock((v) => !v); setPage(1) }}
+              className={`flex items-center gap-1.5 text-xs rounded-md px-2.5 py-2 border transition-colors ${
+                lowStock ? 'border-danger text-danger bg-danger/10' : 'border-line text-txt-2 hover:text-txt'}`}>
+              <AlertTriangle size={14} /> Chỉ sắp hết{lowCount.data ? ` (${lowCount.data})` : ''}
+            </button>
+            <SearchInput value={search} onChange={setSearch} placeholder="Tìm mặt hàng, vị trí…" />
+          </>
+        }
       />
 
       <TableCard>

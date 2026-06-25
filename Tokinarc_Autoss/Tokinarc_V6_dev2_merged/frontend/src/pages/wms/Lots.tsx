@@ -5,10 +5,10 @@
  */
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Boxes, AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { api, apiError } from '@/lib/api'
 import { formatDate } from '@/lib/crm'
-import { PageHeader, Tag, Button, TableCard, Th, Td, RowMsg } from '@/components/ui'
+import { Tag, Button, TableCard, Th, Td, RowMsg } from '@/components/ui'
 
 interface Lot {
   id: string; lot_no: string; part: string | null; qty_remaining: number
@@ -23,7 +23,7 @@ function expiryTone(exp: string | null): { label: string; tone: 'ok' | 'warn' | 
   return { label: formatDate(exp), tone: 'ok' }
 }
 
-export function WmsLotsPage() {
+export function LotsList() {
   const [onlyExpiring, setOnlyExpiring] = useState(false)
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['wms-lots', onlyExpiring],
@@ -36,14 +36,13 @@ export function WmsLotsPage() {
   const lots = data ?? []
 
   return (
-    <div className="max-w-4xl">
-      <PageHeader icon={<Boxes size={20} className="text-flame" />} title="Lô hàng (FEFO)"
-        subtitle={`${lots.length} lô còn tồn`}
-        actions={
-          <Button variant={onlyExpiring ? 'success' : 'ghost'} onClick={() => setOnlyExpiring((v) => !v)}>
-            <AlertTriangle size={14} /> Sắp hết hạn (≤30 ngày)
-          </Button>
-        } />
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="text-xs text-txt-2">{lots.length} lô còn tồn (FEFO)</div>
+        <Button variant={onlyExpiring ? 'success' : 'ghost'} onClick={() => setOnlyExpiring((v) => !v)}>
+          <AlertTriangle size={14} /> Sắp hết hạn (≤30 ngày)
+        </Button>
+      </div>
 
       <TableCard>
         <thead><tr className="border-b border-line">

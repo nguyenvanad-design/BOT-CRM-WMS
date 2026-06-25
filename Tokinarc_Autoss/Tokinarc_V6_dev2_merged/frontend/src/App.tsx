@@ -29,7 +29,7 @@ import { SalesPerformancePage } from '@/pages/crm/SalesPerformance'
 import { WarrantyPage } from '@/pages/crm/Warranty'
 import { ScanPage } from '@/pages/wms/Scan'
 import { WmsCycleCountPage } from '@/pages/wms/CycleCount'
-import { WmsLotsPage } from '@/pages/wms/Lots'
+import { TracePage } from '@/pages/wms/Trace'
 import { WmsOpsKpiPage } from '@/pages/wms/OpsKpi'
 import { PurchaseOrdersPage } from '@/pages/purchasing/PurchaseOrders'
 import { SuppliersPage } from '@/pages/purchasing/Suppliers'
@@ -40,7 +40,6 @@ import { ActivitiesPage } from '@/pages/crm/Activities'
 import { AIHubPage } from '@/pages/crm/AIHub'
 import { WmsDashboardPage } from '@/pages/wms/Dashboard'
 import { InventoryPage } from '@/pages/wms/Inventory'
-import { SerialsPage } from '@/pages/wms/Serials'
 import { MovementsPage } from '@/pages/wms/Movements'
 import { WarehousesPage } from '@/pages/wms/Warehouses'
 import { InboundPage } from '@/pages/wms/Inbound'
@@ -119,8 +118,9 @@ export function App() {
           <Route path="wms" element={<Navigate to="/wms/dashboard" replace />} />
           <Route path="wms/dashboard" element={<WmsDashboardPage />} />
           <Route path="wms/inventory" element={<InventoryPage />} />
-          <Route path="wms/low-stock" element={<InventoryPage lowStock />} />
-          <Route path="wms/serials" element={<SerialsPage />} />
+          <Route path="wms/low-stock" element={<Navigate to="/wms/inventory" replace />} />
+          <Route path="wms/trace" element={<TracePage />} />
+          <Route path="wms/serials" element={<Navigate to="/wms/trace" replace />} />
           <Route path="wms/movements" element={<MovementsPage />} />
           <Route path="wms/asn" element={<ASNPage />} />
           <Route path="wms/inbound" element={<InboundPage />} />
@@ -129,7 +129,7 @@ export function App() {
           <Route path="wms/map" element={<WarehouseMapPage />} />
           <Route path="wms/scan" element={<ScanPage />} />
           <Route path="wms/cycle-count" element={<WmsCycleCountPage />} />
-          <Route path="wms/lots" element={<WmsLotsPage />} />
+          <Route path="wms/lots" element={<Navigate to="/wms/trace" replace />} />
           <Route path="wms/ops-kpi" element={<WmsOpsKpiPage />} />
 
           {/* ── Mua hàng ── */}

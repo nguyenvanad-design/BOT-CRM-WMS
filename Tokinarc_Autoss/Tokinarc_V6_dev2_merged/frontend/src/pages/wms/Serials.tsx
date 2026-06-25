@@ -4,7 +4,6 @@
  */
 import { useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { Barcode } from 'lucide-react'
 import { apiError } from '@/lib/api'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
 import { useDebounced } from '@/lib/useDebounced'
@@ -12,12 +11,12 @@ import { formatDate } from '@/lib/crm'
 import { SERIAL_STATUS_LABEL, SERIAL_STATUS_TONE } from '@/lib/wms'
 import type { SerialNumber, SerialStatus } from '@/lib/types'
 import {
-  PageHeader, SearchInput, Tag, TableCard, Th, Td, RowMsg, Pagination,
+  SearchInput, Tag, TableCard, Th, Td, RowMsg, Pagination,
 } from '@/components/ui'
 
 const STATUSES: (SerialStatus | '')[] = ['', 'in_stock', 'reserved', 'sold', 'shipped', 'returned', 'scrapped']
 
-export function SerialsPage() {
+export function SerialsList() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<SerialStatus | ''>('')
   const [page, setPage] = useState(1)
@@ -34,21 +33,17 @@ export function SerialsPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1
 
   return (
-    <div className="max-w-5xl">
-      <PageHeader
-        icon={<Barcode size={20} className="text-flame" />}
-        title="Serial"
-        subtitle={data ? `${data.count} serial` : undefined}
-        actions={
-          <>
-            <select value={status} onChange={(e) => { setStatus(e.target.value as SerialStatus | ''); setPage(1) }}
-              className="bg-ink-2 border border-line rounded-md px-2.5 py-2 text-sm focus:border-flame">
-              {STATUSES.map((s) => <option key={s} value={s}>{s ? SERIAL_STATUS_LABEL[s] : 'Tất cả trạng thái'}</option>)}
-            </select>
-            <SearchInput value={search} onChange={setSearch} placeholder="Tìm serial…" />
-          </>
-        }
-      />
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="text-xs text-txt-2">{data ? `${data.count} serial` : ''}</div>
+        <div className="flex items-center gap-2">
+          <select value={status} onChange={(e) => { setStatus(e.target.value as SerialStatus | ''); setPage(1) }}
+            className="bg-ink-2 border border-line rounded-md px-2.5 py-2 text-sm focus:border-flame">
+            {STATUSES.map((s) => <option key={s} value={s}>{s ? SERIAL_STATUS_LABEL[s] : 'Tất cả trạng thái'}</option>)}
+          </select>
+          <SearchInput value={search} onChange={setSearch} placeholder="Tìm serial…" />
+        </div>
+      </div>
 
       <TableCard>
         <thead>
