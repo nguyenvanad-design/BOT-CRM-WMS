@@ -120,3 +120,52 @@ class SummaryExportView(_Base):
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         resp['Content-Disposition'] = f'attachment; filename="bao_cao_dieu_hanh_{date.today().isoformat()}.xlsx"'
         return resp
+
+
+class SalesPerformanceView(APIView):
+    """Hiệu suất theo từng SALE (chỉ quản lý+). Một dòng/nhân viên: KH, lead,
+    cơ hội mở, pipeline, weighted, won, đơn, doanh thu, đã thu."""
+    permission_classes = [IsManagerOrAdmin]
+
+    OPEN_OPP = ['prospect', 'qualify', 'proposal', 'negotiate']
+    ACTIVE_LEAD = ['new', 'contacted', 'qualified']
+    REVENUE_ORDER = ['active', 'shipping', 'completed']
+
+    def get(self, request):
+        from django.contrib.auth import get_user_model
+        from django.db.models import Count, Sum
+
+        from apps.crm.models import Customer, Lead, Opportunity
+        from apps.sales.models import SalesOrder
+
+        User = get_user_model()
+        sellers = User.objects.filter(role__in=['sales', 'manager'], is_active=True).order_by('username')
+        rows = {u.id: {'id': str(u.id), 'username': u.username, 'name': u.display_name or u.username,
+                       'customers': 0, 'leads': 0, 'open_opps': 0, 'pipeline_vnd': 0,
+                       'weighted_vnd': 0, 'won_opps': 0, 'orders': 0,
+                       'revenue_vnd': 0, 'collected_vnd': 0} for u in sellers}
+
+        for r in Customer.objects.filter(deleted_at__isnull=True).values('owner').annotate(c=Count('id')):
+            if r['owner'] in rows:
+                rows[r['owner']]['customers'] = int(r['c'] or 0)
+        for r in Lead.objects.filter(status__in=self.ACTIVE_LEAD).values('owner').annotate(c=Count('id')):
+            if r['owner'] in rows:
+                rows[r['owner']]['leads'] = int(r['c'] or 0)
+        for o in Opportunity.objects.filter(stage__in=self.OPEN_OPP).values('owner', 'est_value_vnd', 'probability'):
+            r = rows.get(o['owner'])
+            if r:
+                val = int(o['est_value_vnd'] or 0)
+                r['open_opps'] += 1
+                r['pipeline_vnd'] += val
+                r['weighted_vnd'] += val * int(o['probability'] or 0) // 100
+        for r in Opportunity.objects.filter(stage='won').values('owner').annotate(c=Count('id')):
+            if r['owner'] in rows:
+                rows[r['owner']]['won_opps'] = int(r['c'] or 0)
+        for r in (SalesOrder.objects.filter(status__in=self.REVENUE_ORDER, deleted_at__isnull=True)
+                  .values('owner').annotate(c=Count('id'), rev=Sum('total_vnd'), col=Sum('paid_vnd'))):
+            if r['owner'] in rows:
+                rows[r['owner']]['orders'] = int(r['c'] or 0)
+                rows[r['owner']]['revenue_vnd'] = int(r['rev'] or 0)
+                rows[r['owner']]['collected_vnd'] = int(r['col'] or 0)
+
+        return Response(sorted(rows.values(), key=lambda x: -x['revenue_vnd']))
