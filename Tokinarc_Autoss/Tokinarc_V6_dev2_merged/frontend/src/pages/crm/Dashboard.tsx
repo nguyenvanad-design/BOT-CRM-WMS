@@ -1,14 +1,14 @@
 /**
  * Tokinarc frontend — src/pages/crm/Dashboard.tsx
- * Dashboard CRM: KPI tổng hợp THẬT từ các list endpoint (/crm/...).
- * - Pipeline mở = tổng est_value_vnd của opportunity chưa won/lost.
- * - Số KH / lead / ticket mở lấy từ count phân trang.
+ * Dashboard CRM (1 trang đầy đủ, cuộn): KPI + cơ hội + ticket.
+ * Manager thấy thêm: Hiệu suất theo sale + Doanh thu — ngay trên cùng trang.
  */
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { LayoutDashboard } from 'lucide-react'
 import { fetchAll, fetchCount } from '@/lib/list'
 import { apiError } from '@/lib/api'
+import { useAuth, isManager } from '@/lib/auth/store'
 import {
   compactVnd, formatDate, OPP_STAGE_LABEL, OPP_STAGE_TONE,
   TICKET_STATUS_TONE, TICKET_PRIORITY_LABEL, TICKET_PRIORITY_TONE,
@@ -18,11 +18,14 @@ import {
   Card, SectionTitle, StatCard, PageHeader, Tag, Gauge,
   TableCard, Th, Td, RowMsg,
 } from '@/components/ui'
+import { SalesPerformancePage } from '@/pages/crm/SalesPerformance'
+import { CeoRevenuePage } from '@/pages/ceo/Revenue'
 
 const OPEN_STAGES = new Set(['prospect', 'qualify', 'proposal', 'negotiate'])
 
 export function DashboardPage() {
   const nav = useNavigate()
+  const mgr = isManager(useAuth((s) => s.user?.role))
 
   const opps = useQuery({
     queryKey: ['dash', 'opportunities'],
@@ -118,7 +121,7 @@ export function DashboardPage() {
         </TableCard>
       </Card>
 
-      <Card>
+      <Card className="mb-4">
         <SectionTitle action={<button className="text-xs text-flame hover:underline" onClick={() => nav('/tickets')}>Xem tất cả</button>}>
           Ticket cần chú ý
         </SectionTitle>
@@ -144,6 +147,14 @@ export function DashboardPage() {
           </tbody>
         </TableCard>
       </Card>
+
+      {/* Manager: hiệu suất theo sale + doanh thu — ngay trên cùng trang (không tab) */}
+      {mgr && (
+        <div className="mt-6 pt-2 border-t border-line/60 space-y-2">
+          <SalesPerformancePage />
+          <CeoRevenuePage />
+        </div>
+      )}
     </div>
   )
 }

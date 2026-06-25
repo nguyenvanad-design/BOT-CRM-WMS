@@ -21,11 +21,11 @@ import { InvoicesPage } from '@/pages/crm/Invoices'
 import { OrdersPage } from '@/pages/crm/Orders'
 import { ReturnsPage } from '@/pages/crm/Returns'
 import { MyActivityPage } from '@/pages/crm/MyActivity'
-import { LeadSourcesPage } from '@/pages/crm/LeadSources'
 import { VisitsPage } from '@/pages/crm/Visits'
 import { TicketsPage } from '@/pages/crm/Tickets'
 import { ProductsPage } from '@/pages/crm/Products'
 import { CrmForecastPage } from '@/pages/crm/Forecast'
+import { SalesPerformancePage } from '@/pages/crm/SalesPerformance'
 import { WarrantyPage } from '@/pages/crm/Warranty'
 import { ScanPage } from '@/pages/wms/Scan'
 import { WmsCycleCountPage } from '@/pages/wms/CycleCount'
@@ -35,7 +35,6 @@ import { PurchaseOrdersPage } from '@/pages/purchasing/PurchaseOrders'
 import { SuppliersPage } from '@/pages/purchasing/Suppliers'
 import { WarehouseMapPage } from '@/pages/wms/WarehouseMap'
 import { WmsReportsPage } from '@/pages/wms/Reports'
-import { ContactsPage } from '@/pages/crm/Contacts'
 import { ContractsPage } from '@/pages/crm/Contracts'
 import { ActivitiesPage } from '@/pages/crm/Activities'
 import { AIHubPage } from '@/pages/crm/AIHub'
@@ -101,14 +100,15 @@ export function App() {
           <Route path="invoices" element={<InvoicesPage />} />
           <Route path="returns" element={<ReturnsPage />} />
           <Route path="my-activity" element={<MyActivityPage />} />
-          <Route path="lead-sources" element={<RequireRole roles={[...MGR]}><LeadSourcesPage /></RequireRole>} />
+          <Route path="lead-sources" element={<Navigate to="/leads" replace />} />
+          <Route path="sales-performance" element={<RequireRole roles={[...MGR]}><SalesPerformancePage /></RequireRole>} />
           <Route path="visits" element={<VisitsPage />} />
           <Route path="tickets" element={<TicketsPage />} />
 
           {/* Đã nối API thật: contacts/contracts/activities (crm), products (catalog),
               warranty (serial WMS); forecast (tính từ opportunities), ai (giới thiệu) */}
           <Route path="forecast" element={<CrmForecastPage />} />
-          <Route path="contacts" element={<ContactsPage />} />
+          <Route path="contacts" element={<Navigate to="/customers" replace />} />
           <Route path="contracts" element={<ContractsPage />} />
           <Route path="activities" element={<ActivitiesPage />} />
           <Route path="warranty" element={<WarrantyPage />} />

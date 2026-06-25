@@ -1,13 +1,12 @@
 /**
  * Tokinarc frontend — src/pages/crm/LeadSources.tsx
- * Báo cáo Lead theo nguồn + chiến dịch. GET /crm/lead-sources/?days=
- * Sale → của mình; Manager → toàn bộ.
+ * Báo cáo Lead theo nguồn + chiến dịch (dùng làm view "Phân tích nguồn" trong trang Leads).
+ * GET /crm/lead-sources/?days= — Sale → của mình; Manager → toàn bộ.
  */
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { PieChart } from 'lucide-react'
 import { api, apiError } from '@/lib/api'
-import { PageHeader, StatCard, TableCard, Th, Td, RowMsg } from '@/components/ui'
+import { StatCard, TableCard, Th, Td, RowMsg } from '@/components/ui'
 
 interface Row { source?: string; source_label: string; campaign?: string; referred_by?: string; total: number; converted: number; conversion_pct: number }
 interface Report {
@@ -18,7 +17,7 @@ interface Report {
   by_referrer: Row[]
 }
 
-export function LeadSourcesPage() {
+export function LeadSourcesReport() {
   const [days, setDays] = useState(90)
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['lead-sources', days],
@@ -27,20 +26,19 @@ export function LeadSourcesPage() {
   const maxTotal = Math.max(1, ...(data?.by_source ?? []).map((r) => r.total))
 
   return (
-    <div className="max-w-4xl">
-      <PageHeader icon={<PieChart size={20} className="text-flame" />} title="Nguồn lead"
-        subtitle={data ? `${data.summary.total} lead · ${days} ngày` : undefined}
-        actions={
-          <div className="flex gap-1">
-            {[30, 90, 365].map((d) => (
-              <button key={d} onClick={() => setDays(d)}
-                className={`text-xs rounded-md px-2.5 py-1.5 border transition-colors ${
-                  days === d ? 'border-flame text-flame bg-flame/10' : 'border-line text-txt-2 hover:text-txt'}`}>
-                {d === 365 ? '1 năm' : `${d} ngày`}
-              </button>
-            ))}
-          </div>
-        } />
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-sm text-txt-2">{data ? `${data.summary.total} lead · ${days} ngày gần nhất` : ''}</div>
+        <div className="flex gap-1">
+          {[30, 90, 365].map((d) => (
+            <button key={d} onClick={() => setDays(d)}
+              className={`text-xs rounded-md px-2.5 py-1.5 border transition-colors ${
+                days === d ? 'border-flame text-flame bg-flame/10' : 'border-line text-txt-2 hover:text-txt'}`}>
+              {d === 365 ? '1 năm' : `${d} ngày`}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {isLoading && <div className="text-txt-2 text-sm">Đang tải…</div>}
       {isError && <div className="text-danger text-sm">Lỗi: {apiError(error)}</div>}

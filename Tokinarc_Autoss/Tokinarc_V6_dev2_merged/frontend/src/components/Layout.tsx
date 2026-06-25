@@ -5,12 +5,12 @@
  */
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Flame, LogOut, LayoutDashboard, TrendingUp, Building2, Contact,
+  Flame, LogOut, LayoutDashboard, TrendingUp, Building2,
   Radar, Target, Filter, FileText, ScrollText, MapPin, Phone,
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
   Package, AlertTriangle, Barcode, History, Inbox, PackageCheck,
   Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Boxes, Gauge,
-  ShoppingCart, Building, Undo2, CalendarDays, PieChart, UserCog,
+  ShoppingCart, Building, Undo2, CalendarDays, UserCog,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useAuth, isWmsControl, isManager, isAdmin } from '@/lib/auth/store'
@@ -30,26 +30,19 @@ const CRM_NAV: NavGroup[] = [
   { group: 'Tổng quan', items: [
     { to: '/dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
     { to: '/forecast', icon: <TrendingUp size={16} />, label: 'Forecast', mgr: true },
-    { to: '/lead-sources', icon: <PieChart size={16} />, label: 'Nguồn lead', mgr: true },
   ]},
   { group: 'Khách hàng', items: [
     { to: '/customers', icon: <Building2 size={16} />, label: 'Khách hàng' },
-    { to: '/contacts', icon: <Contact size={16} />, label: 'Người liên hệ' },
-  ]},
-  { group: 'Bán hàng', items: [
     { to: '/leads', icon: <Radar size={16} />, label: 'Leads' },
     { to: '/opportunities', icon: <Target size={16} />, label: 'Opportunity' },
     { to: '/pipeline', icon: <Filter size={16} />, label: 'Pipeline' },
+  ]},
+  { group: 'Bán hàng', items: [
     { to: '/quotes', icon: <FileText size={16} />, label: 'Báo giá' },
     { to: '/orders', icon: <ShoppingCart size={16} />, label: 'Đơn bán' },
     { to: '/contracts', icon: <ScrollText size={16} />, label: 'Hợp đồng' },
     { to: '/invoices', icon: <FileText size={16} />, label: 'Hóa đơn (MISA)', mgr: true },
     { to: '/receivables', icon: <Wallet size={16} />, label: 'Công nợ', mgr: true },
-  ]},
-  { group: 'Điều hành (quản lý)', items: [
-    { to: '/ceo/overview', icon: <Crown size={16} />, label: 'Bảng điều hành', mgr: true },
-    { to: '/ceo/revenue', icon: <TrendingUp size={16} />, label: 'Doanh thu', mgr: true },
-    { to: '/ceo/inventory', icon: <Package size={16} />, label: 'Giá trị tồn', mgr: true },
   ]},
   { group: 'Hoạt động', items: [
     { to: '/my-activity', icon: <CalendarDays size={16} />, label: 'Nhật ký của tôi' },

@@ -1,22 +1,23 @@
 /**
  * Tokinarc frontend — src/pages/crm/Contacts.tsx
  * Người liên hệ THẬT (GET /crm/contacts/) + thêm/sửa. Search + phân trang.
+ * Dùng làm view "Người liên hệ" trong trang Khách hàng.
  */
 import { useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { Contact as ContactIcon, Plus, Star } from 'lucide-react'
+import { Plus, Star } from 'lucide-react'
 import { apiError } from '@/lib/api'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
 import { useDebounced } from '@/lib/useDebounced'
 import type { CrmContact } from '@/lib/types'
 import {
-  PageHeader, SearchInput, Button, Tag, TableCard, Th, Td, RowMsg, Pagination,
+  SearchInput, Button, Tag, TableCard, Th, Td, RowMsg, Pagination,
 } from '@/components/ui'
 import { ContactForm } from '@/pages/crm/forms/ContactForm'
 
 const CHANNEL: Record<string, string> = { zalo: 'Zalo', phone: 'Điện thoại', email: 'Email', other: 'Khác' }
 
-export function ContactsPage() {
+export function ContactsList() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
@@ -31,15 +32,14 @@ export function ContactsPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1
 
   return (
-    <div className="max-w-5xl">
-      <PageHeader icon={<ContactIcon size={20} className="text-flame" />} title="Người liên hệ"
-        subtitle={data ? `${data.count} liên hệ` : undefined}
-        actions={
-          <>
-            <SearchInput value={search} onChange={setSearch} placeholder="Tìm tên, SĐT, công ty…" />
-            <Button onClick={() => { setEditing(null); setFormOpen(true) }}><Plus size={14} /> Thêm</Button>
-          </>
-        } />
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="text-xs text-txt-2">{data ? `${data.count} liên hệ` : ''}</div>
+        <div className="flex items-center gap-2">
+          <SearchInput value={search} onChange={setSearch} placeholder="Tìm tên, SĐT, công ty…" />
+          <Button onClick={() => { setEditing(null); setFormOpen(true) }}><Plus size={14} /> Thêm</Button>
+        </div>
+      </div>
 
       <TableCard>
         <thead><tr className="border-b border-line">
