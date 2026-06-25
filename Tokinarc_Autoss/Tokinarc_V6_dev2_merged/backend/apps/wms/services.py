@@ -116,6 +116,8 @@ def issue_stock(*, bin_obj: Bin, part=None, torch=None, qty: int,
     if item is None or item.available_qty < qty:
         have = item.available_qty if item else 0
         raise InsufficientStock(f"Tồn khả dụng {have} < {qty}.")
+    before_qty = item.qty_on_hand
+    min_level = item.min_level or 0
     InventoryItem.objects.filter(pk=item.pk).update(qty_on_hand=F('qty_on_hand') - qty)
     StockMovement.objects.create(
         warehouse=_wh_of_bin(bin_obj), part=part, torch=torch, bin=bin_obj,
@@ -123,6 +125,16 @@ def issue_stock(*, bin_obj: Bin, part=None, torch=None, qty: int,
         ref_id=ref_id, by_user=user,
     )
     item.refresh_from_db()
+    # Cảnh báo (chỉ khi VỪA chạm ngưỡng) cho NV kho + quản lý/mua hàng để đặt thêm.
+    if min_level > 0 and before_qty > min_level and item.qty_on_hand <= min_level:
+        from apps.accounts.roles import MANAGER_ROLES, Role
+        from apps.common.models import notify_roles
+        obj = part or torch
+        targets = frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER}) | MANAGER_ROLES
+        notify_roles(targets, 'stock_low',
+                     f"Sắp hết: {obj.pk} tại {bin_obj.full_code} còn {item.qty_on_hand} "
+                     f"(≤ định mức {min_level}) — cân nhắc đặt thêm.",
+                     link='/wms/low-stock')
     return item
 
 

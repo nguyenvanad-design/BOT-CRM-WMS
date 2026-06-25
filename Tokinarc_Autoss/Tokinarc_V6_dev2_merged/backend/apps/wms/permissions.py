@@ -11,7 +11,7 @@ from __future__ import annotations
 from rest_framework import permissions
 from rest_framework.permissions import SAFE_METHODS
 
-from apps.accounts.roles import INTERNAL_ROLES, WMS_OP_ROLES, Role, role_of
+from apps.accounts.roles import INTERNAL_ROLES, WMS_OP_ROLES, Role, is_wms_control, role_of
 
 # Đọc: mọi nhân viên (trừ customer). Ghi nghiệp vụ: WMS_OP_ROLES.
 WMS_READ_ROLES  = INTERNAL_ROLES
@@ -35,3 +35,20 @@ class WmsAccess(permissions.BasePermission):
 
 # Backward-compat alias — views.py + tests cũ dùng tên WMSPermission
 WMSPermission = WmsAccess
+
+
+class WmsControlAccess(permissions.BasePermission):
+    """Đọc: mọi nhân viên nội bộ. Ghi (tạo/sửa kho, zone): chỉ KIỂM SOÁT kho
+    (QL kho + manager/CEO/admin) — NV kho thường không được sửa cấu trúc kho."""
+    message = "Chỉ Quản lý kho trở lên được sửa cấu trúc kho."
+
+    def has_permission(self, request, view) -> bool:
+        u = request.user
+        if not (u and u.is_authenticated):
+            return False
+        r = role_of(u)
+        if r == Role.CUSTOMER:
+            return False
+        if request.method in SAFE_METHODS:
+            return r in WMS_READ_ROLES
+        return is_wms_control(u)

@@ -79,7 +79,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
-    'DEFAULT_PAGINATION_CLASS':   'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS':   'apps.common.pagination.DefaultPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_SCHEMA_CLASS':    'drf_spectacular.openapi.AutoSchema',
@@ -132,6 +132,22 @@ REDIS_URL_RATELIMIT = os.getenv('REDIS_URL_RATELIMIT', 'redis://redis:6379/1')
 QUOTE_L2_THRESHOLD_VND = int(os.getenv('QUOTE_L2_THRESHOLD_VND', '100000000'))
 # Hạn hiệu lực báo giá mặc định (ngày) khi tạo nếu không nhập valid_until.
 QUOTE_VALID_DAYS = int(os.getenv('QUOTE_VALID_DAYS', '30'))
+
+# ─── Mua hàng — duyệt đơn mua 2 cấp ─────────────────────────────────────────
+# Đơn mua có total_vnd ≥ ngưỡng này cần duyệt cấp 2 (CEO) sau cấp 1 (manager).
+PO_L2_THRESHOLD_VND = int(os.getenv('PO_L2_THRESHOLD_VND', '100000000'))
+
+# ─── Hợp đồng — duyệt 2 cấp ─────────────────────────────────────────────────
+# Hợp đồng có value_vnd ≥ ngưỡng này cần duyệt cấp 2 (CEO) sau cấp 1 (manager).
+CONTRACT_L2_THRESHOLD_VND = int(os.getenv('CONTRACT_L2_THRESHOLD_VND', '100000000'))
+
+# ─── Hạn mức giảm giá (Báo giá / Hợp đồng) ──────────────────────────────────
+# Duyệt theo % chiết khấu, KHÔNG theo giá trị:
+#   - ≤ DISCOUNT_SALE_MAX_PCT     : quyền sale → tự động duyệt.
+#   - ≤ DISCOUNT_MANAGER_MAX_PCT  : cần manager duyệt (cấp 1).
+#   - >  DISCOUNT_MANAGER_MAX_PCT : cần CEO duyệt (cấp 2). CEO duyệt không giới hạn.
+DISCOUNT_SALE_MAX_PCT    = float(os.getenv('DISCOUNT_SALE_MAX_PCT', '5'))
+DISCOUNT_MANAGER_MAX_PCT = float(os.getenv('DISCOUNT_MANAGER_MAX_PCT', '10'))
 
 # ─── Lead intake từ BOT KHÁCH (ghi-1-chiều) ─────────────────────────────────
 # Bot khách gọi POST /api/v1/crm/lead-intake/ kèm header X-Intake-Key = giá trị này.

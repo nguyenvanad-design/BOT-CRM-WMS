@@ -11,7 +11,8 @@ publish() placeholder — nối vào tokinarc.eventbus.publisher khi có.
 """
 from __future__ import annotations
 
-from django.db.models import F
+from django.db import transaction
+from django.db.models import F, ProtectedError
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, serializers, status, viewsets
@@ -24,15 +25,22 @@ from rest_framework.views import APIView
 from django.db.models import Count, Sum
 from django.db.models.functions import Abs
 
-from apps.accounts.roles import is_wms_control
+from apps.accounts.roles import MANAGER_ROLES, Role, is_wms_control
 from apps.catalog.models import Part, Torch
+from apps.common.models import notify_roles
+
+# Ngưỡng điều chỉnh tồn coi là "lớn" → báo quản lý giám sát.
+ADJUST_NOTIFY_QTY = 5
+
+# Nhân viên kho (NV kho + quản lý kho) — nhận noti "có việc kho mới".
+WAREHOUSE_STAFF = frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER})
 
 from . import services
 from .models import (
     ASN, Bin, CycleCount, CycleCountLine, InboundOrder, InventoryItem, Lot,
     OutboundOrder, SerialNumber, StockMovement, Warehouse, Zone,
 )
-from .permissions import WMSPermission
+from .permissions import WMSPermission, WmsControlAccess
 from .serializers import (
     ASNSerializer, AdjustSerializer, BinSerializer, InboundOrderSerializer,
     InventoryItemSerializer, LotSerializer, OutboundOrderSerializer,
@@ -68,16 +76,36 @@ def _publish(channel: str, payload: dict):
         pass   # event bus optional ở giai đoạn đầu
 
 
-class WarehouseViewSet(viewsets.ReadOnlyModelViewSet):
-    """FE đọc để quyết hiện/ẩn switcher (B.4): ẩn khi count==1."""
-    queryset = Warehouse.objects.filter(is_active=True)
+class WarehouseViewSet(viewsets.ModelViewSet):
+    """Quản lý kho. Đọc: nội bộ. Tạo/sửa: QL kho trở lên.
+    FE cũng đọc để quyết hiện/ẩn switcher (ẩn khi count==1)."""
+    queryset = Warehouse.objects.all().order_by('-is_default', 'code')
     serializer_class = WarehouseSerializer
-    permission_classes = [WMSPermission]
+    permission_classes = [WmsControlAccess]
+
+    def _keep_single_default(self, obj):
+        if obj.is_default:
+            Warehouse.objects.exclude(pk=obj.pk).filter(is_default=True).update(is_default=False)
+
+    def perform_create(self, serializer):
+        self._keep_single_default(serializer.save())
+
+    def perform_update(self, serializer):
+        self._keep_single_default(serializer.save())
+
+    def destroy(self, request, *args, **kwargs):
+        wh = self.get_object()
+        n = wh.zones.count()
+        if n:
+            return Response({'detail': f'Kho còn {n} khu — xoá hết khu trước khi xoá kho.',
+                             'code': 'CONFLICT'}, status=status.HTTP_409_CONFLICT)
+        return super().destroy(request, *args, **kwargs)
 
 
-class ZoneViewSet(viewsets.ReadOnlyModelViewSet):
+class ZoneViewSet(viewsets.ModelViewSet):
+    """Quản lý khu (zone) trong kho. Tạo/sửa: QL kho trở lên."""
     serializer_class = ZoneSerializer
-    permission_classes = [WMSPermission]
+    permission_classes = [WmsControlAccess]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['warehouse']
 
@@ -88,10 +116,28 @@ class ZoneViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(warehouse__code=wh)
         return qs
 
+    def destroy(self, request, *args, **kwargs):
+        zone = self.get_object()
+        stock = InventoryItem.objects.filter(bin__zone=zone, qty_on_hand__gt=0).count()
+        if stock:
+            return Response({'detail': f'Khu còn hàng ở {stock} ô — xuất/chuyển hết hàng trước khi xoá.',
+                             'code': 'CONFLICT'}, status=status.HTTP_409_CONFLICT)
+        try:
+            with transaction.atomic():
+                InventoryItem.objects.filter(bin__zone=zone).delete()   # ô tồn 0
+                zone.bins.all().delete()                                # chặn nếu ô có lịch sử (PROTECT)
+                zone.delete()
+        except ProtectedError:
+            return Response({'detail': 'Khu có ô đã phát sinh giao dịch (lịch sử nhập/xuất) — không xoá được.',
+                             'code': 'CONFLICT'}, status=status.HTTP_409_CONFLICT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-class BinViewSet(viewsets.ReadOnlyModelViewSet):
+
+class BinViewSet(viewsets.ModelViewSet):
+    """Quản lý ô (bin). Đọc: nội bộ. Tạo/sửa/xoá: QL kho trở lên.
+    Lọc ?warehouse=<code>&zone=<code> (theo MÃ) qua get_queryset."""
     serializer_class = BinSerializer
-    permission_classes = [WMSPermission]
+    permission_classes = [WmsControlAccess]
 
     def get_queryset(self):
         qs = Bin.objects.select_related('zone', 'zone__warehouse')
@@ -102,6 +148,26 @@ class BinViewSet(viewsets.ReadOnlyModelViewSet):
         if zone:
             qs = qs.filter(zone__code=zone)
         return qs
+
+    def perform_create(self, serializer):
+        z = serializer.validated_data['zone']
+        rack = serializer.validated_data['rack']
+        bin_code = serializer.validated_data['bin_code']
+        serializer.save(full_code=f"{z.warehouse.code}-{z.code}-{rack}-{bin_code}")
+
+    def destroy(self, request, *args, **kwargs):
+        b = self.get_object()
+        if b.items.filter(qty_on_hand__gt=0).exists():
+            return Response({'detail': 'Ô còn hàng — xuất/chuyển hết trước khi xoá.',
+                             'code': 'CONFLICT'}, status=status.HTTP_409_CONFLICT)
+        try:
+            with transaction.atomic():
+                b.items.all().delete()                  # tồn 0
+                b.delete()                              # chặn nếu có lịch sử (PROTECT)
+        except ProtectedError:
+            return Response({'detail': 'Ô đã phát sinh giao dịch — không xoá được.',
+                             'code': 'CONFLICT'}, status=status.HTTP_409_CONFLICT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -142,9 +208,19 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
             raise ValidationError({'part': 'Part không tồn tại.'})
         if d.get('torch') and torch is None:
             raise ValidationError({'torch': 'Torch không tồn tại.'})
+        prev = InventoryItem.objects.filter(bin=d['bin'], part=part, torch=torch).first()
+        prev_qty = prev.qty_on_hand if prev else 0
         item = services.adjust_stock(
             bin_obj=d['bin'], part=part, torch=torch, new_qty=d['new_qty'],
             reason=d['reason'], user=request.user, note=d['note'])
+        # Báo quản lý khi điều chỉnh tồn số lượng lớn (giám sát chênh lệch).
+        delta = item.qty_on_hand - prev_qty
+        if abs(delta) >= ADJUST_NOTIFY_QTY:
+            sku = part.pk if part else (torch.pk if torch else '?')
+            notify_roles(MANAGER_ROLES, 'stock_adjust',
+                         f"Điều chỉnh tồn {sku} tại {d['bin'].full_code}: {delta:+d} "
+                         f"(còn {item.qty_on_hand}). {d.get('note') or d['reason']}",
+                         link='/wms/movements', exclude_user=request.user)
         return Response(InventoryItemSerializer(item).data)
 
     @action(detail=False, methods=['post'], url_path='scan-entry')
@@ -314,6 +390,9 @@ class ASNViewSet(viewsets.ModelViewSet):
         asn.save(update_fields=['is_arrived'])
         _publish('StockReceived', {'asn': asn.code, 'inbound': inbound.code,
                                    'warehouse': asn.warehouse.code})
+        notify_roles(WAREHOUSE_STAFF, 'inbound_created',
+                     f"Phiếu nhập {inbound.code} cần nhận hàng (kho {asn.warehouse.code}).",
+                     link='/wms/inbound')
         return Response(InboundOrderSerializer(inbound).data, status=status.HTTP_201_CREATED)
 
 
@@ -323,7 +402,35 @@ class InboundViewSet(viewsets.ModelViewSet):
     queryset = InboundOrder.objects.prefetch_related('lines')
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user, updated_by=self.request.user)
+        inbound = serializer.save(created_by=self.request.user, updated_by=self.request.user)
+        # Báo nhân viên kho: có phiếu nhập mới cần nhận hàng (trừ người tự tạo).
+        notify_roles(WAREHOUSE_STAFF, 'inbound_created',
+                     f"Phiếu nhập {inbound.code} cần nhận hàng (kho {inbound.warehouse.code}).",
+                     link='/wms/inbound', exclude_user=self.request.user)
+
+    @action(detail=True, methods=['get'], url_path='export-xlsx')
+    def export_xlsx(self, request, pk=None):
+        """Xuất phiếu nhập kho ra Excel (đầu trang NCC nếu có + bảng dòng hàng)."""
+        from apps.common.excel import make_document_xlsx, supplier_party, xlsx_response
+        o = self.get_object()
+        rows = []
+        for l in o.lines.all():
+            item = l.part or l.torch
+            rows.append((str(item.pk) if item else '—',
+                         getattr(item, 'display_name_vi', '') if item else '',
+                         l.qty_expected, l.qty_received))
+        sup = getattr(o.asn, 'supplier', None) if o.asn_id else None
+        party = supplier_party(sup) if sup is not None and hasattr(sup, 'name') else None
+        data = make_document_xlsx(
+            sheet_title='PhieuNhap', doc_title='PHIẾU NHẬP KHO', doc_code=o.code,
+            doc_date=o.created_at.strftime('%d/%m/%Y'),
+            party=party, party_label='NHÀ CUNG CẤP:',
+            meta=[('Kho nhập:', o.warehouse.code), ('Trạng thái:', o.get_status_display())],
+            columns=[('Mã', 16, 'text'), ('Tên hàng', 40, 'text'),
+                     ('SL dự kiến', 12, 'int'), ('Thực nhận', 12, 'int')],
+            rows=rows,
+            signatures=['NGƯỜI GIAO', 'THỦ KHO', 'KẾ TOÁN'])
+        return xlsx_response(data, f'phieu_nhap_{o.code}.xlsx')
 
     @action(detail=True, methods=['post'], url_path='confirm')
     def confirm(self, request, pk=None):
@@ -474,15 +581,23 @@ class CycleCountViewSet(viewsets.ModelViewSet):
         if cc.status != 'open':
             return Response({'detail': 'Phiên đã đóng.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
-        applied, total_diff = 0, 0
+        applied, total_diff, diff_lines = 0, 0, 0
         for line in cc.lines.all():
             services.adjust_stock(bin_obj=line.bin, part=line.part, torch=line.torch,
                                   new_qty=line.counted_qty, reason='adjust',
                                   user=request.user, note=f'Kiểm kê {cc.code}')
             total_diff += line.diff
+            if line.diff:
+                diff_lines += 1
             applied += 1
         cc.status = 'applied'; cc.applied_at = timezone.now()
         cc.save(update_fields=['status', 'applied_at'])
+        # Báo quản lý khi kiểm kê có chênh lệch tồn (rủi ro mất/thừa hàng).
+        if diff_lines:
+            notify_roles(MANAGER_ROLES, 'cyclecount_variance',
+                         f"Kiểm kê {cc.code} (kho {cc.warehouse.code}): {diff_lines} dòng lệch, "
+                         f"chênh lệch ròng {total_diff:+d} — cần kiểm tra.",
+                         link='/wms/cycle-count', exclude_user=request.user)
         return Response({'detail': f'Đã áp dụng {applied} dòng kiểm kê.',
                          'applied': applied, 'total_diff': total_diff})
 
@@ -494,6 +609,30 @@ class OutboundViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user, updated_by=self.request.user)
+
+    @action(detail=True, methods=['get'], url_path='export-xlsx')
+    def export_xlsx(self, request, pk=None):
+        """Xuất phiếu xuất kho ra Excel (đầu trang thông tin KH + bảng dòng hàng)."""
+        from apps.common.excel import customer_party, make_document_xlsx, xlsx_response
+        o = self.get_object()
+        rows = []
+        for l in o.lines.all():
+            item = l.part or l.torch
+            rows.append((str(item.pk) if item else '—',
+                         getattr(item, 'display_name_vi', '') if item else '',
+                         l.qty_ordered, l.qty_picked))
+        party = customer_party(o.customer) if o.customer_id else None
+        data = make_document_xlsx(
+            sheet_title='PhieuXuat', doc_title='PHIẾU XUẤT KHO', doc_code=o.code,
+            doc_date=o.created_at.strftime('%d/%m/%Y'),
+            party_label='NGƯỜI NHẬN / KHÁCH HÀNG:', party=party,
+            meta=[('Kho xuất:', o.warehouse.code), ('Đơn bán:', o.sales_order_code or '—'),
+                  ('Trạng thái:', o.get_status_display())],
+            columns=[('Mã', 16, 'text'), ('Tên hàng', 40, 'text'),
+                     ('SL đặt', 12, 'int'), ('Thực soạn', 12, 'int')],
+            rows=rows,
+            signatures=['THỦ KHO', 'NGƯỜI VẬN CHUYỂN', 'NGƯỜI NHẬN'])
+        return xlsx_response(data, f'phieu_xuat_{o.code}.xlsx')
 
     @action(detail=True, methods=['get'], url_path='pick-list')
     def pick_list(self, request, pk=None):

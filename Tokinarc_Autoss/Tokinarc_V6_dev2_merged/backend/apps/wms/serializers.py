@@ -26,20 +26,26 @@ class WarehouseSerializer(serializers.ModelSerializer):
 
 class ZoneSerializer(serializers.ModelSerializer):
     warehouse_code = serializers.CharField(source='warehouse.code', read_only=True)
+    bin_count      = serializers.SerializerMethodField()
 
     class Meta:
         model  = Zone
-        fields = ['id', 'warehouse', 'warehouse_code', 'code', 'name', 'purpose']
+        fields = ['id', 'warehouse', 'warehouse_code', 'code', 'name', 'purpose', 'bin_count']
+
+    def get_bin_count(self, obj) -> int:
+        return obj.bins.count()
 
 
 class BinSerializer(serializers.ModelSerializer):
     warehouse_code = serializers.CharField(source='zone.warehouse.code', read_only=True)
     zone_code      = serializers.CharField(source='zone.code', read_only=True)
+    zone_name      = serializers.CharField(source='zone.name', read_only=True)
 
     class Meta:
         model  = Bin
-        fields = ['id', 'zone', 'zone_code', 'warehouse_code', 'rack',
+        fields = ['id', 'zone', 'zone_code', 'zone_name', 'warehouse_code', 'rack',
                   'bin_code', 'full_code', 'capacity']
+        read_only_fields = ['full_code']
 
 
 # ─── Tồn kho ─────────────────────────────────────────────────────────────────
@@ -48,11 +54,12 @@ class InventoryItemSerializer(serializers.ModelSerializer):
     warehouse_code = serializers.CharField(source='bin.zone.warehouse.code', read_only=True)
     qty_available  = serializers.IntegerField(read_only=True)
     item_name      = serializers.SerializerMethodField()
+    category       = serializers.SerializerMethodField()
 
     class Meta:
         model  = InventoryItem
         fields = ['id', 'bin', 'bin_code', 'warehouse_code', 'part', 'torch',
-                  'item_name', 'qty_on_hand', 'qty_reserved', 'qty_available',
+                  'item_name', 'category', 'qty_on_hand', 'qty_reserved', 'qty_available',
                   'min_level', 'updated_at']
         read_only_fields = ['id', 'updated_at']
 
@@ -60,6 +67,12 @@ class InventoryItemSerializer(serializers.ModelSerializer):
         if obj.part_id:
             return f"{obj.part_id} — {getattr(obj.part, 'display_name_vi', '')}"
         return f"{obj.torch_id} — {getattr(obj.torch, 'display_name_vi', '')}"
+
+    def get_category(self, obj) -> str:
+        # Loại sản phẩm (đặt tên kệ): category cho phụ tùng, family cho súng hàn.
+        if obj.part_id:
+            return getattr(obj.part, 'category', '') or ''
+        return getattr(obj.torch, 'family', '') or ''
 
     def validate(self, attrs):
         if bool(attrs.get('part')) == bool(attrs.get('torch')):
@@ -93,11 +106,22 @@ class StockMovementSerializer(serializers.ModelSerializer):
 
 
 # ─── Inbound / Outbound (nested lines) ───────────────────────────────────────
+def _line_item_name(obj):
+    """Tên hiển thị của mặt hàng (part hoặc torch) cho 1 dòng phiếu kho."""
+    o = obj.part or obj.torch
+    return (getattr(o, 'display_name_vi', '') or str(o.pk)) if o else ''
+
+
 class InboundLineSerializer(serializers.ModelSerializer):
+    part_name = serializers.SerializerMethodField()
+
     class Meta:
         model  = InboundLine
-        fields = ['id', 'part', 'torch', 'qty_expected', 'qty_received',
+        fields = ['id', 'part', 'torch', 'part_name', 'qty_expected', 'qty_received',
                   'target_bin', 'lot_no', 'lot_expires', 'order_idx']
+
+    def get_part_name(self, obj) -> str:
+        return _line_item_name(obj)
 
 
 class InboundOrderSerializer(serializers.ModelSerializer):
@@ -117,9 +141,14 @@ class InboundOrderSerializer(serializers.ModelSerializer):
 
 
 class OutboundLineSerializer(serializers.ModelSerializer):
+    part_name = serializers.SerializerMethodField()
+
     class Meta:
         model  = OutboundLine
-        fields = ['id', 'part', 'torch', 'qty_ordered', 'qty_picked', 'order_idx']
+        fields = ['id', 'part', 'torch', 'part_name', 'qty_ordered', 'qty_picked', 'order_idx']
+
+    def get_part_name(self, obj) -> str:
+        return _line_item_name(obj)
 
 
 class OutboundOrderSerializer(serializers.ModelSerializer):
