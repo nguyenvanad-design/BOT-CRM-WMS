@@ -319,6 +319,10 @@ export interface Lead {
   owner: string
   owner_username: string
   converted_customer: string | null
+  interest_part: string | null
+  interest_part_name: string
+  interest_qty: number
+  est_value_vnd: number
   notes: string
   created_at: string
   updated_at: string

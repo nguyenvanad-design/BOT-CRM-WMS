@@ -29,7 +29,10 @@ export function LeadsPage() {
   const canImport = isManager(useAuth((s) => s.user?.role))
   const [editing, setEditing] = useState<Lead | null>(null)
   const [oppOpen, setOppOpen] = useState(false)
-  const [oppPreset, setOppPreset] = useState<{ customer: string; title: string; notes: string } | undefined>()
+  const [oppPreset, setOppPreset] = useState<{
+    customer: string; title: string; notes: string
+    interest_part?: string; interest_qty?: number; est_value_vnd?: number
+  } | undefined>()
   const debounced = useDebounced(search, 350, () => setPage(1))
 
   const openCreate = () => { setEditing(null); setFormOpen(true) }
@@ -55,6 +58,9 @@ export function LeadsPage() {
           customer: res.data.customer_id,
           title: `Cơ hội - ${v.lead.company || v.lead.name}`,
           notes: v.lead.notes || '',
+          interest_part: v.lead.interest_part || '',
+          interest_qty: v.lead.interest_qty || 0,
+          est_value_vnd: v.lead.est_value_vnd || 0,
         })
         setOppOpen(true)   // mở form Cơ hội điền sẵn khách + ghi chú lead
       }

@@ -159,6 +159,11 @@ class Lead(BaseModel, SoftDeleteMixin):
         Customer, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='from_leads',
     )
+    # Nhu cầu: sản phẩm quan tâm + số lượng → tự tính giá trị deal (đổ về Opportunity)
+    interest_part = models.ForeignKey(
+        'catalog.Part', on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    interest_qty  = models.PositiveIntegerField(default=0)
     notes     = models.TextField(blank=True)
 
     class Meta:

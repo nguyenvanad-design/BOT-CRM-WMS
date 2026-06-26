@@ -24,16 +24,26 @@ from .models import (
 class LeadSerializer(serializers.ModelSerializer):
     owner_username = serializers.CharField(source='owner.username', read_only=True)
     source_display = serializers.CharField(source='get_source_display', read_only=True)
+    interest_part_name = serializers.CharField(source='interest_part.display_name_vi',
+                                               read_only=True, default='')
+    est_value_vnd = serializers.SerializerMethodField()   # giá bán × SL (tự tính)
 
     class Meta:
         model = Lead
         fields = [
             'id', 'name', 'company', 'phone', 'email', 'source', 'source_display',
             'campaign', 'referred_by', 'status', 'score', 'owner', 'owner_username',
-            'converted_customer', 'notes', 'created_at', 'updated_at',
+            'converted_customer', 'interest_part', 'interest_part_name', 'interest_qty',
+            'est_value_vnd', 'notes', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'owner', 'converted_customer',
                             'created_at', 'updated_at']
+
+    def get_est_value_vnd(self, obj):
+        if not obj.interest_part_id or not obj.interest_qty:
+            return 0
+        from apps.catalog.pricing import get_effective_price
+        return int((get_effective_price(obj.interest_part) or 0) * obj.interest_qty)
 
 
 # ── Opportunity ───────────────────────────────────────────────────────────
