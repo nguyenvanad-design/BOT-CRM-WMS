@@ -10,7 +10,6 @@ import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { downloadFile } from '@/lib/download'
 import { fetchAll } from '@/lib/list'
-import { formatDate } from '@/lib/crm'
 import { INBOUND_STATUS_LABEL, INBOUND_STATUS_TONE } from '@/lib/wms'
 import type { InboundOrder } from '@/lib/types'
 import {
@@ -59,19 +58,24 @@ export function InboundPage() {
       <TableCard>
         <thead>
           <tr className="border-b border-line">
-            <Th>Mã đơn</Th><Th className="text-right">Số dòng</Th><Th>Nhận lúc</Th>
+            <Th>Mã đơn</Th><Th>Nhà cung cấp</Th><Th>Từ đơn mua</Th><Th>Tiến độ nhận</Th>
             <Th>Trạng thái</Th><Th className="text-right">Hành động</Th>
           </tr>
         </thead>
         <tbody>
-          {isLoading && <RowMsg colSpan={5}>Đang tải…</RowMsg>}
-          {isError && <RowMsg colSpan={5} danger>Lỗi: {apiError(error)}</RowMsg>}
-          {data && items.length === 0 && <RowMsg colSpan={5}>Chưa có đơn nhập.</RowMsg>}
-          {items.map((o) => (
+          {isLoading && <RowMsg colSpan={6}>Đang tải…</RowMsg>}
+          {isError && <RowMsg colSpan={6} danger>Lỗi: {apiError(error)}</RowMsg>}
+          {data && items.length === 0 && <RowMsg colSpan={6}>Chưa có đơn nhập.</RowMsg>}
+          {items.map((o) => {
+            const exp = (o.lines ?? []).reduce((s, l) => s + (l.qty_expected || 0), 0)
+            const rec = (o.lines ?? []).reduce((s, l) => s + (l.qty_received || 0), 0)
+            const short = rec < exp
+            return (
             <tr key={o.id} className="border-b border-line/50 last:border-0 hover:bg-ink-3/40">
               <Td className="font-mono text-flame">{o.code}</Td>
-              <Td className="text-right tabular-nums">{o.lines?.length ?? 0}</Td>
-              <Td className="text-txt-2">{formatDate(o.received_at)}</Td>
+              <Td className="text-txt-2">{o.supplier || '—'}</Td>
+              <Td className="text-txt-2 font-mono">{o.po_code || '—'}</Td>
+              <Td className={`tabular-nums ${short ? 'text-warn' : 'text-ok'}`}>{rec}/{exp}</Td>
               <Td><Tag tone={INBOUND_STATUS_TONE[o.status]}>{INBOUND_STATUS_LABEL[o.status]}</Tag></Td>
               <Td className="text-right">
                 <span className="inline-flex gap-1.5 items-center">
@@ -106,7 +110,7 @@ export function InboundPage() {
                 </span>
               </Td>
             </tr>
-          ))}
+          )})}
         </tbody>
       </TableCard>
 
