@@ -126,11 +126,13 @@ class InboundLineSerializer(serializers.ModelSerializer):
 
 class InboundOrderSerializer(serializers.ModelSerializer):
     lines = InboundLineSerializer(many=True, required=False)
+    po_code = serializers.CharField(source='purchase_order.code', read_only=True, default='')
 
     class Meta:
         model  = InboundOrder
-        fields = ['id', 'code', 'warehouse', 'asn', 'status', 'supplier', 'invoice_no',
-                  'received_at', 'lines', 'notes', 'created_at', 'updated_at']
+        fields = ['id', 'code', 'warehouse', 'asn', 'purchase_order', 'po_code', 'status',
+                  'supplier', 'invoice_no', 'received_at', 'lines', 'notes',
+                  'created_at', 'updated_at']
         read_only_fields = ['id', 'status', 'received_at', 'created_at', 'updated_at']
 
     def create(self, validated_data):

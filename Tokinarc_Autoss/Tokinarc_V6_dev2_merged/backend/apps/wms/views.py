@@ -475,9 +475,33 @@ class InboundViewSet(viewsets.ModelViewSet):
         if fully:
             inbound.received_at = timezone.now()
         inbound.save(update_fields=['status', 'received_at'])
+        # Sync ngược về Đơn mua (nếu phiếu tạo từ PO): cập nhật SL đã nhận + trạng thái PO.
+        if inbound.purchase_order_id:
+            self._sync_purchase_order(inbound)
         _publish('StockReceived', {'inbound': inbound.code, 'warehouse': inbound.warehouse.code,
                                    'partial': not fully})
         return Response(InboundOrderSerializer(inbound).data)
+
+    @staticmethod
+    def _sync_purchase_order(inbound) -> None:
+        """Cập nhật qty_received + trạng thái PO theo SL đã cất của phiếu nhập (1 dòng/part)."""
+        po = inbound.purchase_order
+        if po is None:
+            return
+        for il in inbound.lines.all():
+            if not il.part_id:
+                continue
+            pol = po.lines.filter(part=il.part).first()
+            if pol:
+                # qty_expected phiếu = SL CÒN LẠI lúc tạo → received = qty − còn_lại + đã_cất.
+                pol.qty_received = min(pol.qty, pol.qty - il.qty_expected + il.qty_putaway)
+                pol.save(update_fields=['qty_received'])
+        done = all(l.qty_received >= l.qty for l in po.lines.all())
+        from apps.purchasing.models import PurchaseStatus
+        po.status = PurchaseStatus.RECEIVED if done else PurchaseStatus.PARTIAL
+        if done:
+            po.received_at = timezone.now()
+        po.save(update_fields=['status', 'received_at'])
 
     @action(detail=True, methods=['post'], url_path='scan-receive')
     def scan_receive(self, request, pk=None):

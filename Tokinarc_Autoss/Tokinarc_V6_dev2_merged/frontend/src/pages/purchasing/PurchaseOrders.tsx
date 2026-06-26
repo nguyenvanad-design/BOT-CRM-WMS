@@ -4,6 +4,7 @@
  * + thẻ Công nợ phải trả (AP). /purchasing/orders/, /payments/.
  */
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ShoppingCart, Plus, Check, PackageCheck, Wallet, Trash2, Eye, ShieldCheck, X, Download, Truck } from 'lucide-react'
 import { toast } from 'sonner'
@@ -34,6 +35,7 @@ const TONE: Record<string, 'gray' | 'blue' | 'warn' | 'ok' | 'danger' | 'purple'
 
 export function PurchaseOrdersPage() {
   const qc = useQueryClient()
+  const nav = useNavigate()
   const role = useAuth((s) => s.user?.role)
   const canManage = isManager(role)
   const canApproveL2 = isCeo(role)
@@ -77,6 +79,14 @@ export function PurchaseOrdersPage() {
       const msg = v.what === 'approve' && r.data?.status === 'pending_ceo'
         ? 'Đã duyệt cấp 1 — chuyển CEO duyệt cấp 2' : (ACT_MSG[v.what] ?? 'Đã cập nhật')
       toast.success(msg); invalidate()
+    },
+    onError: (e) => toast.error(apiError(e)),
+  })
+  const mkInbound = useMutation({
+    mutationFn: (id: string) => api.post(`/purchasing/orders/${id}/create-inbound/`),
+    onSuccess: (r) => {
+      toast.success(r.data?.detail ?? `Đã tạo phiếu nhập ${r.data?.code ?? ''}`)
+      invalidate(); nav('/wms/inbound')   // sang trang Nhập kho để nhận (ô/serial/lô)
     },
     onError: (e) => toast.error(apiError(e)),
   })
@@ -182,7 +192,11 @@ export function PurchaseOrdersPage() {
                   <Button size="sm" className="mr-1" onClick={() => act.mutate({ id: o.id, what: 'confirm' })}><Check size={13} /> Đặt</Button>
                 )}
                 {(o.status === 'ordered' || o.status === 'partial') && (
-                  <Button size="sm" variant="success" className="mr-1" onClick={() => act.mutate({ id: o.id, what: 'receive' })}><PackageCheck size={13} /> Nhận</Button>
+                  <Button size="sm" variant="success" className="mr-1"
+                    disabled={mkInbound.isPending && mkInbound.variables === o.id}
+                    onClick={() => mkInbound.mutate(o.id)}>
+                    <PackageCheck size={13} /> Tạo phiếu nhập
+                  </Button>
                 )}
                 {o.debt_vnd > 0 && canPurchase && (
                   <Button size="sm" variant="ghost" onClick={() => setPayFor(o)}><Wallet size={13} /> Trả</Button>

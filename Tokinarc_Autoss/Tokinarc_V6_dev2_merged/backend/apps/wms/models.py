@@ -233,6 +233,9 @@ class InboundOrder(BaseModel):
     warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='inbounds')
     asn       = models.ForeignKey(ASN, null=True, blank=True, on_delete=models.SET_NULL,
                                   related_name='inbound_orders')
+    # Nối với Đơn mua: phiếu nhập tạo TỪ đơn mua → kéo dòng/SL/giá; nhận xong sync ngược.
+    purchase_order = models.ForeignKey('purchasing.PurchaseOrder', null=True, blank=True,
+                                       on_delete=models.SET_NULL, related_name='inbound_orders')
     status    = models.CharField(max_length=20, choices=InboundStatus.choices,
                                  default=InboundStatus.DRAFT, db_index=True)
     supplier    = models.CharField(max_length=200, blank=True)   # NCC (khi nhập không qua ASN)

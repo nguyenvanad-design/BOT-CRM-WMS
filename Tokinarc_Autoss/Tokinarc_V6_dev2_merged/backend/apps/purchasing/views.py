@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db import transaction
 from django.db.models import F, Sum
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
@@ -204,6 +205,10 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         po = self.get_object()
         if po.status not in (PurchaseStatus.ORDERED, PurchaseStatus.PARTIAL):
             return Response({'detail': 'Đơn chưa đặt hoặc đã nhận đủ.', 'code': 'CONFLICT'}, status=409)
+        # Tránh nhận 2 đường (trùng tồn): nếu đã có phiếu nhập kho → nhận qua phiếu đó.
+        if po.inbound_orders.exclude(status='cancelled').exists():
+            return Response({'detail': 'Đơn đã có phiếu nhập kho — nhận hàng qua phiếu nhập '
+                             '(menu Nhập kho).', 'code': 'CONFLICT'}, status=409)
 
         from apps.wms.models import Bin
         want = {str(x['line_id']): int(x['qty']) for x in request.data.get('lines', [])}
@@ -245,6 +250,42 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         total = sum(r['debt'] for r in qs)
         return Response({'total_payable': int(total),
                          'by_supplier': [{'supplier': r['supplier__name'], 'debt': int(r['debt'])} for r in qs]})
+
+    @action(detail=True, methods=['post'], url_path='create-inbound')
+    def create_inbound(self, request, pk=None):
+        """Tạo PHIẾU NHẬP KHO từ đơn mua → kéo dòng/SL còn lại/đơn giá/NCC.
+        Nhận hàng (kèm ô/serial/lô) làm ở phiếu nhập; nhận xong sync ngược về PO.
+        (Quyền: viewset PurchasingPermission — quản lý kho/manager.)"""
+        po = self.get_object()
+        if po.status not in (PurchaseStatus.ORDERED, PurchaseStatus.PARTIAL):
+            return Response({'detail': 'Đơn chưa đặt hoặc đã nhận đủ.', 'code': 'CONFLICT'}, status=409)
+        from apps.wms.models import Bin, InboundLine, InboundOrder
+        existing = po.inbound_orders.exclude(status__in=['putaway', 'cancelled']).first()
+        if existing:
+            return Response({'detail': f'Đơn đã có phiếu nhập {existing.code} đang xử lý.',
+                             'inbound_id': str(existing.id), 'code': existing.code}, status=400)
+        year = timezone.now().year
+        pre = f'IN-{year}-'
+        last = InboundOrder.objects.filter(code__startswith=pre).order_by('-code').first()
+        seq = (int(last.code.rsplit('-', 1)[-1]) + 1) if last else 1
+        default_bin = Bin.objects.filter(zone__warehouse=po.warehouse).first()
+        with transaction.atomic():
+            io = InboundOrder.objects.create(
+                code=f'{pre}{seq:03d}', warehouse=po.warehouse, purchase_order=po,
+                supplier=po.supplier.name, status='draft',
+                created_by=request.user, updated_by=request.user,
+                notes=f'Từ đơn mua {po.code}')
+            idx = 0
+            for line in po.lines.all():
+                remaining = line.qty - line.qty_received
+                if remaining <= 0:
+                    continue
+                InboundLine.objects.create(
+                    inbound=io, part=line.part, qty_expected=remaining,
+                    unit_cost=line.unit_cost, target_bin=default_bin, order_idx=idx)
+                idx += 1
+        return Response({'inbound_id': str(io.id), 'code': io.code,
+                         'detail': f'Đã tạo phiếu nhập {io.code} từ {po.code}.'}, status=201)
 
     @action(detail=False, methods=['get'], url_path='incoming')
     def incoming(self, request):
