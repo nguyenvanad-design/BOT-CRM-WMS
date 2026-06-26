@@ -90,7 +90,12 @@ export function InboundPage() {
                     </Button>
                     <Button variant="success" size="sm"
                       disabled={confirm.isPending && confirm.variables?.id === o.id}
-                      onClick={() => confirm.mutate({ id: o.id })}>
+                      onClick={() => {
+                        const scanned = (o.lines ?? []).some((l) => (l.qty_received ?? 0) > 0)
+                        if (!scanned && !window.confirm(
+                          'Bạn CHƯA quét/nhận món nào.\nXác nhận nhận ĐỦ theo SL đặt mà không kiểm tra thực tế?')) return
+                        confirm.mutate({ id: o.id })
+                      }}>
                       <Check size={13} /> Nhận đủ
                     </Button>
                   </span>

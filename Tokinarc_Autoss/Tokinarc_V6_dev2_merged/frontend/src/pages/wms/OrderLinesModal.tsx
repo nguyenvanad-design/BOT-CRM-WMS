@@ -28,21 +28,28 @@ export function OrderLinesModal({ open, onClose, title, meta, q1Label, q2Label, 
             <th className="text-left">Mặt hàng</th>
             <th className="text-right">{q1Label}</th>
             <th className="text-right">{q2Label}</th>
+            <th className="text-right">Lệch</th>
           </tr>
         </thead>
         <tbody>
-          {lines.map((l) => (
-            <tr key={l.key} className="border-b border-line/40 last:border-0">
+          {lines.map((l) => {
+            const diff = (l.q2 || 0) - (l.q1 || 0)
+            const short = diff < 0
+            return (
+            <tr key={l.key} className={`border-b border-line/40 last:border-0 ${short ? 'bg-danger/5' : ''}`}>
               <td className="py-1.5 font-mono text-flame">{l.code}</td>
               <td>{l.name || '—'}</td>
               <td className="text-right tabular-nums">{l.q1}</td>
+              <td className="text-right tabular-nums">{l.q2}</td>
               <td className="text-right tabular-nums">
-                {l.q2}{l.q1 > 0 && l.q2 >= l.q1 ? ' ✓' : ''}
+                {short
+                  ? <span className="text-danger font-medium">thiếu {-diff}</span>
+                  : <span className="text-ok">đủ ✓</span>}
               </td>
             </tr>
-          ))}
+          )})}
           {lines.length === 0 && (
-            <tr><td colSpan={4} className="py-3 text-center text-txt-2">Không có dòng nào.</td></tr>
+            <tr><td colSpan={5} className="py-3 text-center text-txt-2">Không có dòng nào.</td></tr>
           )}
         </tbody>
         {lines.length > 0 && (
@@ -51,6 +58,11 @@ export function OrderLinesModal({ open, onClose, title, meta, q1Label, q2Label, 
               <td className="py-1.5" colSpan={2}>Tổng ({lines.length} dòng)</td>
               <td className="text-right tabular-nums">{totalQ1}</td>
               <td className="text-right tabular-nums">{totalQ2}</td>
+              <td className="text-right tabular-nums">
+                {totalQ2 - totalQ1 < 0
+                  ? <span className="text-danger">thiếu {totalQ1 - totalQ2}</span>
+                  : <span className="text-ok">đủ</span>}
+              </td>
             </tr>
           </tfoot>
         )}
