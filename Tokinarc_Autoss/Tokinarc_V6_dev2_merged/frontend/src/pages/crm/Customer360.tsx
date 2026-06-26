@@ -5,12 +5,13 @@
  */
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  ArrowLeft, Building2, Phone, Mail, Star, Pencil,
+  ArrowLeft, Building2, Phone, Mail, Star, Pencil, Target,
   MapPin, FileText, Package, Ticket as TicketIcon, Activity as ActivityIcon,
 } from 'lucide-react'
 import { CustomerForm } from '@/pages/crm/forms/CustomerForm'
+import { OpportunityForm } from '@/pages/crm/forms/OpportunityForm'
 import { api, apiError } from '@/lib/api'
 import { fetchAll } from '@/lib/list'
 import {
@@ -38,7 +39,9 @@ const KIND_META: Record<TimelineEvent['kind'], { icon: typeof MapPin; tone: stri
 export function Customer360Page() {
   const { id = '' } = useParams()
   const nav = useNavigate()
+  const qc = useQueryClient()
   const [editOpen, setEditOpen] = useState(false)
+  const [oppOpen, setOppOpen] = useState(false)
 
   const c360 = useQuery({
     queryKey: ['customer-360', id],
@@ -92,6 +95,10 @@ export function Customer360Page() {
             {cust.region && ` · ${cust.region}`}
           </p>
         </div>
+        <button onClick={() => setOppOpen(true)}
+          className="flex items-center gap-1.5 text-sm text-white bg-flame hover:bg-flame-hi rounded-md px-3 py-1.5 transition-colors">
+          <Target size={14} /> + Cơ hội
+        </button>
         <button onClick={() => setEditOpen(true)}
           className="flex items-center gap-1.5 text-sm text-txt-2 hover:text-txt border border-line rounded-md px-3 py-1.5 transition-colors">
           <Pencil size={14} /> Sửa
@@ -99,6 +106,11 @@ export function Customer360Page() {
       </div>
 
       <CustomerForm open={editOpen} onClose={() => setEditOpen(false)} editing={cust} />
+      <OpportunityForm
+        open={oppOpen} onClose={() => setOppOpen(false)}
+        preset={{ customer: id, title: `Cơ hội - ${cust.name}` }}
+        onSaved={() => qc.invalidateQueries({ queryKey: ['customer-360', id, 'opps'] })}
+      />
 
       {/* KPI từ /360/ (backend hiện trả placeholder cho orders/debt) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">

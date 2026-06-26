@@ -26,10 +26,12 @@ const EMPTY: Form = {
   est_value_vnd: 0, probability: 0, expected_close: '', notes: '',
 }
 
-export function OpportunityForm({ open, onClose, editing, preset }: {
+export function OpportunityForm({ open, onClose, editing, preset, onSaved }: {
   open: boolean; onClose: () => void; editing?: Opportunity | null
   /** Điền sẵn khi tạo mới (vd từ trang Lead: gắn khách + ghi chú lead). */
   preset?: { customer?: string; title?: string; notes?: string }
+  /** Gọi sau khi tạo/sửa thành công — để trang cha refetch query riêng của mình. */
+  onSaved?: () => void
 }) {
   const qc = useQueryClient()
   const { options: customers, isLoading: custLoading } = useCustomerOptions()
@@ -56,6 +58,7 @@ export function OpportunityForm({ open, onClose, editing, preset }: {
       qc.invalidateQueries({ queryKey: ['opportunities'] })
       qc.invalidateQueries({ queryKey: ['pipeline'] })
       qc.invalidateQueries({ queryKey: ['dash'] })
+      onSaved?.()
       onClose()
     },
     onError: (e) => toast.error(apiError(e)),
