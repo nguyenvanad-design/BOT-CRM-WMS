@@ -245,6 +245,9 @@ class Quote(BaseModel, SoftDeleteMixin):
     due_date  = models.DateField(null=True, blank=True)   # ngày dự kiến chốt
     valid_until = models.DateField(null=True, blank=True)  # hạn hiệu lực giá báo
     discount_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # % chiết khấu cả báo giá
+    # Điều khoản thanh toán sale thỏa thuận với khách (tự do) — cấp duyệt thấy, đổ về đơn.
+    # VD: "30% khi giao, 70% sau 30 ngày" / "50% khi nhận, còn lại sau 45 ngày".
+    payment_terms_note = models.TextField(blank=True)
     total_vnd = models.DecimalField(max_digits=15, decimal_places=0, default=0)    # = tạm tính × (1 − ck%)
     owner     = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,

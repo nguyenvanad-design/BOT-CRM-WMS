@@ -385,6 +385,7 @@ export interface Quote {
   due_date: string | null
   valid_until?: string | null
   discount_pct?: string
+  payment_terms_note?: string
   subtotal_vnd?: number
   total_vnd: string
   requires_l2: boolean

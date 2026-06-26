@@ -104,6 +104,14 @@ export function QuoteDetailModal({ quote, open, onClose, footer }: {
             </div>
           )}
 
+          {quote.payment_terms_note && (
+            <div>
+              <div className="text-xs text-txt-2 mb-1">Điều khoản thanh toán</div>
+              <p className="text-sm bg-flame/10 border border-flame/30 text-txt rounded-md px-3 py-2 whitespace-pre-wrap">
+                {quote.payment_terms_note}
+              </p>
+            </div>
+          )}
           {quote.notes && (
             <div>
               <div className="text-xs text-txt-2 mb-1">Ghi chú</div>

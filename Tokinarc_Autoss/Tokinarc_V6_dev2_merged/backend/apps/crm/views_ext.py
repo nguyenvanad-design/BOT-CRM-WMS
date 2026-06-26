@@ -390,7 +390,7 @@ class QuoteViewSet(viewsets.ModelViewSet):
             order = SalesOrder.objects.create(
                 code=code, customer=quote.customer, issued_date=timezone.now().date(),
                 owner=quote.owner, created_by=request.user, updated_by=request.user,
-                status='draft',
+                status='draft', payment_terms_note=quote.payment_terms_note,
             )
             for idx, ql in enumerate(quote.lines.all()):
                 part = Part.objects.filter(pk=ql.part_no).first()

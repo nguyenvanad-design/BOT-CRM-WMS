@@ -18,11 +18,12 @@ import { FieldRow, TextInput, TextArea, SelectInput } from '@/components/form'
 
 interface LineForm { part_no: string; part_name: string; qty: number; unit_price_vnd: number }
 interface Form {
-  customer: string; due_date: string; valid_until: string; discount_pct: number; notes: string; lines: LineForm[]
+  customer: string; due_date: string; valid_until: string; discount_pct: number
+  payment_terms_note: string; notes: string; lines: LineForm[]
 }
 
 const EMPTY_LINE: LineForm = { part_no: '', part_name: '', qty: 1, unit_price_vnd: 0 }
-const EMPTY: Form = { customer: '', due_date: '', valid_until: '', discount_pct: 0, notes: '', lines: [{ ...EMPTY_LINE }] }
+const EMPTY: Form = { customer: '', due_date: '', valid_until: '', discount_pct: 0, payment_terms_note: '', notes: '', lines: [{ ...EMPTY_LINE }] }
 
 /** Tạm tính / chiết khấu / tổng phía client (server tính lại chính thức). */
 function LiveTotal({ control }: { control: Control<Form> }) {
@@ -57,6 +58,7 @@ export function QuoteForm({ open, onClose, editing }: {
       due_date: editing.due_date ?? '',
       valid_until: editing.valid_until ?? '',
       discount_pct: Number(editing.discount_pct || 0),
+      payment_terms_note: editing.payment_terms_note ?? '',
       notes: editing.notes,
       lines: editing.lines.length
         ? editing.lines.map((l) => ({
@@ -74,6 +76,7 @@ export function QuoteForm({ open, onClose, editing }: {
         due_date: data.due_date || null,
         valid_until: data.valid_until || null,
         discount_pct: Number(data.discount_pct) || 0,
+        payment_terms_note: data.payment_terms_note,
         notes: data.notes,
         lines: data.lines.map((l) => ({
           part_no: l.part_no, part_name: l.part_name,
@@ -153,6 +156,9 @@ export function QuoteForm({ open, onClose, editing }: {
           ))}
         </div>
 
+        <TextArea label="Điều khoản thanh toán"
+          placeholder="Sale thỏa thuận với khách, VD: 30% khi giao, 70% sau 30 ngày / 50% khi nhận, còn lại sau 45 ngày…"
+          {...register('payment_terms_note')} />
         <TextArea label="Ghi chú" {...register('notes')} />
       </form>
     </Modal>

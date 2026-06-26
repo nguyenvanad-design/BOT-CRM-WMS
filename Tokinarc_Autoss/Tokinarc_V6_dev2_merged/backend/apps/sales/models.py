@@ -53,6 +53,8 @@ class SalesOrder(BaseModel, SoftDeleteMixin):
     paid_vnd     = models.DecimalField(max_digits=14, decimal_places=0, default=0)
     payment_terms = models.CharField(max_length=20, choices=PaymentTerms.choices,
                                      default=PaymentTerms.FULL_ON_DELIVERY)
+    # Điều khoản thanh toán thỏa thuận (tự do) — đổ từ báo giá xuống khi "Tạo đơn".
+    payment_terms_note = models.TextField(blank=True)
     status       = models.CharField(max_length=20, choices=OrderStatus.choices,
                                     default=OrderStatus.DRAFT, db_index=True)
     owner        = models.ForeignKey('accounts.User', on_delete=models.PROTECT, related_name='owned_orders')

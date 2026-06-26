@@ -94,7 +94,7 @@ class QuoteSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'code', 'customer', 'customer_name', 'opportunity',
             'status', 'status_display', 'due_date', 'valid_until',
-            'discount_pct', 'subtotal_vnd', 'total_vnd', 'requires_l2', 'margin',
+            'discount_pct', 'payment_terms_note', 'subtotal_vnd', 'total_vnd', 'requires_l2', 'margin',
             'owner', 'owner_username', 'approved_by', 'contract_order_code',
             'l1_approved_by', 'l1_approved_at', 'l2_approved_by', 'l2_approved_at',
             'lines', 'notes', 'created_at', 'updated_at',
