@@ -9,7 +9,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { Search, Users, Plus, Upload } from 'lucide-react'
 import { api, apiError } from '@/lib/api'
 import {
-  SEGMENT_LABEL, CUSTOMER_STATUS_LABEL, CUSTOMER_STATUS_TONE,
+  SEGMENT_LABEL, CUSTOMER_STATUS_LABEL, CUSTOMER_STATUS_TONE, formatDate,
 } from '@/lib/crm'
 import { TAG_CLASS } from '@/lib/crm'
 import type { Customer, Paginated } from '@/lib/types'
@@ -46,7 +46,7 @@ export function CustomersPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.count / 20)) : 1
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-7xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
         <div>
           <h1 className="text-lg font-semibold flex items-center gap-2">
@@ -75,36 +75,46 @@ export function CustomersPage() {
       </div>
 
       <div className="border border-line rounded-lg overflow-x-auto bg-ink-2">
-        <table className="w-full min-w-[560px] text-sm">
+        <table className="w-full min-w-[980px] text-sm">
           <thead>
             <tr className="text-left text-xs text-txt-2 border-b border-line">
               <th className="px-4 py-2.5 font-medium">Mã</th>
               <th className="px-4 py-2.5 font-medium">Tên</th>
+              <th className="px-4 py-2.5 font-medium">SĐT</th>
+              <th className="px-4 py-2.5 font-medium">Email</th>
               <th className="px-4 py-2.5 font-medium">Phân khúc</th>
               <th className="px-4 py-2.5 font-medium">Vùng</th>
+              <th className="px-4 py-2.5 font-medium">Sale phụ trách</th>
+              <th className="px-4 py-2.5 font-medium">Ngày tạo</th>
+              <th className="px-4 py-2.5 font-medium">Nội dung</th>
               <th className="px-4 py-2.5 font-medium">Trạng thái</th>
-              <th className="px-4 py-2.5 font-medium text-right">Liên hệ</th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && <RowMsg colSpan={6}>Đang tải…</RowMsg>}
-            {isError && <RowMsg colSpan={6} danger>Lỗi: {apiError(error)}</RowMsg>}
+            {isLoading && <RowMsg colSpan={10}>Đang tải…</RowMsg>}
+            {isError && <RowMsg colSpan={10} danger>Lỗi: {apiError(error)}</RowMsg>}
             {data?.results.length === 0 && (
-              <RowMsg colSpan={6}>Không có khách hàng nào khớp.</RowMsg>
+              <RowMsg colSpan={10}>Không có khách hàng nào khớp.</RowMsg>
             )}
             {data?.results.map((c) => (
               <tr key={c.id} onClick={() => nav(`/customers/${c.id}`)}
                 className="border-b border-line/50 last:border-0 hover:bg-ink-3/40 cursor-pointer">
-                <td className="px-4 py-2.5 font-mono text-flame">{c.code}</td>
+                <td className="px-4 py-2.5 font-mono text-flame whitespace-nowrap">{c.code}</td>
                 <td className="px-4 py-2.5 font-medium">{c.name}</td>
+                <td className="px-4 py-2.5 text-txt-2 whitespace-nowrap">{c.primary_phone || '—'}</td>
+                <td className="px-4 py-2.5 text-txt-2">{c.primary_email || '—'}</td>
                 <td className="px-4 py-2.5 text-txt-2">{SEGMENT_LABEL[c.segment] ?? (c.segment || '—')}</td>
                 <td className="px-4 py-2.5 text-txt-2">{c.region || '—'}</td>
+                <td className="px-4 py-2.5 text-txt-2 whitespace-nowrap">{c.owner_username || '—'}</td>
+                <td className="px-4 py-2.5 text-txt-2 whitespace-nowrap">{formatDate(c.created_at)}</td>
+                <td className="px-4 py-2.5 text-txt-2 max-w-[220px]">
+                  <div className="truncate" title={c.notes}>{c.notes || '—'}</div>
+                </td>
                 <td className="px-4 py-2.5">
                   <span className={`text-xs border rounded-full px-2 py-0.5 ${TAG_CLASS[CUSTOMER_STATUS_TONE[c.status] ?? 'gray']}`}>
                     {CUSTOMER_STATUS_LABEL[c.status] ?? c.status}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-txt-2">{c.contact_count ?? 0}</td>
               </tr>
             ))}
           </tbody>

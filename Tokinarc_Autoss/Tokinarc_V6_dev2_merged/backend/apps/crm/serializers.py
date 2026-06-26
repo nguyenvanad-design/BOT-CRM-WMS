@@ -27,18 +27,35 @@ class ContactSerializer(serializers.ModelSerializer):
 
 
 class CustomerListSerializer(serializers.ModelSerializer):
-    """Compact serializer cho list view — không lấy nested contacts để rẻ query."""
+    """Compact serializer cho list view — không lấy nested contacts để rẻ query.
+    SĐT/email lấy từ người liên hệ chính (giống lead lúc convert sang)."""
     owner_username = serializers.CharField(source='owner.username', read_only=True)
     contact_count  = serializers.IntegerField(read_only=True)  # gán từ annotate
+    primary_phone  = serializers.SerializerMethodField()
+    primary_email  = serializers.SerializerMethodField()
 
     class Meta:
         model  = Customer
         fields = [
             'id', 'code', 'name', 'tax_code', 'segment', 'region',
             'status', 'owner', 'owner_username', 'contact_count',
+            'primary_phone', 'primary_email', 'notes',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def _primary(self, obj):
+        # Cần prefetch_related('contacts') ở viewset để tránh N+1.
+        contacts = list(obj.contacts.all())
+        return next((c for c in contacts if c.is_primary), contacts[0] if contacts else None)
+
+    def get_primary_phone(self, obj):
+        c = self._primary(obj)
+        return c.phone if c else ''
+
+    def get_primary_email(self, obj):
+        c = self._primary(obj)
+        return c.email if c else ''
 
 
 class CustomerDetailSerializer(serializers.ModelSerializer):

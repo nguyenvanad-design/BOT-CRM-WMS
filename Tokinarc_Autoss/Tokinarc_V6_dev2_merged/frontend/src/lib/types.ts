@@ -30,6 +30,9 @@ export interface Customer {
   owner: string
   owner_username: string
   contact_count: number
+  primary_phone: string
+  primary_email: string
+  notes: string
   created_at: string
   updated_at: string
 }
