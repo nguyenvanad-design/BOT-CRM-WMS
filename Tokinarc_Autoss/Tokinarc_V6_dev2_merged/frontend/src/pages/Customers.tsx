@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { Search, Users, Plus, Upload, Building2, Contact as ContactIcon } from 'lucide-react'
+import { Search, Users, Plus, Upload } from 'lucide-react'
 import { api, apiError } from '@/lib/api'
 import {
   SEGMENT_LABEL, CUSTOMER_STATUS_LABEL, CUSTOMER_STATUS_TONE,
@@ -17,7 +17,6 @@ import { Button } from '@/components/ui'
 import { useAuth, isManager } from '@/lib/auth/store'
 import { CustomerForm } from '@/pages/crm/forms/CustomerForm'
 import { ImportModal } from '@/pages/crm/ImportModal'
-import { ContactsList } from '@/pages/crm/Contacts'
 
 async function fetchCustomers(search: string, page: number) {
   const res = await api.get<Paginated<Customer>>('/crm/customers/', {
@@ -33,7 +32,6 @@ export function CustomersPage() {
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
-  const [view, setView] = useState<'customers' | 'contacts'>('customers')
   const canImport = isManager(useAuth((s) => s.user?.role))
 
   // debounce search 350ms
@@ -54,43 +52,27 @@ export function CustomersPage() {
           <h1 className="text-lg font-semibold flex items-center gap-2">
             <Users size={20} className="text-flame" /> Khách hàng
           </h1>
-          {view === 'customers' && data && <p className="text-xs text-txt-2 mt-0.5">{data.count} khách hàng</p>}
+          {data && <p className="text-xs text-txt-2 mt-0.5">{data.count} khách hàng</p>}
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="flex rounded-md border border-line overflow-hidden mr-1">
-            <button onClick={() => setView('customers')}
-              className={`flex items-center gap-1 text-xs px-2.5 py-1.5 ${view === 'customers' ? 'bg-flame/15 text-flame' : 'text-txt-2 hover:text-txt'}`}>
-              <Building2 size={13} /> Công ty
-            </button>
-            <button onClick={() => setView('contacts')}
-              className={`flex items-center gap-1 text-xs px-2.5 py-1.5 ${view === 'contacts' ? 'bg-flame/15 text-flame' : 'text-txt-2 hover:text-txt'}`}>
-              <ContactIcon size={13} /> Người liên hệ
-            </button>
+          <div className="relative flex-1 sm:flex-none">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-2" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm tên, mã KH…"
+              className="bg-ink-2 border border-line rounded-md pl-9 pr-3 py-2 text-sm w-full sm:w-64
+                         focus:border-flame transition-colors"
+            />
           </div>
-          {view === 'customers' && (
-            <>
-              <div className="relative flex-1 sm:flex-none">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-2" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Tìm tên, mã KH…"
-                  className="bg-ink-2 border border-line rounded-md pl-9 pr-3 py-2 text-sm w-full sm:w-64
-                             focus:border-flame transition-colors"
-                />
-              </div>
-              {canImport && (
-                <Button variant="ghost" onClick={() => setImportOpen(true)}>
-                  <Upload size={14} /> Import
-                </Button>
-              )}
-              <Button onClick={() => setFormOpen(true)}><Plus size={14} /> Thêm KH</Button>
-            </>
+          {canImport && (
+            <Button variant="ghost" onClick={() => setImportOpen(true)}>
+              <Upload size={14} /> Import
+            </Button>
           )}
+          <Button onClick={() => setFormOpen(true)}><Plus size={14} /> Thêm KH</Button>
         </div>
       </div>
-
-      {view === 'contacts' ? <ContactsList /> : (<>
 
       <div className="border border-line rounded-lg overflow-x-auto bg-ink-2">
         <table className="w-full min-w-[560px] text-sm">
@@ -141,8 +123,6 @@ export function CustomersPage() {
           </div>
         </div>
       )}
-
-      </>)}
 
       <CustomerForm open={formOpen} onClose={() => setFormOpen(false)} />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} spec={{
