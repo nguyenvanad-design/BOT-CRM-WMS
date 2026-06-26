@@ -37,6 +37,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         model = PurchaseOrder
         fields = ['id', 'code', 'supplier', 'supplier_name', 'warehouse', 'warehouse_code',
                   'status', 'status_display', 'order_date', 'expected_date',
+                  'carrier', 'tracking_no', 'payment_terms_note',
                   'total_vnd', 'paid_vnd', 'debt_vnd', 'owner', 'owner_username', 'notes',
                   'received_at', 'requires_l2', 'l1_approved_by', 'l2_approved_by', 'approved_by',
                   'lines', 'created_at']

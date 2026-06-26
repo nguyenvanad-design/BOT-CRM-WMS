@@ -49,8 +49,14 @@ class PurchaseOrder(BaseModel, SoftDeleteMixin):
                                    default=PurchaseStatus.DRAFT, db_index=True)
     order_date  = models.DateField(null=True, blank=True)
     expected_date = models.DateField(null=True, blank=True)
+    # Theo dõi hàng đang về
+    carrier     = models.CharField(max_length=100, blank=True)   # hãng vận chuyển
+    tracking_no = models.CharField(max_length=60, blank=True)    # số vận đơn
     total_vnd   = models.DecimalField(max_digits=15, decimal_places=0, default=0)
     paid_vnd    = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    # Điều kiện thanh toán thỏa thuận với NCC (tự do) → biết công nợ phải trả thế nào.
+    # VD: "Trả trước 30%, còn lại sau 30 ngày" / "Thanh toán 100% khi nhận hàng".
+    payment_terms_note = models.TextField(blank=True)
     owner       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                     related_name='purchase_orders')
     notes       = models.TextField(blank=True)

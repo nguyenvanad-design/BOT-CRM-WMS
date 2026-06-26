@@ -12,6 +12,8 @@ export interface PODetail {
   id: string; code: string; supplier_name: string; warehouse_code: string
   status: string; status_display: string; total_vnd: string; owner_username?: string
   notes?: string
+  expected_date?: string | null; carrier?: string; tracking_no?: string
+  payment_terms_note?: string
   lines: { id?: string; part: string; part_name?: string; qty: number; unit_cost: string | number }[]
 }
 
@@ -35,7 +37,18 @@ export function PODetailModal({ po, open, onClose, footer }: {
             <Info label="Kho nhận" value={po.warehouse_code} />
             <Info label="Người tạo" value={po.owner_username ?? '—'} />
             <Info label="Trạng thái" value={<Tag tone={TONE[po.status] ?? 'gray'}>{po.status_display}</Tag>} />
+            <Info label="Dự kiến hàng về" value={po.expected_date || '—'} />
+            <Info label="Vận chuyển" value={[po.carrier, po.tracking_no].filter(Boolean).join(' · ') || '—'} />
           </div>
+
+          {po.payment_terms_note && (
+            <div>
+              <div className="text-xs text-txt-2 mb-1">Điều kiện thanh toán (công nợ phải trả NCC)</div>
+              <p className="text-sm bg-flame/10 border border-flame/30 text-txt rounded-md px-3 py-2 whitespace-pre-wrap">
+                {po.payment_terms_note}
+              </p>
+            </div>
+          )}
 
           <div>
             <div className="text-xs text-txt-2 mb-1.5">Chi tiết dòng hàng</div>

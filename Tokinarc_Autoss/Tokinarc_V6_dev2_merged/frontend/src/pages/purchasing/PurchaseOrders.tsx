@@ -37,6 +37,8 @@ export function PurchaseOrdersPage() {
   const [detail, setDetail] = useState<PODetail | null>(null)
   const [payFor, setPayFor] = useState<PO | null>(null)
   const [supplier, setSupplier] = useState(''); const [warehouse, setWarehouse] = useState('')
+  const [expectedDate, setExpectedDate] = useState(''); const [paymentTerms, setPaymentTerms] = useState('')
+  const [carrier, setCarrier] = useState(''); const [trackingNo, setTrackingNo] = useState('')
   const [lines, setLines] = useState<POLine[]>([{ part: '', qty: 1, unit_cost: 0 }])
   const [payAmt, setPayAmt] = useState('')
 
@@ -49,9 +51,11 @@ export function PurchaseOrdersPage() {
   const create = useMutation({
     mutationFn: () => api.post('/purchasing/orders/', {
       supplier, warehouse,
+      expected_date: expectedDate || null, payment_terms_note: paymentTerms,
+      carrier, tracking_no: trackingNo,
       lines: lines.filter((l) => l.part).map((l) => ({ part: l.part.trim(), qty: Number(l.qty), unit_cost: Number(l.unit_cost) })),
     }),
-    onSuccess: (r) => { toast.success(`Đã tạo ${r.data.code}`); invalidate(); setOpen(false); setLines([{ part: '', qty: 1, unit_cost: 0 }]); setSupplier('') },
+    onSuccess: (r) => { toast.success(`Đã tạo ${r.data.code}`); invalidate(); setOpen(false); setLines([{ part: '', qty: 1, unit_cost: 0 }]); setSupplier(''); setExpectedDate(''); setPaymentTerms(''); setCarrier(''); setTrackingNo('') },
     onError: (e) => toast.error(apiError(e)),
   })
   const ACT_MSG: Record<string, string> = {
@@ -177,6 +181,29 @@ export function PurchaseOrdersPage() {
               opts={(suppliers.data ?? []).map((s) => ({ v: s.id, l: s.name }))} />
             <Sel label="Kho nhận *" value={warehouse} onChange={setWarehouse}
               opts={(whs.data ?? []).map((w) => ({ v: w.id, l: w.code }))} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="block text-[11px] uppercase tracking-wide text-txt-2 font-semibold mb-1">Dự kiến về</label>
+              <input type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)}
+                className="w-full bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm" />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-wide text-txt-2 font-semibold mb-1">Hãng VC</label>
+              <input value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="GHN, Viettel…"
+                className="w-full bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm" />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-wide text-txt-2 font-semibold mb-1">Số vận đơn</label>
+              <input value={trackingNo} onChange={(e) => setTrackingNo(e.target.value)} placeholder="Tracking"
+                className="w-full bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[11px] uppercase tracking-wide text-txt-2 font-semibold mb-1">Điều kiện thanh toán (NCC)</label>
+            <textarea value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} rows={2}
+              placeholder="VD: Trả trước 30%, còn lại sau 30 ngày / 100% khi nhận hàng…"
+              className="w-full bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm" />
           </div>
           <div className="text-xs text-txt-2">Dòng hàng (mã part + SL + đơn giá):</div>
           {lines.map((l, i) => (
