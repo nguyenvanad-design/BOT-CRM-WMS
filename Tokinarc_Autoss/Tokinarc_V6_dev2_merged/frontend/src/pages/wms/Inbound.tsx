@@ -19,12 +19,16 @@ import {
 import { InboundForm } from '@/pages/wms/forms/InboundForm'
 import { ScanOrderModal } from '@/pages/wms/ScanOrderModal'
 import { OrderLinesModal } from '@/pages/wms/OrderLinesModal'
+import { Modal } from '@/components/Modal'
 
 export function InboundPage() {
   const qc = useQueryClient()
   const [formOpen, setFormOpen] = useState(false)
   const [scanId, setScanId] = useState<string | null>(null)
   const [viewOrder, setViewOrder] = useState<InboundOrder | null>(null)
+  const [partialFor, setPartialFor] = useState<InboundOrder | null>(null)   // phiếu đang nhận một phần
+  const [reason, setReason] = useState('')
+  const [fullFor, setFullFor] = useState<InboundOrder | null>(null)   // xác nhận nhận đủ khi chưa quét
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['wms-inbound-list'],
     queryFn: () => fetchAll<InboundOrder>('/wms/inbound/'),
@@ -85,20 +89,15 @@ export function InboundPage() {
                     </Button>
                     <Button variant="ghost" size="sm"
                       disabled={confirm.isPending && confirm.variables?.id === o.id}
-                      onClick={() => {
-                        const reason = window.prompt('Lý do nhận thiếu (NCC giao thiếu / hàng lỗi / giao trễ…):', o.shortage_note ?? '')
-                        if (reason === null) return   // bấm Hủy
-                        confirm.mutate({ id: o.id, partial: true, shortage_note: reason })
-                      }}>
+                      onClick={() => { setReason(o.shortage_note ?? ''); setPartialFor(o) }}>
                       Nhận một phần
                     </Button>
                     <Button variant="success" size="sm"
                       disabled={confirm.isPending && confirm.variables?.id === o.id}
                       onClick={() => {
                         const scanned = (o.lines ?? []).some((l) => (l.qty_received ?? 0) > 0)
-                        if (!scanned && !window.confirm(
-                          'Bạn CHƯA quét/nhận món nào.\nXác nhận nhận ĐỦ theo SL đặt mà không kiểm tra thực tế?')) return
-                        confirm.mutate({ id: o.id })
+                        if (scanned) confirm.mutate({ id: o.id })   // đã quét → nhận thẳng
+                        else setFullFor(o)                          // chưa quét → hỏi xác nhận
                       }}>
                       <Check size={13} /> Nhận đủ
                     </Button>
@@ -135,6 +134,53 @@ export function InboundPage() {
           q1: l.qty_expected, q2: l.qty_received,
         }))}
       />
+
+      {/* Modal nhận một phần — nhập lý do thiếu */}
+      <Modal open={!!partialFor} onClose={() => setPartialFor(null)}
+        title={`Nhận một phần — ${partialFor?.code ?? ''}`}
+        icon={<PackageCheck size={18} className="text-flame" />}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPartialFor(null)}>Hủy</Button>
+            <Button disabled={confirm.isPending}
+              onClick={() => partialFor && confirm.mutate(
+                { id: partialFor.id, partial: true, shortage_note: reason },
+                { onSuccess: () => setPartialFor(null) })}>
+              {confirm.isPending ? 'Đang lưu…' : 'Xác nhận nhận một phần'}
+            </Button>
+          </>
+        }>
+        <div className="space-y-2">
+          <p className="text-sm text-txt-2">
+            Cộng tồn phần đã quét/nhận; phần còn thiếu giữ phiếu <b>mở</b> để nhận tiếp khi hàng về.
+          </p>
+          <label className="block text-[11px] uppercase tracking-wide text-txt-2 font-semibold">Lý do nhận thiếu</label>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} autoFocus
+            placeholder="VD: NCC giao thiếu 20 cái, hẹn giao bù tuần sau / hàng lỗi 2 cái…"
+            className="w-full bg-ink-3 border border-line rounded-md px-3 py-2 text-sm focus:border-flame focus:outline-none" />
+        </div>
+      </Modal>
+
+      {/* Xác nhận "Nhận đủ" khi CHƯA quét món nào */}
+      <Modal open={!!fullFor} onClose={() => setFullFor(null)}
+        title={`Nhận đủ — ${fullFor?.code ?? ''}`}
+        icon={<Check size={18} className="text-flame" />}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setFullFor(null)}>Hủy</Button>
+            <Button variant="success" disabled={confirm.isPending}
+              onClick={() => fullFor && confirm.mutate({ id: fullFor.id },
+                { onSuccess: () => setFullFor(null) })}>
+              {confirm.isPending ? 'Đang lưu…' : 'Vẫn nhận đủ'}
+            </Button>
+          </>
+        }>
+        <p className="text-sm text-txt">
+          Bạn <b className="text-warn">chưa quét/nhận món nào</b>. Nếu xác nhận, hệ thống coi như
+          nhận <b>ĐỦ theo số lượng đặt</b> mà không kiểm tra thực tế. Nên <b>Quét</b> từng món
+          trước để đối chiếu.
+        </p>
+      </Modal>
     </div>
   )
 }
