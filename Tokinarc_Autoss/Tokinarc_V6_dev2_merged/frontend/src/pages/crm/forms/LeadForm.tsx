@@ -96,7 +96,9 @@ export function LeadForm({ open, onClose, editing }: {
             {...register('score', { valueAsNumber: true })} />
           <div />
         </FieldRow>
-        <TextArea label="Ghi chú" {...register('notes')} />
+        <TextArea label="Nội dung làm việc với khách hàng"
+          placeholder="Ghi lại nội dung gọi điện/trao đổi: nhu cầu, sản phẩm quan tâm, hẹn gặp…"
+          {...register('notes')} />
       </form>
     </Modal>
   )

@@ -9,7 +9,7 @@ import { Radar, ArrowRight, Plus, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
-import { LEAD_STATUS_LABEL, LEAD_STATUS_TONE, leadScoreTone } from '@/lib/crm'
+import { LEAD_STATUS_LABEL, LEAD_STATUS_TONE, leadScoreTone, formatDate } from '@/lib/crm'
 import type { Lead } from '@/lib/types'
 import {
   PageHeader, SearchInput, Tag, Button, TableCard, Th, Td, RowMsg, Pagination,
@@ -51,7 +51,7 @@ export function LeadsPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-7xl">
       <PageHeader
         icon={<Radar size={20} className="text-flame" />}
         title="Leads"
@@ -70,25 +70,32 @@ export function LeadsPage() {
       <TableCard>
         <thead>
           <tr className="border-b border-line">
-            <Th>Tên / Công ty</Th><Th>Liên hệ</Th><Th>Nguồn</Th>
-            <Th className="text-right">Điểm</Th><Th>Trạng thái</Th><Th />
+            <Th>Tên / Công ty</Th><Th>SĐT</Th><Th>Email</Th><Th>Nguồn</Th>
+            <Th>Sale phụ trách</Th><Th>Ngày tạo</Th><Th>Nội dung</Th>
+            <Th>Trạng thái</Th><Th className="text-right">Thao tác</Th>
           </tr>
         </thead>
         <tbody>
-          {isLoading && <RowMsg colSpan={6}>Đang tải…</RowMsg>}
-          {isError && <RowMsg colSpan={6} danger>Lỗi: {apiError(error)}</RowMsg>}
-          {data?.results.length === 0 && <RowMsg colSpan={6}>Không có lead nào.</RowMsg>}
+          {isLoading && <RowMsg colSpan={9}>Đang tải…</RowMsg>}
+          {isError && <RowMsg colSpan={9} danger>Lỗi: {apiError(error)}</RowMsg>}
+          {data?.results.length === 0 && <RowMsg colSpan={9}>Không có lead nào.</RowMsg>}
           {data?.results.map((l) => (
             <tr key={l.id} onClick={() => openEdit(l)}
               className="border-b border-line/50 last:border-0 hover:bg-ink-3/40 cursor-pointer">
               <Td>
-                <div className="font-medium">{l.name}</div>
+                <div className="font-medium flex items-center gap-1.5">
+                  {l.name}
+                  <Tag tone={leadScoreTone(l.score)}>{l.score}</Tag>
+                </div>
                 {l.company && <div className="text-[11px] text-txt-2">{l.company}</div>}
               </Td>
-              <Td className="text-txt-2">{l.phone || l.email || '—'}</Td>
-              <Td className="text-txt-2">{l.source || '—'}</Td>
-              <Td className="text-right">
-                <Tag tone={leadScoreTone(l.score)}>{l.score}</Tag>
+              <Td className="text-txt-2 whitespace-nowrap">{l.phone || '—'}</Td>
+              <Td className="text-txt-2">{l.email || '—'}</Td>
+              <Td className="text-txt-2">{l.source_display || l.source || '—'}</Td>
+              <Td className="text-txt-2 whitespace-nowrap">{l.owner_username || '—'}</Td>
+              <Td className="text-txt-2 whitespace-nowrap">{formatDate(l.created_at)}</Td>
+              <Td className="text-txt-2 max-w-[240px]">
+                <div className="truncate" title={l.notes}>{l.notes || '—'}</div>
               </Td>
               <Td><Tag tone={LEAD_STATUS_TONE[l.status]}>{LEAD_STATUS_LABEL[l.status]}</Tag></Td>
               <Td className="text-right" onClick={(e) => e.stopPropagation()}>
