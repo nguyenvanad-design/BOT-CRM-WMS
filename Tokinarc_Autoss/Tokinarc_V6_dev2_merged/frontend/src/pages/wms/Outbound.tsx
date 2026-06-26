@@ -29,6 +29,8 @@ export function OutboundPage() {
   const [picks, setPicks] = useState<Pick[] | null>(null)
   const [scanId, setScanId] = useState<string | null>(null)
   const [viewOrder, setViewOrder] = useState<OutboundOrder | null>(null)
+  const [rejectFor, setRejectFor] = useState<OutboundOrder | null>(null)   // phiếu đang từ chối
+  const [reason, setReason] = useState('')
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['wms-outbound-list'],
@@ -107,10 +109,8 @@ export function OutboundPage() {
                 )}
                 {o.status !== 'shipped' && o.status !== 'cancelled' && (
                   <Button variant="ghost" size="sm" className="mr-1.5"
-                    onClick={() => {
-                      const reason = window.prompt('Lý do từ chối phiếu xuất (hết hàng, hàng lỗi…):')
-                      if (reason !== null) reject.mutate({ id: o.id, reason })
-                    }}>
+                    disabled={reject.isPending && reject.variables?.id === o.id}
+                    onClick={() => { setReason(''); setRejectFor(o) }}>
                     Từ chối
                   </Button>
                 )}
@@ -160,6 +160,30 @@ export function OutboundPage() {
             ))}
           </div>
         )}
+      </Modal>
+
+      {/* Modal từ chối phiếu xuất — nhập lý do */}
+      <Modal open={!!rejectFor} onClose={() => setRejectFor(null)}
+        title={`Từ chối phiếu xuất — ${rejectFor?.code ?? ''}`}
+        icon={<PackageCheck size={18} className="text-flame" />}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRejectFor(null)}>Hủy</Button>
+            <Button variant="danger" disabled={reject.isPending}
+              onClick={() => rejectFor && reject.mutate(
+                { id: rejectFor.id, reason },
+                { onSuccess: () => setRejectFor(null) })}>
+              {reject.isPending ? 'Đang xử lý…' : 'Xác nhận từ chối'}
+            </Button>
+          </>
+        }>
+        <div className="space-y-2">
+          <p className="text-sm text-txt-2">Phiếu bị từ chối sẽ <b>trả về sale xử lý</b>; không trừ tồn.</p>
+          <label className="block text-[11px] uppercase tracking-wide text-txt-2 font-semibold">Lý do từ chối</label>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} autoFocus
+            placeholder="VD: Hết hàng / hàng lỗi / sai đơn / khách hoãn nhận…"
+            className="w-full bg-ink-3 border border-line rounded-md px-3 py-2 text-sm focus:border-flame focus:outline-none" />
+        </div>
       </Modal>
     </div>
   )
