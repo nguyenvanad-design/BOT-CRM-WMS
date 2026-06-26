@@ -17,12 +17,14 @@ from datetime import date
 from django.core.management.base import BaseCommand
 from django.db.models import F
 
-from apps.accounts.roles import Role
+from apps.accounts.roles import MANAGER_ROLES, Role
 from apps.common.models import notify, notify_roles
 
 WAREHOUSE_STAFF = frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER})
+PURCHASING_STAFF = frozenset({Role.WAREHOUSE_MANAGER}) | MANAGER_ROLES   # mua hàng + quản lý
 LOT_MILESTONES = {30, 7, 1}            # ngày trước khi hết hạn
 DEBT_MILESTONES = {1, 15, 30, 60}      # ngày sau khi quá hạn
+PO_OVERDUE_MILESTONES = {1, 3, 7, 14}  # ngày hàng mua về TRỄ so với dự kiến
 
 
 class Command(BaseCommand):
@@ -35,9 +37,30 @@ class Command(BaseCommand):
         today = date.today()
         n_lot = self._lots(today, dry_run)
         n_debt = self._debts(today, dry_run)
+        n_po = self._po_overdue(today, dry_run)
         tag = '[dry-run] ' if dry_run else ''
         self.stdout.write(self.style.SUCCESS(
-            f"{tag}Lô sắp hết hạn: {n_lot} noti · Công nợ quá hạn: {n_debt} noti."))
+            f"{tag}Lô sắp hết hạn: {n_lot} noti · Công nợ quá hạn: {n_debt} noti · "
+            f"Hàng mua về trễ: {n_po} noti."))
+
+    def _po_overdue(self, today, dry_run) -> int:
+        """Đơn mua đã đặt/nhận một phần mà quá ngày dự kiến về → báo mua hàng + quản lý."""
+        from apps.purchasing.models import PurchaseOrder
+        sent = 0
+        qs = (PurchaseOrder.objects
+              .filter(status__in=['ordered', 'partial'], expected_date__lt=today)
+              .select_related('supplier'))
+        for po in qs:
+            late = (today - po.expected_date).days
+            if late not in PO_OVERDUE_MILESTONES:
+                continue
+            msg = (f"Hàng về TRỄ {late} ngày: đơn mua {po.code} ({po.supplier.name}) "
+                   f"dự kiến {po.expected_date} chưa nhận đủ — giục nhà cung cấp.")
+            if dry_run:
+                self.stdout.write(f"  [po] {msg}")
+            else:
+                sent += notify_roles(PURCHASING_STAFF, 'po_overdue', msg, link='/purchasing/orders')
+        return sent
 
     def _lots(self, today, dry_run) -> int:
         from apps.wms.models import Lot

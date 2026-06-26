@@ -190,6 +190,17 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         po.status = PurchaseStatus.ORDERED
         po.order_date = po.order_date or timezone.now().date()
         po.save(update_fields=['status', 'order_date'])
+        # Nối PO → WMS: tạo ASN báo hàng về để kho chuẩn bị nhận (eta = ngày dự kiến).
+        from apps.wms.models import ASN
+        year = timezone.now().year
+        pre = f'ASN-{year}-'
+        last = ASN.objects.filter(code__startswith=pre).order_by('-code').first()
+        seq = (int(last.code.rsplit('-', 1)[-1]) + 1) if last else 1
+        ASN.objects.create(
+            code=f'{pre}{seq:03d}', warehouse=po.warehouse, supplier=po.supplier.name,
+            eta=po.expected_date, notes=f'Tự tạo từ đơn mua {po.code}',
+            created_by=request.user, updated_by=request.user,
+        )
         return Response(PurchaseOrderSerializer(po).data)
 
     @action(detail=True, methods=['post'])
