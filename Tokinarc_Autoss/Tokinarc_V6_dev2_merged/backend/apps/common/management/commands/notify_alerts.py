@@ -25,6 +25,7 @@ PURCHASING_STAFF = frozenset({Role.WAREHOUSE_MANAGER}) | MANAGER_ROLES   # mua h
 LOT_MILESTONES = {30, 7, 1}            # ngày trước khi hết hạn
 DEBT_MILESTONES = {1, 15, 30, 60}      # ngày sau khi quá hạn
 PO_OVERDUE_MILESTONES = {1, 3, 7, 14}  # ngày hàng mua về TRỄ so với dự kiến
+PO_ARRIVING_MILESTONES = {1, 0}        # ngày trước khi hàng về (1 = mai, 0 = hôm nay)
 
 
 class Command(BaseCommand):
@@ -38,10 +39,31 @@ class Command(BaseCommand):
         n_lot = self._lots(today, dry_run)
         n_debt = self._debts(today, dry_run)
         n_po = self._po_overdue(today, dry_run)
+        n_arr = self._po_arriving(today, dry_run)
         tag = '[dry-run] ' if dry_run else ''
         self.stdout.write(self.style.SUCCESS(
             f"{tag}Lô sắp hết hạn: {n_lot} noti · Công nợ quá hạn: {n_debt} noti · "
-            f"Hàng mua về trễ: {n_po} noti."))
+            f"Hàng mua về trễ: {n_po} noti · Hàng sắp về: {n_arr} noti."))
+
+    def _po_arriving(self, today, dry_run) -> int:
+        """Đơn mua dự kiến về HÔM NAY/NGÀY MAI → báo NV kho chuẩn bị nhận hàng."""
+        from apps.purchasing.models import PurchaseOrder
+        sent = 0
+        qs = (PurchaseOrder.objects
+              .filter(status__in=['ordered', 'partial'], expected_date__isnull=False)
+              .select_related('supplier'))
+        for po in qs:
+            days = (po.expected_date - today).days
+            if days not in PO_ARRIVING_MILESTONES:
+                continue
+            when = 'HÔM NAY' if days == 0 else 'NGÀY MAI'
+            msg = (f"Hàng dự kiến về {when}: đơn mua {po.code} ({po.supplier.name}) "
+                   f"— chuẩn bị nhận hàng.")
+            if dry_run:
+                self.stdout.write(f"  [arrive] {msg}")
+            else:
+                sent += notify_roles(WAREHOUSE_STAFF, 'po_arriving', msg, link='/purchasing/orders')
+        return sent
 
     def _po_overdue(self, today, dry_run) -> int:
         """Đơn mua đã đặt/nhận một phần mà quá ngày dự kiến về → báo mua hàng + quản lý."""
