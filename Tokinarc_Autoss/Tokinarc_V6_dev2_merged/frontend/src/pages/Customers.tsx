@@ -99,7 +99,7 @@ export function CustomersPage() {
             {data?.results.map((c) => (
               <tr key={c.id} onClick={() => nav(`/customers/${c.id}`)}
                 className="border-b border-line/50 last:border-0 hover:bg-ink-3/40 cursor-pointer">
-                <td className="px-4 py-2.5 font-medium">{c.name}</td>
+                <td className="px-4 py-2.5 font-medium whitespace-nowrap">{c.name}</td>
                 <td className="px-4 py-2.5 text-txt-2 whitespace-nowrap">{c.primary_phone || '—'}</td>
                 <td className="px-4 py-2.5 text-txt-2">{c.primary_email || '—'}</td>
                 <td className="px-4 py-2.5 text-txt-2">{c.source || '—'}</td>
