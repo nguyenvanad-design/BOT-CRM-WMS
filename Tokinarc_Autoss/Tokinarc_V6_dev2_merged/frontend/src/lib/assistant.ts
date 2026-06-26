@@ -8,7 +8,15 @@ import { api } from '@/lib/api'
 
 export interface AssistantReply { text: string }
 
-export async function askAssistant(query: string): Promise<AssistantReply> {
+/** Gửi câu hỏi (+ tùy chọn đính kèm ảnh/PDF/Excel) cho trợ lý nội bộ. */
+export async function askAssistant(query: string, file?: File | null): Promise<AssistantReply> {
+  if (file) {
+    const fd = new FormData()
+    fd.append('query', query)
+    fd.append('file', file)
+    const res = await api.post('/analytics/assistant/query/', fd)
+    return { text: res.data.text ?? '(không có nội dung)' }
+  }
   const res = await api.post('/analytics/assistant/query/', { query })
   return { text: res.data.text ?? '(không có nội dung)' }
 }

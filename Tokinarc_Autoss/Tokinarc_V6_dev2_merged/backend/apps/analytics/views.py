@@ -72,6 +72,13 @@ class AssistantQueryView(APIView):
 
     def post(self, request):
         q = (request.data.get('query') or '').strip()
+        up = request.FILES.get('file')
+        if up is not None:
+            data = up.read()
+            if len(data) > 15 * 1024 * 1024:
+                return Response({'detail': 'File quá lớn (tối đa 15MB).'}, status=400)
+            text = assistant.analyze_attachment(q, data, up.content_type or '', up.name or '')
+            return Response({'text': text, 'mode': 'attachment', 'success': True})
         if not q:
             return Response({'detail': 'Thiếu câu hỏi.'}, status=400)
         return Response({'text': assistant.answer(q, request.user), 'success': True})

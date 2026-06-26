@@ -853,6 +853,74 @@ def _llm_summary(m: dict) -> str | None:
         return None
 
 
+_ASSIST_FILE_PROMPT = (
+    "Bạn là trợ lý kỹ thuật NỘI BỘ của Autoss (phân phối súng hàn Tokinarc). "
+    "Nhân viên đính kèm 1 file (ảnh / PDF / Excel). Hãy PHÂN TÍCH nội dung và trả lời bằng "
+    "tiếng Việt, súc tích, có cấu trúc.\n"
+    "- Nếu là ẢNH linh kiện/súng hàn: nhận diện loại (béc/chụp/liner/collet/súng...), nêu đặc "
+    "điểm thấy được, gợi ý mã Tokin tương đương nếu nhận ra; nếu thấy hư hỏng → nêu cách xử lý/thay.\n"
+    "- Nếu là PDF/Excel/bảng: tóm tắt nội dung chính và trả lời đúng yêu cầu của nhân viên.\n"
+    "KHÔNG bịa thông tin. Nếu không chắc → nói rõ cần thêm thông tin gì."
+)
+
+
+def _excel_to_text(file_bytes: bytes, max_rows: int = 200) -> str:
+    """Đọc .xlsx → text gọn cho LLM (openpyxl không gửi file lên Gemini)."""
+    import io as _io
+    try:
+        from openpyxl import load_workbook
+        wb = load_workbook(_io.BytesIO(file_bytes), read_only=True, data_only=True)
+    except Exception:  # noqa: BLE001
+        return "(không đọc được Excel)"
+    out = []
+    for ws in wb.worksheets[:5]:
+        out.append(f"[Sheet: {ws.title}]")
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            if i >= max_rows:
+                out.append("…(còn nữa)")
+                break
+            out.append(' | '.join('' if c is None else str(c) for c in row))
+    return '\n'.join(out)[:20000]
+
+
+def analyze_attachment(question: str, file_bytes: bytes, mime: str, filename: str) -> str:
+    """Phân tích ẢNH / PDF / EXCEL đính kèm bằng Gemini đa phương thức."""
+    import base64 as _b64
+
+    key = _gemini_key()
+    if not key:
+        return "Chưa cấu hình Gemini (GEMINI_API_KEY) — không phân tích được file."
+    model = _gemini_model()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    q = (question or '').strip() or "Phân tích nội dung file này giúp tôi."
+    mime = (mime or '').lower()
+    fname = (filename or '').lower()
+
+    parts: list[dict] = [{"text": _ASSIST_FILE_PROMPT + f"\n\nYÊU CẦU CỦA NHÂN VIÊN: {q}"}]
+    if mime.startswith('image/') or mime == 'application/pdf':
+        parts.append({"inline_data": {"mime_type": mime, "data": _b64.b64encode(file_bytes).decode()}})
+    elif 'spreadsheet' in mime or 'excel' in mime or fname.endswith(('.xlsx', '.xls')):
+        parts[0]["text"] += "\n\nNỘI DUNG EXCEL:\n" + _excel_to_text(file_bytes)
+    else:
+        try:
+            parts[0]["text"] += "\n\nNỘI DUNG FILE:\n" + file_bytes.decode('utf-8', errors='ignore')[:20000]
+        except Exception:  # noqa: BLE001
+            return "Định dạng file chưa hỗ trợ. Em hỗ trợ ảnh (jpg/png), PDF, Excel, văn bản."
+
+    body = json.dumps({
+        "contents": [{"parts": parts}],
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1400,
+                             "thinkingConfig": {"thinkingBudget": 0}},
+    }).encode('utf-8')
+    try:
+        req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            data = json.loads(resp.read())
+        return data['candidates'][0]['content']['parts'][0]['text'].strip()
+    except (urllib.error.URLError, KeyError, IndexError, ValueError, TimeoutError) as e:
+        return f"Em chưa phân tích được file (lỗi gọi AI): {e}"
+
+
 def _gather_activities(days: int = 30, max_items: int = 12) -> dict:
     """Gom HOẠT ĐỘNG gần đây: recap cuộc gặp/gọi + đếm ghi âm + hoạt động kho."""
     from datetime import timedelta

@@ -5,7 +5,7 @@
  * soạn hợp đồng, phiếu nhập/xuất kho, báo cáo CEO, đánh giá kế hoạch, tra cứu.
  */
 import { useEffect, useRef, useState } from 'react'
-import { MessageCircle, Send, Loader2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { MessageCircle, Send, Loader2, ChevronDown, ChevronUp, Trash2, Paperclip, X } from 'lucide-react'
 import { askAssistant } from '@/lib/assistant'
 import { apiError } from '@/lib/api'
 import { useAuth, isManager } from '@/lib/auth/store'
@@ -42,6 +42,8 @@ export function ChatWidget() {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [busy, setBusy] = useState(false)
   const [expanded, setExpanded] = useState(true)
+  const [file, setFile] = useState<File | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -50,13 +52,17 @@ export function ChatWidget() {
 
   const send = async (q: string) => {
     const query = q.trim()
-    if (!query || busy) return
-    setInput('')
+    if ((!query && !file) || busy) return
+    const sentFile = file
+    setInput(''); setFile(null)
     setExpanded(true)
-    setMsgs((m) => [...m, { role: 'user', text: query }])
+    setMsgs((m) => [...m, {
+      role: 'user',
+      text: (query || '(phân tích file đính kèm)') + (sentFile ? `\n📎 ${sentFile.name}` : ''),
+    }])
     setBusy(true)
     try {
-      const r = await askAssistant(query)
+      const r = await askAssistant(query || 'Phân tích file này giúp tôi', sentFile)
       setMsgs((m) => [...m, { role: 'bot', text: r.text }])
     } catch (e) {
       setMsgs((m) => [...m, { role: 'error', text: apiError(e) }])
@@ -126,18 +132,36 @@ export function ChatWidget() {
           </div>
         )}
 
+        {/* Chip file đính kèm */}
+        {file && (
+          <div className="flex items-center gap-2 mb-2 text-xs bg-ink-3 border border-line rounded-md px-2.5 py-1.5 w-fit max-w-full">
+            <Paperclip size={13} className="text-flame shrink-0" />
+            <span className="truncate">{file.name}</span>
+            <span className="text-txt-2 shrink-0">({Math.ceil(file.size / 1024)}KB)</span>
+            <button onClick={() => setFile(null)} className="text-txt-2 hover:text-danger shrink-0"><X size={13} /></button>
+          </div>
+        )}
+
         <div className="flex gap-2">
+          <input ref={fileRef} type="file" className="hidden"
+            accept="image/*,.pdf,.xlsx,.xls,.csv,.txt"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); e.target.value = '' }} />
+          <button onClick={() => fileRef.current?.click()} disabled={busy} title="Đính kèm ảnh/PDF/Excel"
+            className="border border-line rounded-md px-2.5 text-txt-2 hover:text-flame hover:border-flame
+                       disabled:opacity-40 transition-colors flex items-center">
+            <Paperclip size={16} />
+          </button>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') send(input) }}
-            placeholder="Nhập câu hỏi…"
+            placeholder={file ? 'Hỏi gì về file này… (Enter để phân tích)' : 'Nhập câu hỏi…'}
             className="flex-1 bg-ink-3 border border-line rounded-md px-3 py-2 text-sm
                        focus:border-flame focus:outline-none transition-colors"
           />
           <button
             onClick={() => send(input)}
-            disabled={busy || !input.trim()}
+            disabled={busy || (!input.trim() && !file)}
             className="bg-flame hover:bg-flame-hi disabled:opacity-40 disabled:cursor-not-allowed
                        text-white rounded-md px-4 flex items-center gap-1.5 text-sm font-medium transition-colors"
           >

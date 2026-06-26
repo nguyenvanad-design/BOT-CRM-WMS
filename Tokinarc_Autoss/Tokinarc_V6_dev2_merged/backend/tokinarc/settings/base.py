@@ -90,6 +90,10 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {'user': '600/min', 'anon': '20/min'},
 }
 
+# ─── Upload (đính kèm AI nội bộ: ảnh/PDF/Excel) ─────────────────────────────
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024   # 20MB (mặc định Django chỉ 2.5MB)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+
 # ─── JWT ────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
     'ALGORITHM':              os.getenv('JWT_ALGORITHM', 'HS256'),
