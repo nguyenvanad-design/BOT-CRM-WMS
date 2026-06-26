@@ -8,7 +8,7 @@ import {
   Flame, LogOut, LayoutDashboard, TrendingUp, Building2,
   Radar, Target, Filter, FileText, ScrollText, MapPin, Phone,
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
-  Package, Barcode, History, Inbox, PackageCheck,
+  Package, Barcode, History, PackageCheck,
   Warehouse, Map as MapIcon, ScanLine, FileBarChart, Crown, Bot, ClipboardCheck, Gauge,
   ShoppingCart, Building, Undo2, CalendarDays, UserCog,
 } from 'lucide-react'
@@ -70,7 +70,6 @@ const WMS_NAV: NavGroup[] = [
     { to: '/purchasing/suppliers', icon: <Building size={16} />, label: 'Nhà cung cấp', ctrl: true },
   ]},
   { group: 'Nhập kho', items: [
-    { to: '/wms/asn', icon: <Inbox size={16} />, label: 'ASN (báo hàng về)' },
     { to: '/wms/inbound', icon: <PackageCheck size={16} />, label: 'Nhập kho' },
   ]},
   { group: 'Xuất kho', items: [

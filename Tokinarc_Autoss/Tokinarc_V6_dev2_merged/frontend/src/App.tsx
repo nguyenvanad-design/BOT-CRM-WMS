@@ -44,7 +44,6 @@ import { InventoryPage } from '@/pages/wms/Inventory'
 import { MovementsPage } from '@/pages/wms/Movements'
 import { WarehousesPage } from '@/pages/wms/Warehouses'
 import { InboundPage } from '@/pages/wms/Inbound'
-import { ASNPage } from '@/pages/wms/ASN'
 import { OutboundPage } from '@/pages/wms/Outbound'
 import { CeoOverviewPage } from '@/pages/ceo/Overview'
 import { CeoRevenuePage } from '@/pages/ceo/Revenue'
@@ -124,7 +123,7 @@ export function App() {
           <Route path="wms/trace" element={<TracePage />} />
           <Route path="wms/serials" element={<Navigate to="/wms/trace" replace />} />
           <Route path="wms/movements" element={<MovementsPage />} />
-          <Route path="wms/asn" element={<ASNPage />} />
+          <Route path="wms/asn" element={<Navigate to="/wms/inbound" replace />} />
           <Route path="wms/inbound" element={<InboundPage />} />
           <Route path="wms/outbound" element={<OutboundPage />} />
           <Route path="wms/warehouses" element={<WarehousesPage />} />
