@@ -401,6 +401,9 @@ class InboundViewSet(viewsets.ModelViewSet):
     permission_classes = [WMSPermission]
     queryset = InboundOrder.objects.prefetch_related('lines')
 
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
     def perform_create(self, serializer):
         inbound = serializer.save(created_by=self.request.user, updated_by=self.request.user)
         # Báo nhân viên kho: có phiếu nhập mới cần nhận hàng (trừ người tự tạo).

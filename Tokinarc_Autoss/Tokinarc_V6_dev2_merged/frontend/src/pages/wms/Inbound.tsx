@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { PackageCheck, Check, Plus, ScanLine, Eye, Download } from 'lucide-react'
+import { PackageCheck, Check, Plus, ScanLine, Eye, Download, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { downloadFile } from '@/lib/download'
@@ -28,6 +28,7 @@ export function InboundPage() {
   const [partialFor, setPartialFor] = useState<InboundOrder | null>(null)   // phiếu đang nhận một phần
   const [reason, setReason] = useState('')
   const [fullFor, setFullFor] = useState<InboundOrder | null>(null)   // xác nhận nhận đủ khi chưa quét
+  const [editOrder, setEditOrder] = useState<InboundOrder | null>(null)   // sửa phiếu Nháp
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['wms-inbound-list'],
     queryFn: () => fetchAll<InboundOrder>('/wms/inbound/'),
@@ -86,6 +87,11 @@ export function InboundPage() {
                   onClick={() => downloadFile(`/wms/inbound/${o.id}/export-xlsx/`, `phieu_nhap_${o.code}.xlsx`)}>
                   <Download size={13} /> Excel
                 </Button>
+                {o.status === 'draft' && (
+                  <Button variant="ghost" size="sm" onClick={() => setEditOrder(o)}>
+                    <Pencil size={13} /> Sửa
+                  </Button>
+                )}
                 {(o.status === 'draft' || o.status === 'confirmed' || o.status === 'partial') ? (
                   <span className="inline-flex gap-1.5">
                     <Button variant="ghost" size="sm" onClick={() => setScanId(o.id)}>
@@ -114,7 +120,8 @@ export function InboundPage() {
         </tbody>
       </TableCard>
 
-      <InboundForm open={formOpen} onClose={() => setFormOpen(false)} />
+      <InboundForm open={formOpen || !!editOrder} editing={editOrder}
+        onClose={() => { setFormOpen(false); setEditOrder(null) }} />
       <ScanOrderModal open={!!scanId} onClose={() => setScanId(null)} kind="inbound" orderId={scanId} />
       <OrderLinesModal
         open={!!viewOrder} onClose={() => setViewOrder(null)}

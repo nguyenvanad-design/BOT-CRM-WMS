@@ -13,6 +13,7 @@ import { useWarehouseOptions, useItemOptions, splitItem } from '@/lib/useWmsOpti
 import { Modal } from '@/components/Modal'
 import { Button } from '@/components/ui'
 import { FieldRow, TextInput, SelectInput } from '@/components/form'
+import type { InboundOrder } from '@/lib/types'
 
 interface BinLite { id: string; full_code: string }
 interface LineForm { item: string; qty_expected: number; target_bin: string; unit_cost: number; serials: string }
@@ -20,7 +21,9 @@ interface Form { code: string; warehouse: string; supplier: string; invoice_no: 
 const EMPTY_LINE: LineForm = { item: '', qty_expected: 1, target_bin: '', unit_cost: 0, serials: '' }
 const EMPTY: Form = { code: '', warehouse: '', supplier: '', invoice_no: '', lines: [{ ...EMPTY_LINE }] }
 
-export function InboundForm({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function InboundForm({ open, onClose, editing }: {
+  open: boolean; onClose: () => void; editing?: InboundOrder | null
+}) {
   const qc = useQueryClient()
   const { options: whs } = useWarehouseOptions()
   const { options: items, isLoading: itemsLoading } = useItemOptions()
@@ -33,24 +36,37 @@ export function InboundForm({ open, onClose }: { open: boolean; onClose: () => v
   const filled = watched.filter((l) => l?.item)
   const totalQty = filled.reduce((s, l) => s + (Number(l.qty_expected) || 0), 0)
 
-  useEffect(() => { if (open) reset(EMPTY) }, [open, reset])
+  useEffect(() => {
+    if (!open) return
+    reset(editing ? {
+      code: editing.code, warehouse: editing.warehouse,
+      supplier: editing.supplier ?? '', invoice_no: editing.invoice_no ?? '',
+      lines: (editing.lines ?? []).map((l) => ({
+        item: l.part ? `part:${l.part}` : (l.torch ? `torch:${l.torch}` : ''),
+        qty_expected: l.qty_expected, target_bin: l.target_bin ?? '',
+        unit_cost: Number(l.unit_cost ?? 0), serials: l.serials_raw ?? '',
+      })),
+    } : EMPTY)
+  }, [open, editing, reset])
 
   const save = useMutation({
-    mutationFn: (d: Form) => api.post('/wms/inbound/', {
-      code: d.code,
-      warehouse: d.warehouse,
-      supplier: d.supplier,
-      invoice_no: d.invoice_no,
-      lines: d.lines.map((l) => ({
-        ...splitItem(l.item),
-        qty_expected: Number(l.qty_expected) || 0,
-        target_bin: l.target_bin || null,
-        unit_cost: Number(l.unit_cost) || 0,
-        serials_raw: l.serials || '',
-      })),
-    }),
+    mutationFn: (d: Form) => {
+      const payload = {
+        code: d.code, warehouse: d.warehouse, supplier: d.supplier, invoice_no: d.invoice_no,
+        lines: d.lines.map((l) => ({
+          ...splitItem(l.item),
+          qty_expected: Number(l.qty_expected) || 0,
+          target_bin: l.target_bin || null,
+          unit_cost: Number(l.unit_cost) || 0,
+          serials_raw: l.serials || '',
+        })),
+      }
+      return editing
+        ? api.patch(`/wms/inbound/${editing.id}/`, payload)
+        : api.post('/wms/inbound/', payload)
+    },
     onSuccess: () => {
-      toast.success('Đã tạo đơn nhập')
+      toast.success(editing ? 'Đã cập nhật phiếu nhập' : 'Đã tạo đơn nhập')
       qc.invalidateQueries({ queryKey: ['wms-inbound-list'] })
       qc.invalidateQueries({ queryKey: ['wms'] })
       onClose()
@@ -59,7 +75,7 @@ export function InboundForm({ open, onClose }: { open: boolean; onClose: () => v
   })
 
   return (
-    <Modal open={open} onClose={onClose} wide title="Tạo đơn nhập kho"
+    <Modal open={open} onClose={onClose} wide title={editing ? `Sửa phiếu nhập ${editing.code}` : 'Tạo đơn nhập kho'}
       icon={<PackageCheck size={18} className="text-flame" />}
       footer={
         <>

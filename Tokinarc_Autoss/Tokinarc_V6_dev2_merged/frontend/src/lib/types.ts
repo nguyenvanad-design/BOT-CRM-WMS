@@ -193,6 +193,8 @@ export interface InboundLine {
   qty_received: number
   target_bin: string | null
   lot_no: string
+  unit_cost?: string | number
+  serials_raw?: string
   order_idx: number
 }
 
