@@ -240,6 +240,7 @@ class InboundOrder(BaseModel):
                                  default=InboundStatus.DRAFT, db_index=True)
     supplier    = models.CharField(max_length=200, blank=True)   # NCC (khi nhập không qua ASN)
     invoice_no  = models.CharField(max_length=60, blank=True)    # số hóa đơn/phiếu NCC để đối chiếu
+    shortage_note = models.TextField(blank=True)   # lý do nhận thiếu (NCC giao thiếu/hàng lỗi…)
     received_at = models.DateTimeField(null=True, blank=True)
     notes     = models.TextField(blank=True)
 

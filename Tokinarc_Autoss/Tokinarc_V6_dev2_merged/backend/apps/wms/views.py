@@ -442,6 +442,7 @@ class InboundViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Trạng thái không cho xác nhận.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
         partial_flag = bool(request.data.get('partial'))
+        shortage_note = str(request.data.get('shortage_note', '')).strip()
         fully = True
         for line in inbound.lines.all():
             received = line.qty_received
@@ -474,7 +475,9 @@ class InboundViewSet(viewsets.ModelViewSet):
         inbound.status = 'putaway' if fully else 'partial'
         if fully:
             inbound.received_at = timezone.now()
-        inbound.save(update_fields=['status', 'received_at'])
+        if shortage_note:
+            inbound.shortage_note = shortage_note
+        inbound.save(update_fields=['status', 'received_at', 'shortage_note'])
         # Sync ngược về Đơn mua (nếu phiếu tạo từ PO): cập nhật SL đã nhận + trạng thái PO.
         if inbound.purchase_order_id:
             self._sync_purchase_order(inbound)

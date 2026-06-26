@@ -31,8 +31,8 @@ export function InboundPage() {
   })
 
   const confirm = useMutation({
-    mutationFn: (v: { id: string; partial?: boolean }) =>
-      api.post(`/wms/inbound/${v.id}/confirm/`, { partial: !!v.partial }),
+    mutationFn: (v: { id: string; partial?: boolean; shortage_note?: string }) =>
+      api.post(`/wms/inbound/${v.id}/confirm/`, { partial: !!v.partial, shortage_note: v.shortage_note ?? '' }),
     onSuccess: (r) => {
       toast.success(r.data?.status === 'partial'
         ? 'Đã nhận một phần — phiếu còn mở, nhận tiếp khi hàng về'
@@ -85,7 +85,11 @@ export function InboundPage() {
                     </Button>
                     <Button variant="ghost" size="sm"
                       disabled={confirm.isPending && confirm.variables?.id === o.id}
-                      onClick={() => confirm.mutate({ id: o.id, partial: true })}>
+                      onClick={() => {
+                        const reason = window.prompt('Lý do nhận thiếu (NCC giao thiếu / hàng lỗi / giao trễ…):', o.shortage_note ?? '')
+                        if (reason === null) return   // bấm Hủy
+                        confirm.mutate({ id: o.id, partial: true, shortage_note: reason })
+                      }}>
                       Nhận một phần
                     </Button>
                     <Button variant="success" size="sm"
@@ -113,8 +117,16 @@ export function InboundPage() {
         open={!!viewOrder} onClose={() => setViewOrder(null)}
         title={`Phiếu nhập ${viewOrder?.code ?? ''}`}
         meta={viewOrder && (
-          <div className="text-sm text-txt-2">
-            Trạng thái: <Tag tone={INBOUND_STATUS_TONE[viewOrder.status]}>{INBOUND_STATUS_LABEL[viewOrder.status]}</Tag>
+          <div className="text-sm text-txt-2 space-y-1.5">
+            <div>
+              Trạng thái: <Tag tone={INBOUND_STATUS_TONE[viewOrder.status]}>{INBOUND_STATUS_LABEL[viewOrder.status]}</Tag>
+              {viewOrder.po_code && <span className="ml-3">Từ đơn mua: <b className="text-txt font-mono">{viewOrder.po_code}</b></span>}
+            </div>
+            {viewOrder.shortage_note && (
+              <div className="bg-danger/10 border border-danger/30 rounded-md px-3 py-2 text-txt">
+                <b className="text-danger">Lý do nhận thiếu:</b> {viewOrder.shortage_note}
+              </div>
+            )}
           </div>
         )}
         q1Label="SL dự kiến" q2Label="Đã nhận"

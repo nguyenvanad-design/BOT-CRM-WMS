@@ -201,7 +201,11 @@ export interface InboundOrder {
   code: string
   warehouse: string
   asn: string | null
+  po_code?: string
   status: InboundStatus
+  supplier?: string
+  invoice_no?: string
+  shortage_note?: string
   received_at: string | null
   lines: InboundLine[]
   notes: string
