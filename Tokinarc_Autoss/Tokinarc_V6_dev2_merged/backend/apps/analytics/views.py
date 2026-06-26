@@ -55,6 +55,12 @@ class DebtAgingView(_Base):
         return Response({'count': len(data), 'results': data})
 
 
+class PayableView(_Base):
+    """Công nợ phải TRẢ NCC (manager+) → tổng + theo nhà cung cấp."""
+    def get(self, request):
+        return Response(services.payable_summary())
+
+
 class InventoryValueView(_Base):
     def get(self, request):
         return Response(services.inventory_value(request.query_params.get('warehouse')))

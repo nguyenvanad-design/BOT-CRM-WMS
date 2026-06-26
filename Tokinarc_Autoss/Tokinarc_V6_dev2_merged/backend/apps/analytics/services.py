@@ -109,6 +109,17 @@ def debt_aging() -> list[dict]:
     return out
 
 
+def payable_summary() -> dict:
+    """Công nợ phải TRẢ NCC: tổng + theo nhà cung cấp (đơn mua chưa trả hết)."""
+    from apps.purchasing.models import PurchaseOrder
+    qs = (PurchaseOrder.objects
+          .filter(status__in=['ordered', 'partial', 'received'], total_vnd__gt=F('paid_vnd'))
+          .values('supplier__name')
+          .annotate(debt=Sum(F('total_vnd') - F('paid_vnd'))).order_by('-debt'))
+    rows = [{'supplier': r['supplier__name'] or '—', 'debt': int(r['debt'])} for r in qs]
+    return {'total_payable': sum(r['debt'] for r in rows), 'by_supplier': rows}
+
+
 def inventory_value(warehouse_code: str | None = None) -> dict:
     """Định giá tồn theo GIÁ VỐN (cost_vnd). Mã chưa có giá vốn → bỏ qua khỏi tổng
     (đếm riêng) để con số không bị thổi phồng theo giá bán."""

@@ -5,7 +5,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Wallet } from 'lucide-react'
 import { getDebtAging } from '@/lib/analytics'
-import { apiError } from '@/lib/api'
+import { api, apiError } from '@/lib/api'
 import { compactVnd, formatVnd } from '@/lib/crm'
 import type { DebtBucket } from '@/lib/types'
 import type { TagTone } from '@/lib/crm'
@@ -22,21 +22,38 @@ const BUCKET_TONE: Record<DebtBucket, TagTone> = {
   current: 'ok', d1_30: 'warn', d31_60: 'flame', d60p: 'danger',
 }
 
+interface PayableResp { total_payable: number; by_supplier: { supplier: string; debt: number }[] }
+
 export function CeoDebtPage() {
   const debt = useQuery({ queryKey: ['ceo', 'debt'], queryFn: getDebtAging })
+  const payable = useQuery({
+    queryKey: ['ceo', 'payable'],
+    queryFn: async () => (await api.get<PayableResp>('/analytics/payable/')).data,
+  })
 
   const rows = (debt.data?.results ?? []).map((d) => ({
     ...d, b: RAW_TO_BUCKET[d.bucket as string] ?? 'current',
   }))
   const total = rows.reduce((s, r) => s + r.amount_due, 0)
+  const totalPayable = payable.data?.total_payable ?? 0
+  const net = total - totalPayable
   const sumBucket = (b: DebtBucket) => rows.filter((r) => r.b === b).reduce((s, r) => s + r.amount_due, 0)
   const sorted = [...rows].sort((a, b) => b.days_overdue - a.days_overdue)
 
   return (
     <div className="max-w-5xl">
-      <PageHeader icon={<Wallet size={20} className="text-flame" />} title="Công nợ phải thu"
-        subtitle={debt.data ? `${debt.data.count} đơn còn nợ` : undefined} />
+      <PageHeader icon={<Wallet size={20} className="text-flame" />} title="Công nợ (Phải thu / Phải trả)"
+        subtitle="Phải thu khách + phải trả nhà cung cấp — dòng tiền ròng" />
 
+      {/* Tổng quan 2 chiều: thu − trả = ròng */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <StatCard label="Phải thu (KH nợ mình)" tone="ok" value={debt.isLoading ? '…' : compactVnd(total)} />
+        <StatCard label="Phải trả NCC (mình nợ)" tone="danger" value={payable.isLoading ? '…' : compactVnd(totalPayable)} />
+        <StatCard label="Ròng (thu − trả)" tone={net >= 0 ? 'ok' : 'danger'}
+          value={(debt.isLoading || payable.isLoading) ? '…' : compactVnd(net)} />
+      </div>
+
+      <SectionTitle>Phải thu — phân tích tuổi nợ</SectionTitle>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <StatCard label="Tổng phải thu" tone="flame" value={debt.isLoading ? '…' : compactVnd(total)} />
         <StatCard label="Trong hạn" tone="ok" value={debt.isLoading ? '…' : compactVnd(sumBucket('current'))} />
@@ -64,6 +81,26 @@ export function CeoDebtPage() {
                   {d.days_overdue > 0 ? <span className="text-danger">{d.days_overdue} ngày</span> : <span className="text-txt-2">—</span>}
                 </Td>
                 <Td><Tag tone={BUCKET_TONE[d.b]}>{BUCKET_LABEL[d.b]}</Tag></Td>
+              </tr>
+            ))}
+          </tbody>
+        </TableCard>
+      </Card>
+
+      <Card className="mt-4">
+        <SectionTitle>Phải trả nhà cung cấp</SectionTitle>
+        <TableCard>
+          <thead><tr className="border-b border-line">
+            <Th>Nhà cung cấp</Th><Th className="text-right">Còn nợ NCC</Th>
+          </tr></thead>
+          <tbody>
+            {payable.isLoading && <RowMsg colSpan={2}>Đang tải…</RowMsg>}
+            {payable.isError && <RowMsg colSpan={2} danger>Lỗi: {apiError(payable.error)}</RowMsg>}
+            {payable.data && payable.data.by_supplier.length === 0 && <RowMsg colSpan={2}>Không nợ NCC. 🎉</RowMsg>}
+            {(payable.data?.by_supplier ?? []).map((r, i) => (
+              <tr key={i} className="border-b border-line/50 last:border-0 hover:bg-ink-3/40">
+                <Td className="font-medium">{r.supplier}</Td>
+                <Td className="text-right tabular-nums text-danger">{formatVnd(r.debt)}</Td>
               </tr>
             ))}
           </tbody>
