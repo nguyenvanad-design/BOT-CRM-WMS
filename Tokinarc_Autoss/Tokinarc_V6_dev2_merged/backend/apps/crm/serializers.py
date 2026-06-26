@@ -33,13 +33,14 @@ class CustomerListSerializer(serializers.ModelSerializer):
     contact_count  = serializers.IntegerField(read_only=True)  # gán từ annotate
     primary_phone  = serializers.SerializerMethodField()
     primary_email  = serializers.SerializerMethodField()
+    source         = serializers.SerializerMethodField()   # nguồn lead lúc convert
 
     class Meta:
         model  = Customer
         fields = [
             'id', 'code', 'name', 'tax_code', 'segment', 'region',
             'status', 'owner', 'owner_username', 'contact_count',
-            'primary_phone', 'primary_email', 'notes',
+            'primary_phone', 'primary_email', 'source', 'notes',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -56,6 +57,11 @@ class CustomerListSerializer(serializers.ModelSerializer):
     def get_primary_email(self, obj):
         c = self._primary(obj)
         return c.email if c else ''
+
+    def get_source(self, obj):
+        # Nguồn lấy từ lead đã convert sang KH này (prefetch 'from_leads' ở viewset).
+        leads = list(obj.from_leads.all())
+        return leads[0].source if leads else ''
 
 
 class CustomerDetailSerializer(serializers.ModelSerializer):

@@ -78,10 +78,10 @@ export function CustomersPage() {
         <table className="w-full min-w-[980px] text-sm">
           <thead>
             <tr className="text-left text-xs text-txt-2 border-b border-line">
-              <th className="px-4 py-2.5 font-medium">Mã</th>
               <th className="px-4 py-2.5 font-medium">Tên</th>
               <th className="px-4 py-2.5 font-medium">SĐT</th>
               <th className="px-4 py-2.5 font-medium">Email</th>
+              <th className="px-4 py-2.5 font-medium">Nguồn</th>
               <th className="px-4 py-2.5 font-medium">Phân khúc</th>
               <th className="px-4 py-2.5 font-medium">Vùng</th>
               <th className="px-4 py-2.5 font-medium">Sale phụ trách</th>
@@ -99,10 +99,10 @@ export function CustomersPage() {
             {data?.results.map((c) => (
               <tr key={c.id} onClick={() => nav(`/customers/${c.id}`)}
                 className="border-b border-line/50 last:border-0 hover:bg-ink-3/40 cursor-pointer">
-                <td className="px-4 py-2.5 font-mono text-flame whitespace-nowrap">{c.code}</td>
                 <td className="px-4 py-2.5 font-medium">{c.name}</td>
                 <td className="px-4 py-2.5 text-txt-2 whitespace-nowrap">{c.primary_phone || '—'}</td>
                 <td className="px-4 py-2.5 text-txt-2">{c.primary_email || '—'}</td>
+                <td className="px-4 py-2.5 text-txt-2">{c.source || '—'}</td>
                 <td className="px-4 py-2.5 text-txt-2">{SEGMENT_LABEL[c.segment] ?? (c.segment || '—')}</td>
                 <td className="px-4 py-2.5 text-txt-2">{c.region || '—'}</td>
                 <td className="px-4 py-2.5 text-txt-2 whitespace-nowrap">{c.owner_username || '—'}</td>

@@ -53,7 +53,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
         qs = Customer.objects.select_related('owner')
         qs = filter_customers_for_user(qs, self.request.user)
         if self.action == 'list':
-            qs = qs.annotate(contact_count=Count('contacts')).prefetch_related('contacts')
+            qs = qs.annotate(contact_count=Count('contacts')).prefetch_related('contacts', 'from_leads')
         return qs
 
     def get_serializer_class(self):

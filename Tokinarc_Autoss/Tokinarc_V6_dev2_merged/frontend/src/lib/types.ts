@@ -32,6 +32,7 @@ export interface Customer {
   contact_count: number
   primary_phone: string
   primary_email: string
+  source: string
   notes: string
   created_at: string
   updated_at: string
