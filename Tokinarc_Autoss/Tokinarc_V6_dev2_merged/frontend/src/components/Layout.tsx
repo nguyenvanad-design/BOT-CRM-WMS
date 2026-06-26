@@ -65,27 +65,27 @@ const WMS_NAV: NavGroup[] = [
   { group: 'Tổng quan', items: [
     { to: '/wms/dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
   ]},
-  { group: 'Tồn kho', items: [
-    { to: '/wms/inventory', icon: <Package size={16} />, label: 'Tồn kho' },
-    { to: '/wms/trace', icon: <Barcode size={16} />, label: 'Truy xuất (Serial/Lô)' },
-    { to: '/wms/movements', icon: <History size={16} />, label: 'Lịch sử kho' },
-  ]},
   { group: 'Mua hàng', items: [
     { to: '/purchasing/orders', icon: <ShoppingCart size={16} />, label: 'Đơn mua', ctrl: true },
     { to: '/purchasing/suppliers', icon: <Building size={16} />, label: 'Nhà cung cấp', ctrl: true },
   ]},
   { group: 'Nhập kho', items: [
-    { to: '/wms/asn', icon: <Inbox size={16} />, label: 'ASN' },
+    { to: '/wms/asn', icon: <Inbox size={16} />, label: 'ASN (báo hàng về)' },
     { to: '/wms/inbound', icon: <PackageCheck size={16} />, label: 'Nhập kho' },
   ]},
   { group: 'Xuất kho', items: [
     { to: '/wms/outbound', icon: <PackageCheck size={16} />, label: 'Xuất kho' },
   ]},
+  { group: 'Tồn kho', items: [
+    { to: '/wms/inventory', icon: <Package size={16} />, label: 'Tồn kho' },
+    { to: '/wms/trace', icon: <Barcode size={16} />, label: 'Truy xuất (Serial/Lô)' },
+    { to: '/wms/movements', icon: <History size={16} />, label: 'Lịch sử kho' },
+  ]},
   { group: 'Cấu hình & công cụ', items: [
-    { to: '/wms/warehouses', icon: <Warehouse size={16} />, label: 'Kho & vị trí' },
-    { to: '/wms/map', icon: <MapIcon size={16} />, label: 'Bản đồ kho' },
     { to: '/wms/scan', icon: <ScanLine size={16} />, label: 'Quét mã' },
     { to: '/wms/cycle-count', icon: <ClipboardCheck size={16} />, label: 'Kiểm kê' },
+    { to: '/wms/warehouses', icon: <Warehouse size={16} />, label: 'Kho & vị trí' },
+    { to: '/wms/map', icon: <MapIcon size={16} />, label: 'Bản đồ kho' },
     { to: '/wms/ops-kpi', icon: <Gauge size={16} />, label: 'KPI vận hành', ctrl: true },
     { to: '/wms/reports', icon: <FileBarChart size={16} />, label: 'Báo cáo' },
   ]},
