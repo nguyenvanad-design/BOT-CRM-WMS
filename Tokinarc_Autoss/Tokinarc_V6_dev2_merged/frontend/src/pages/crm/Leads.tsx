@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { Radar, ArrowRight, Plus, Upload, List, PieChart } from 'lucide-react'
+import { Radar, ArrowRight, Plus, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
@@ -18,7 +18,6 @@ import { useDebounced } from '@/lib/useDebounced'
 import { useAuth, isManager } from '@/lib/auth/store'
 import { LeadForm } from '@/pages/crm/forms/LeadForm'
 import { ImportModal } from '@/pages/crm/ImportModal'
-import { LeadSourcesReport } from '@/pages/crm/LeadSources'
 
 export function LeadsPage() {
   const qc = useQueryClient()
@@ -26,9 +25,7 @@ export function LeadsPage() {
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
-  const isMgr = isManager(useAuth((s) => s.user?.role))
-  const canImport = isMgr
-  const [view, setView] = useState<'list' | 'sources'>('list')
+  const canImport = isManager(useAuth((s) => s.user?.role))
   const [editing, setEditing] = useState<Lead | null>(null)
   const debounced = useDebounced(search, 350, () => setPage(1))
 
@@ -58,35 +55,17 @@ export function LeadsPage() {
       <PageHeader
         icon={<Radar size={20} className="text-flame" />}
         title="Leads"
-        subtitle={view === 'list' ? (data ? `${data.count} lead` : undefined) : 'Phân tích nguồn & tỉ lệ chuyển đổi'}
+        subtitle={data ? `${data.count} lead` : undefined}
         actions={
           <>
-            {isMgr && (
-              <div className="flex rounded-md border border-line overflow-hidden mr-1">
-                <button onClick={() => setView('list')}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1.5 ${view === 'list' ? 'bg-flame/15 text-flame' : 'text-txt-2 hover:text-txt'}`}>
-                  <List size={13} /> Danh sách
-                </button>
-                <button onClick={() => setView('sources')}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1.5 ${view === 'sources' ? 'bg-flame/15 text-flame' : 'text-txt-2 hover:text-txt'}`}>
-                  <PieChart size={13} /> Phân tích nguồn
-                </button>
-              </div>
+            <SearchInput value={search} onChange={setSearch} placeholder="Tìm tên, công ty…" />
+            {canImport && (
+              <Button variant="ghost" onClick={() => setImportOpen(true)}><Upload size={14} /> Import</Button>
             )}
-            {view === 'list' && (
-              <>
-                <SearchInput value={search} onChange={setSearch} placeholder="Tìm tên, công ty…" />
-                {canImport && (
-                  <Button variant="ghost" onClick={() => setImportOpen(true)}><Upload size={14} /> Import</Button>
-                )}
-                <Button onClick={openCreate}><Plus size={14} /> Tạo Lead</Button>
-              </>
-            )}
+            <Button onClick={openCreate}><Plus size={14} /> Tạo Lead</Button>
           </>
         }
       />
-
-      {view === 'sources' ? <LeadSourcesReport /> : (<>
 
       <TableCard>
         <thead>
@@ -136,8 +115,6 @@ export function LeadsPage() {
           onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)}
         />
       )}
-
-      </>)}
 
       <LeadForm open={formOpen} onClose={() => setFormOpen(false)} editing={editing} />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} spec={{
