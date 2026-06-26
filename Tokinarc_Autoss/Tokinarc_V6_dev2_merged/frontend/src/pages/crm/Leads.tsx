@@ -17,6 +17,7 @@ import {
 import { useDebounced } from '@/lib/useDebounced'
 import { useAuth, isManager } from '@/lib/auth/store'
 import { LeadForm } from '@/pages/crm/forms/LeadForm'
+import { OpportunityForm } from '@/pages/crm/forms/OpportunityForm'
 import { ImportModal } from '@/pages/crm/ImportModal'
 
 export function LeadsPage() {
@@ -27,6 +28,8 @@ export function LeadsPage() {
   const [importOpen, setImportOpen] = useState(false)
   const canImport = isManager(useAuth((s) => s.user?.role))
   const [editing, setEditing] = useState<Lead | null>(null)
+  const [oppOpen, setOppOpen] = useState(false)
+  const [oppPreset, setOppPreset] = useState<{ customer: string; title: string; notes: string } | undefined>()
   const debounced = useDebounced(search, 350, () => setPage(1))
 
   const openCreate = () => { setEditing(null); setFormOpen(true) }
@@ -39,11 +42,22 @@ export function LeadsPage() {
   })
 
   const convert = useMutation({
-    mutationFn: (id: string) => api.post(`/crm/leads/${id}/convert/`),
-    onSuccess: (res) => {
+    mutationFn: (v: { id: string; lead?: Lead; withOpp?: boolean }) => api.post(`/crm/leads/${v.id}/convert/`),
+    onSuccess: async (res, v) => {
       toast.success(`Đã chuyển thành KH ${res.data.customer_code ?? ''}`)
       qc.invalidateQueries({ queryKey: ['leads'] })
+      qc.invalidateQueries({ queryKey: ['customers'] })
       qc.invalidateQueries({ queryKey: ['dash'] })
+      if (v.withOpp && v.lead) {
+        // Chờ KH mới vào dropdown TRƯỚC khi mở form, để ô Khách hàng hiện đúng (không bị "Chọn KH").
+        await qc.refetchQueries({ queryKey: ['customer-options'] })
+        setOppPreset({
+          customer: res.data.customer_id,
+          title: `Cơ hội - ${v.lead.company || v.lead.name}`,
+          notes: v.lead.notes || '',
+        })
+        setOppOpen(true)   // mở form Cơ hội điền sẵn khách + ghi chú lead
+      }
     },
     onError: (e) => toast.error(apiError(e)),
   })
@@ -102,13 +116,22 @@ export function LeadsPage() {
                 {l.converted_customer ? (
                   <span className="text-[11px] text-txt-2">Đã chuyển</span>
                 ) : (
-                  <Button
-                    size="sm"
-                    disabled={convert.isPending && convert.variables === l.id}
-                    onClick={() => convert.mutate(l.id)}
-                  >
-                    Chuyển KH <ArrowRight size={13} />
-                  </Button>
+                  <div className="flex gap-1.5 justify-end">
+                    <Button
+                      size="sm" variant="ghost"
+                      disabled={convert.isPending && convert.variables?.id === l.id}
+                      onClick={() => convert.mutate({ id: l.id })}
+                    >
+                      Chuyển KH
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={convert.isPending && convert.variables?.id === l.id}
+                      onClick={() => convert.mutate({ id: l.id, lead: l, withOpp: true })}
+                    >
+                      + Cơ hội <ArrowRight size={13} />
+                    </Button>
+                  </div>
                 )}
               </Td>
             </tr>
@@ -124,6 +147,7 @@ export function LeadsPage() {
       )}
 
       <LeadForm open={formOpen} onClose={() => setFormOpen(false)} editing={editing} />
+      <OpportunityForm open={oppOpen} onClose={() => setOppOpen(false)} preset={oppPreset} />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} spec={{
         title: 'Import Lead cũ',
         importUrl: '/crm/import/leads/',

@@ -26,8 +26,10 @@ const EMPTY: Form = {
   est_value_vnd: 0, probability: 0, expected_close: '', notes: '',
 }
 
-export function OpportunityForm({ open, onClose, editing }: {
+export function OpportunityForm({ open, onClose, editing, preset }: {
   open: boolean; onClose: () => void; editing?: Opportunity | null
+  /** Điền sẵn khi tạo mới (vd từ trang Lead: gắn khách + ghi chú lead). */
+  preset?: { customer?: string; title?: string; notes?: string }
 }) {
   const qc = useQueryClient()
   const { options: customers, isLoading: custLoading } = useCustomerOptions()
@@ -39,8 +41,8 @@ export function OpportunityForm({ open, onClose, editing }: {
       customer: editing.customer, title: editing.title, stage: editing.stage,
       est_value_vnd: Number(editing.est_value_vnd || 0), probability: editing.probability,
       expected_close: editing.expected_close ?? '', notes: editing.notes,
-    } : EMPTY)
-  }, [open, editing, reset])
+    } : { ...EMPTY, ...(preset ?? {}) })
+  }, [open, editing, preset, reset])
 
   const save = useMutation({
     mutationFn: (data: Form) => {
