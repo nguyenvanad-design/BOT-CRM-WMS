@@ -245,6 +245,28 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         return Response({'total_payable': int(total),
                          'by_supplier': [{'supplier': r['supplier__name'], 'debt': int(r['debt'])} for r in qs]})
 
+    @action(detail=False, methods=['get'], url_path='incoming')
+    def incoming(self, request):
+        """Hàng đang về: đơn ĐÃ ĐẶT / NHẬN MỘT PHẦN, sắp theo ngày dự kiến; đánh dấu TRỄ."""
+        from datetime import date
+        today = date.today()
+        qs = (PurchaseOrder.objects.filter(status__in=['ordered', 'partial'])
+              .select_related('supplier')
+              .order_by(F('expected_date').asc(nulls_last=True), 'created_at'))
+        results, overdue = [], 0
+        for po in qs:
+            late = (today - po.expected_date).days if (po.expected_date and po.expected_date < today) else 0
+            if late > 0:
+                overdue += 1
+            results.append({
+                'id': str(po.id), 'code': po.code, 'supplier_name': po.supplier.name,
+                'status': po.status, 'status_display': po.get_status_display(),
+                'expected_date': po.expected_date.isoformat() if po.expected_date else None,
+                'carrier': po.carrier, 'tracking_no': po.tracking_no,
+                'total_vnd': int(po.total_vnd or 0), 'days_late': late, 'is_overdue': late > 0,
+            })
+        return Response({'count': len(results), 'overdue': overdue, 'results': results})
+
 
 class PurchasePaymentViewSet(viewsets.ModelViewSet):
     serializer_class = PurchasePaymentSerializer

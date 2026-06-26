@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ShoppingCart, Plus, Check, PackageCheck, Wallet, Trash2, Eye, ShieldCheck, X, Download } from 'lucide-react'
+import { ShoppingCart, Plus, Check, PackageCheck, Wallet, Trash2, Eye, ShieldCheck, X, Download, Truck } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { downloadFile } from '@/lib/download'
@@ -21,6 +21,12 @@ interface PO {
   status: string; status_display: string; total_vnd: string; paid_vnd: string; debt_vnd: number
   requires_l2?: boolean; owner_username?: string; notes?: string; lines: POLine[]
 }
+interface IncomingRow {
+  id: string; code: string; supplier_name: string; status: string; status_display: string
+  expected_date: string | null; carrier?: string; tracking_no?: string
+  total_vnd: number; days_late: number; is_overdue: boolean
+}
+interface IncomingResp { count: number; overdue: number; results: IncomingRow[] }
 const TONE: Record<string, 'gray' | 'blue' | 'warn' | 'ok' | 'danger' | 'purple'> = {
   draft: 'gray', pending_ceo: 'warn', approved: 'blue', rejected: 'danger',
   ordered: 'purple', partial: 'warn', received: 'ok', cancelled: 'danger',
@@ -42,8 +48,10 @@ export function PurchaseOrdersPage() {
   const [lines, setLines] = useState<POLine[]>([{ part: '', qty: 1, unit_cost: 0 }])
   const [payAmt, setPayAmt] = useState('')
 
+  const [view, setView] = useState<'all' | 'incoming'>('all')
   const orders = useQuery({ queryKey: ['po'], queryFn: async () => (await api.get<{ results: PO[] }>('/purchasing/orders/')).data.results ?? [] })
   const ap = useQuery({ queryKey: ['po-ap'], queryFn: async () => (await api.get('/purchasing/orders/ap-summary/')).data })
+  const incoming = useQuery({ queryKey: ['po-incoming'], queryFn: async () => (await api.get<IncomingResp>('/purchasing/orders/incoming/')).data })
   const suppliers = useQuery({ queryKey: ['suppliers'], queryFn: async () => (await api.get<{ results: { id: string; name: string }[] }>('/purchasing/suppliers/')).data.results ?? [] })
   const whs = useQuery({ queryKey: ['wh-list'], queryFn: async () => (await api.get<{ results: { id: string; code: string }[] }>('/wms/warehouses/')).data.results ?? [] })
 
@@ -110,8 +118,23 @@ export function PurchaseOrdersPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
         <StatCard label="Công nợ phải trả" tone="danger" value={ap.data ? compactVnd(ap.data.total_payable) : '…'} />
+        <StatCard label="Hàng đang về" tone="warn" value={incoming.data ? `${incoming.data.count} đơn` : '…'} />
+        <StatCard label="Đơn TRỄ hẹn" tone={incoming.data?.overdue ? 'danger' : 'ok'} value={incoming.data ? `${incoming.data.overdue}` : '…'} />
       </div>
 
+      <div className="flex gap-1.5 mb-3">
+        <button onClick={() => setView('all')}
+          className={`text-xs rounded-md px-3 py-1.5 border transition-colors ${view === 'all' ? 'border-flame text-flame bg-flame/10' : 'border-line text-txt-2 hover:text-txt'}`}>
+          Tất cả đơn
+        </button>
+        <button onClick={() => setView('incoming')}
+          className={`text-xs rounded-md px-3 py-1.5 border transition-colors flex items-center gap-1.5 ${view === 'incoming' ? 'border-flame text-flame bg-flame/10' : 'border-line text-txt-2 hover:text-txt'}`}>
+          <Truck size={13} /> Hàng đang về{incoming.data ? ` (${incoming.data.count})` : ''}
+          {incoming.data?.overdue ? <span className="text-danger font-medium">· {incoming.data.overdue} trễ</span> : null}
+        </button>
+      </div>
+
+      {view === 'all' ? (
       <TableCard>
         <thead><tr className="border-b border-line">
           <Th>Mã PO</Th><Th>Nhà cung cấp</Th><Th>Kho</Th><Th className="text-right">Giá trị</Th>
@@ -169,6 +192,29 @@ export function PurchaseOrdersPage() {
           ))}
         </tbody>
       </TableCard>
+      ) : (
+      <TableCard>
+        <thead><tr className="border-b border-line">
+          <Th>Mã PO</Th><Th>Nhà cung cấp</Th><Th>Dự kiến về</Th><Th>Tình trạng</Th>
+          <Th>Vận chuyển</Th><Th className="text-right">Giá trị</Th><Th>Trạng thái</Th>
+        </tr></thead>
+        <tbody>
+          {incoming.isLoading && <RowMsg colSpan={7}>Đang tải…</RowMsg>}
+          {incoming.data?.results.length === 0 && <RowMsg colSpan={7}>Không có đơn nào đang về.</RowMsg>}
+          {incoming.data?.results.map((o) => (
+            <tr key={o.id} className={`border-b border-line/50 last:border-0 hover:bg-ink-3/40 ${o.is_overdue ? 'bg-danger/5' : ''}`}>
+              <Td className="font-mono text-flame">{o.code}</Td>
+              <Td className="font-medium">{o.supplier_name}</Td>
+              <Td className="text-txt-2 whitespace-nowrap">{o.expected_date ?? '—'}</Td>
+              <Td>{o.is_overdue ? <Tag tone="danger">Trễ {o.days_late} ngày</Tag> : <Tag tone="ok">Đúng hẹn</Tag>}</Td>
+              <Td className="text-txt-2">{[o.carrier, o.tracking_no].filter(Boolean).join(' · ') || '—'}</Td>
+              <Td className="text-right tabular-nums">{compactVnd(o.total_vnd)}</Td>
+              <Td><Tag tone={TONE[o.status] ?? 'gray'}>{o.status_display}</Tag></Td>
+            </tr>
+          ))}
+        </tbody>
+      </TableCard>
+      )}
 
       {/* Tạo PO */}
       <Modal open={open} onClose={() => setOpen(false)} title="Tạo đơn mua"
