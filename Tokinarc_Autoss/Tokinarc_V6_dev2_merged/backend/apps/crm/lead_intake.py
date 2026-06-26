@@ -59,6 +59,15 @@ class LeadIntakeView(APIView):
             return Response({'detail': 'Hệ thống chưa có người nhận lead.'},
                             status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
+        # Lead chưa có cột địa chỉ/MST → gộp vào ghi chú (sale điền vào KH khi convert).
+        addr = (data.get('address') or '').strip()
+        mst = (data.get('tax_code') or '').strip()
+        note_parts = [(data.get('note') or data.get('need') or '').strip()]
+        if addr:
+            note_parts.append(f'Địa chỉ: {addr}')
+        if mst:
+            note_parts.append(f'MST: {mst}')
+
         lead = Lead.objects.create(
             name=name or f'Khách {phone}',
             company=(data.get('company') or '').strip(),
@@ -66,7 +75,7 @@ class LeadIntakeView(APIView):
             email=(data.get('email') or '').strip(),
             source='chatbot_khach',
             status=LeadStatus.NEW,
-            notes=(data.get('note') or data.get('need') or '').strip(),
+            notes=' | '.join(p for p in note_parts if p),
             owner=owner,
         )
         # Báo sale chủ lead: có khách mới từ chatbot — gọi ngay.

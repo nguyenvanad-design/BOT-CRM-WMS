@@ -1770,18 +1770,32 @@ def check_stock(part_no: str = "", part_nos: str = "") -> dict:
 
 
 def capture_lead(name: str = "", phone: str = "", company: str = "",
-                 email: str = "", note: str = "") -> dict:
+                 email: str = "", note: str = "", address: str = "",
+                 tax_code: str = "", force: bool = False) -> dict:
     """Ghi LEAD về CRM khi khách CHỦ ĐỘNG để lại liên hệ (ghi-1-chiều, an toàn).
 
     KHÔNG đọc dữ liệu nội bộ. Chỉ gọi khi khách cung cấp tên/SĐT và muốn được
-    tư vấn / báo giá / liên hệ lại.
+    tư vấn / báo giá / liên hệ lại. Thu thập đủ: tên, SĐT, công ty, địa chỉ, MST.
+    force=True: đã năn nỉ 1 lần mà khách vẫn chỉ cho SĐT → VẪN lưu (chỉ với SĐT).
     """
+    # NĂN NỈ XIN ĐỦ (1 LẦN): chưa lưu nếu mới có SĐT mà thiếu Tên công ty VÀ Địa chỉ.
+    # Nhưng nếu force=True (đã năn nỉ rồi mà khách không cho thêm) → vẫn lưu.
+    if (not force) and (phone or "").strip() and not ((company or "").strip() or (address or "").strip()):
+        return _ok(
+            {"saved": False, "need_more_info": True},
+            message=("CHƯA lưu lead — khách mới cho SĐT, còn THIẾU Tên công ty + Địa chỉ. "
+                     "Hãy NĂN NỈ MỘT LẦN, giọng dễ thương, hơi tội nghiệp: 'Anh/chị cho em xin "
+                     "thêm họ tên, tên công ty và địa chỉ với ạ, không sếp lại nhắc em huhu 🙏'. "
+                     "Nếu sau câu này khách vẫn không cho thêm / từ chối → gọi lại capture_lead "
+                     "với force=true để vẫn lưu SĐT. TUYỆT ĐỐI chưa nói 'đã ghi nhận' lúc này."))
+
     from core.lead_capture import push_lead
-    r = push_lead(name=name, phone=phone, company=company, email=email, note=note)
+    r = push_lead(name=name, phone=phone, company=company, email=email,
+                  note=note, address=address, tax_code=tax_code)
     if r.get("success") is False or r.get("ok") is False:
         return _fail(f"LEAD_CAPTURE_FAILED:{r.get('error')}")
     return _ok({"saved": True, "lead_id": r.get("id")},
-               message="Đã ghi nhận thông tin, bộ phận kinh doanh sẽ liên hệ lại.")
+               message="Đã ghi nhận thông tin, bộ phận kinh doanh sẽ gọi ngay cho anh/chị.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

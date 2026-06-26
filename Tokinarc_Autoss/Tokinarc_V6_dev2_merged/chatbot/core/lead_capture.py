@@ -24,7 +24,8 @@ _KEY = os.getenv("CRM_INTAKE_KEY", "")
 
 
 def push_lead(name: str = "", phone: str = "", company: str = "",
-              email: str = "", note: str = "") -> dict:
+              email: str = "", note: str = "", address: str = "",
+              tax_code: str = "") -> dict:
     """Gửi 1 lead sang CRM. Trả {ok, id?, error?}. Không raise ra ngoài."""
     if not _KEY:
         return {"ok": False, "error": "CRM_INTAKE_KEY chưa cấu hình"}
@@ -33,7 +34,7 @@ def push_lead(name: str = "", phone: str = "", company: str = "",
 
     payload = json.dumps({
         "name": name, "phone": phone, "company": company,
-        "email": email, "note": note,
+        "email": email, "note": note, "address": address, "tax_code": tax_code,
     }).encode("utf-8")
     req = urllib.request.Request(
         _URL, data=payload, method="POST",
