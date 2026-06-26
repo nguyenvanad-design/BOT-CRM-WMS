@@ -15,3 +15,11 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* Hiệu ứng vạch quét barcode chạy lên-xuống trong khung ngắm */
+@keyframes scanline {
+  0%   { top: 6%;  opacity: 0.3; }
+  50%  { top: 92%; opacity: 1; }
+  100% { top: 6%;  opacity: 0.3; }
+}
+.animate-scanline { animation: scanline 2s ease-in-out infinite; }

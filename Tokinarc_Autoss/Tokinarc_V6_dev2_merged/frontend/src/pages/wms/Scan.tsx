@@ -45,6 +45,7 @@ export function ScanPage() {
   const [scanning, setScanning] = useState(false)
   const [camError, setCamError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [hit, setHit] = useState('')   // mã vừa quét được (hiện flash "✓ đã quét")
 
   // Tra cứu
   const [manual, setManual] = useState('')
@@ -81,10 +82,26 @@ export function ScanPage() {
     } catch (e) { setResult({ code: q, parts: [], serials: [] }); apiError(e) } finally { setBusy(false) }
   }
 
+  // Tiếng "bíp" ngắn khi quét trúng mã (phản hồi như máy quét thật).
+  const beep = () => {
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      const ctx = new Ctx()
+      const o = ctx.createOscillator(); const g = ctx.createGain()
+      o.connect(g); g.connect(ctx.destination)
+      o.frequency.value = 880; g.gain.value = 0.08
+      o.start(); o.stop(ctx.currentTime + 0.12)
+      setTimeout(() => ctx.close(), 200)
+    } catch { /* trình duyệt chặn audio — bỏ qua */ }
+  }
+
   // Nhận 1 mã quét/nhập theo chế độ + đích đang quét
   const onCode = (text: string) => {
+    beep()
+    setHit(text); setTimeout(() => setHit(''), 1300)   // flash "✓ đã quét"
     if (mode === 'lookup') { setManual(text); lookup(text); return }
     if (target === 'code') setCode(text); else setBinCode(text)
+    toast.success(`Đã quét: ${text}`)
   }
 
   const submitEntry = async () => {
@@ -188,7 +205,34 @@ export function ScanPage() {
               <span>Camera bị chặn vì trang không chạy <b>HTTPS</b>.<br />Hãy <b>nhập mã bằng tay</b> bên dưới hoặc mở app qua <b>https://…</b></span>
             </div>
           )}
-          {scanning && <div className="absolute inset-x-8 top-1/2 h-0.5 bg-flame/70 animate-pulse" />}
+          {scanning && (
+            <>
+              {/* Khung ngắm + vạch quét chạy */}
+              <div className="absolute inset-0 pointer-events-none grid place-items-center">
+                <div className="relative w-[72%] h-[58%] rounded-lg border-2 border-flame/50">
+                  {/* 4 góc bracket */}
+                  <span className="absolute -top-0.5 -left-0.5 w-5 h-5 border-t-4 border-l-4 border-flame rounded-tl" />
+                  <span className="absolute -top-0.5 -right-0.5 w-5 h-5 border-t-4 border-r-4 border-flame rounded-tr" />
+                  <span className="absolute -bottom-0.5 -left-0.5 w-5 h-5 border-b-4 border-l-4 border-flame rounded-bl" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 border-b-4 border-r-4 border-flame rounded-br" />
+                  {/* vạch quét chạy lên-xuống */}
+                  <div className="absolute inset-x-1 h-0.5 bg-flame shadow-[0_0_8px_2px] shadow-flame/70 animate-scanline" />
+                </div>
+              </div>
+              {/* Badge "đang quét" */}
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 text-[11px] bg-ink/75 text-flame px-2.5 py-1 rounded-full">
+                <span className="w-2 h-2 rounded-full bg-flame animate-pulse" /> Đang quét… đưa mã vào khung
+              </div>
+            </>
+          )}
+          {/* Flash khi quét trúng mã */}
+          {hit && (
+            <div className="absolute inset-0 grid place-items-center bg-ok/25 pointer-events-none">
+              <div className="bg-ok text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg">
+                ✓ Đã quét: <span className="font-mono">{hit}</span>
+              </div>
+            </div>
+          )}
         </div>
         {camError && <p className="text-danger text-xs mb-2">{camError}</p>}
 
