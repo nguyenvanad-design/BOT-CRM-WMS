@@ -235,6 +235,8 @@ class InboundOrder(BaseModel):
                                   related_name='inbound_orders')
     status    = models.CharField(max_length=20, choices=InboundStatus.choices,
                                  default=InboundStatus.DRAFT, db_index=True)
+    supplier    = models.CharField(max_length=200, blank=True)   # NCC (khi nhập không qua ASN)
+    invoice_no  = models.CharField(max_length=60, blank=True)    # số hóa đơn/phiếu NCC để đối chiếu
     received_at = models.DateTimeField(null=True, blank=True)
     notes     = models.TextField(blank=True)
 
@@ -255,6 +257,8 @@ class InboundLine(models.Model):
     target_bin   = models.ForeignKey(Bin, null=True, blank=True, on_delete=models.SET_NULL)
     lot_no       = models.CharField(max_length=40, blank=True)
     lot_expires  = models.DateField(null=True, blank=True)   # hạn dùng của lô (nếu có)
+    unit_cost    = models.DecimalField(max_digits=14, decimal_places=0, default=0)  # đơn giá nhập → WAC
+    serials_raw  = models.TextField(blank=True)   # serial súng hàn (mỗi dòng 1 serial), tạo lúc nhận
     order_idx    = models.IntegerField(default=0)
 
     class Meta:

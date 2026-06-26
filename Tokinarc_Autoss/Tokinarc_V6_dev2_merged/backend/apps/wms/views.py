@@ -454,9 +454,21 @@ class InboundViewSet(viewsets.ModelViewSet):
                     bin_obj=line.target_bin, part=line.part, torch=line.torch,
                     qty=delta, user=request.user, ref_id=inbound.code,
                     lot_no=line.lot_no, lot_expires=line.lot_expires)
+                # Giá vốn WAC từ đơn giá nhập (cho hàng nhập tay, không qua PO).
+                if line.part_id and line.unit_cost:
+                    from apps.catalog.costing import update_wac
+                    update_wac(line.part, delta, line.unit_cost)
                 line.qty_received = received
                 line.qty_putaway = received
                 line.save(update_fields=['qty_received', 'qty_putaway'])
+            # Súng hàn: tạo serial từng cây (bảo hành) — bỏ qua serial đã tồn tại (idempotent).
+            if line.torch_id and line.serials_raw:
+                from .models import SerialNumber
+                for s in line.serials_raw.splitlines():
+                    s = s.strip()
+                    if s and not SerialNumber.objects.filter(serial=s).exists():
+                        SerialNumber.objects.create(serial=s, torch=line.torch,
+                                                    bin=line.target_bin, status='in_stock')
             if line.qty_putaway < line.qty_expected:
                 fully = False
         inbound.status = 'putaway' if fully else 'partial'

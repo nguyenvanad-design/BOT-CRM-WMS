@@ -15,10 +15,10 @@ import { Button } from '@/components/ui'
 import { FieldRow, TextInput, SelectInput } from '@/components/form'
 
 interface BinLite { id: string; full_code: string }
-interface LineForm { item: string; qty_expected: number; target_bin: string }
-interface Form { code: string; warehouse: string; lines: LineForm[] }
-const EMPTY_LINE: LineForm = { item: '', qty_expected: 1, target_bin: '' }
-const EMPTY: Form = { code: '', warehouse: '', lines: [{ ...EMPTY_LINE }] }
+interface LineForm { item: string; qty_expected: number; target_bin: string; unit_cost: number; serials: string }
+interface Form { code: string; warehouse: string; supplier: string; invoice_no: string; lines: LineForm[] }
+const EMPTY_LINE: LineForm = { item: '', qty_expected: 1, target_bin: '', unit_cost: 0, serials: '' }
+const EMPTY: Form = { code: '', warehouse: '', supplier: '', invoice_no: '', lines: [{ ...EMPTY_LINE }] }
 
 export function InboundForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
@@ -39,10 +39,14 @@ export function InboundForm({ open, onClose }: { open: boolean; onClose: () => v
     mutationFn: (d: Form) => api.post('/wms/inbound/', {
       code: d.code,
       warehouse: d.warehouse,
+      supplier: d.supplier,
+      invoice_no: d.invoice_no,
       lines: d.lines.map((l) => ({
         ...splitItem(l.item),
         qty_expected: Number(l.qty_expected) || 0,
         target_bin: l.target_bin || null,
+        unit_cost: Number(l.unit_cost) || 0,
+        serials_raw: l.serials || '',
       })),
     }),
     onSuccess: () => {
@@ -73,6 +77,12 @@ export function InboundForm({ open, onClose }: { open: boolean; onClose: () => v
             placeholder="— Chọn kho —" options={whs}
             {...register('warehouse', { required: 'Chọn kho' })} />
         </FieldRow>
+        <FieldRow>
+          <TextInput label="Nhà cung cấp" placeholder="Tên NCC (nếu nhập không qua đơn mua)"
+            {...register('supplier')} />
+          <TextInput label="Số hóa đơn/phiếu NCC" placeholder="VD: HD-12345"
+            {...register('invoice_no')} />
+        </FieldRow>
 
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-txt-2">Dòng hàng</span>
@@ -81,27 +91,39 @@ export function InboundForm({ open, onClose }: { open: boolean; onClose: () => v
           </Button>
         </div>
         <div className="space-y-2 mb-3 overflow-x-auto">
-          {fields.map((f, i) => (
-            <div key={f.id} className="grid grid-cols-[1.2fr_0.5fr_1fr_auto] gap-2 items-start min-w-[480px]">
-              <select {...register(`lines.${i}.item` as const, { required: true })}
-                className="bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm focus:border-flame focus:outline-none">
-                <option value="">{itemsLoading ? 'Đang tải…' : '— Mặt hàng —'}</option>
-                {items.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              <input type="number" min={1} placeholder="SL"
-                {...register(`lines.${i}.qty_expected` as const, { valueAsNumber: true })}
-                className="bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm focus:border-flame focus:outline-none" />
-              <select {...register(`lines.${i}.target_bin` as const)}
-                className="bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm focus:border-flame focus:outline-none">
-                <option value="">— Bin đích —</option>
-                {binItems.map((b) => <option key={b.id} value={b.id}>{b.full_code}</option>)}
-              </select>
-              <button type="button" onClick={() => fields.length > 1 && remove(i)}
-                className="text-txt-2 hover:text-danger p-1.5 disabled:opacity-30" disabled={fields.length <= 1} aria-label="Xóa">
-                <Trash2 size={15} />
-              </button>
+          {fields.map((f, i) => {
+            const isTorch = !!splitItem(watched[i]?.item || '').torch
+            return (
+            <div key={f.id} className="border border-line/40 rounded-md p-2 min-w-[560px] space-y-1.5">
+              <div className="grid grid-cols-[1.2fr_0.5fr_0.8fr_1fr_auto] gap-2 items-start">
+                <select {...register(`lines.${i}.item` as const, { required: true })}
+                  className="bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm focus:border-flame focus:outline-none">
+                  <option value="">{itemsLoading ? 'Đang tải…' : '— Mặt hàng —'}</option>
+                  {items.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <input type="number" min={1} placeholder="SL"
+                  {...register(`lines.${i}.qty_expected` as const, { valueAsNumber: true })}
+                  className="bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm focus:border-flame focus:outline-none" />
+                <input type="number" min={0} placeholder="Đơn giá nhập"
+                  {...register(`lines.${i}.unit_cost` as const, { valueAsNumber: true })}
+                  className="bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm focus:border-flame focus:outline-none" />
+                <select {...register(`lines.${i}.target_bin` as const)}
+                  className="bg-ink-3 border border-line rounded-md px-2 py-1.5 text-sm focus:border-flame focus:outline-none">
+                  <option value="">— Bin đích —</option>
+                  {binItems.map((b) => <option key={b.id} value={b.id}>{b.full_code}</option>)}
+                </select>
+                <button type="button" onClick={() => fields.length > 1 && remove(i)}
+                  className="text-txt-2 hover:text-danger p-1.5 disabled:opacity-30" disabled={fields.length <= 1} aria-label="Xóa">
+                  <Trash2 size={15} />
+                </button>
+              </div>
+              {isTorch && (
+                <textarea rows={2} placeholder="Serial từng cây súng hàn (mỗi dòng 1 serial) — cho bảo hành…"
+                  {...register(`lines.${i}.serials` as const)}
+                  className="w-full bg-ink-3 border border-line rounded-md px-2 py-1.5 text-xs focus:border-flame focus:outline-none" />
+              )}
             </div>
-          ))}
+          )})}
         </div>
 
         {/* Xem trước nội dung sắp tạo */}

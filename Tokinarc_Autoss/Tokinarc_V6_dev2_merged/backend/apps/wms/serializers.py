@@ -118,7 +118,7 @@ class InboundLineSerializer(serializers.ModelSerializer):
     class Meta:
         model  = InboundLine
         fields = ['id', 'part', 'torch', 'part_name', 'qty_expected', 'qty_received',
-                  'target_bin', 'lot_no', 'lot_expires', 'order_idx']
+                  'target_bin', 'lot_no', 'lot_expires', 'unit_cost', 'serials_raw', 'order_idx']
 
     def get_part_name(self, obj) -> str:
         return _line_item_name(obj)
@@ -129,8 +129,8 @@ class InboundOrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = InboundOrder
-        fields = ['id', 'code', 'warehouse', 'asn', 'status', 'received_at',
-                  'lines', 'notes', 'created_at', 'updated_at']
+        fields = ['id', 'code', 'warehouse', 'asn', 'status', 'supplier', 'invoice_no',
+                  'received_at', 'lines', 'notes', 'created_at', 'updated_at']
         read_only_fields = ['id', 'status', 'received_at', 'created_at', 'updated_at']
 
     def create(self, validated_data):
