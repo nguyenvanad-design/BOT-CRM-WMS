@@ -148,7 +148,10 @@ _INTENT_SCHEMA = (
     '"items": [{"part_no": "", "qty": 1}], "quote_code": ""}. '
     "intent ∈ [revenue, customer_debt, top_customers, dormant_customers, ceo_report, "
     "evaluate_plan, create_lead, create_quote, create_contract, wms_inbound, wms_outbound, "
-    "lookup_doc, unknown]. "
+    "lookup_doc, stock_lookup, procedure, compatibility, consumable_set, unknown]. "
+    "procedure = hỏi cách thay/lắp/quy trình/torque/chiều dài liner/sửa lỗi súng hàn. "
+    "compatibility = hỏi đồ đi kèm/tương thích/dùng chung với 1 mã. "
+    "consumable_set = hỏi bộ vật tư tiêu hao cho 1 súng hàn. "
     "Khi tạo lead: lead_name (tên người), company (công ty), phone (SĐT). "
     "period ∈ [today, month, year, all] (chỉ cho revenue). "
     "customer_name: tên KH nếu liên quan 1 KH cụ thể (công nợ / báo giá / hợp đồng). "
@@ -207,6 +210,17 @@ def _keyword_intent(q: str) -> dict:
         return {'intent': 'customer_orders'}
     if any(k in ql for k in ('tồn', 'ton kho', 'còn hàng', 'con hang', 'kho còn', 'số lượng tồn')):
         return {'intent': 'stock_lookup'}
+    if any(k in ql for k in ('cách thay', 'cach thay', 'cách lắp', 'cach lap', 'quy trình', 'quy trinh',
+                             'lắp đặt', 'lap dat', 'hướng dẫn', 'huong dan', 'torque', 'lực vặn', 'luc van',
+                             'cắt liner', 'cat liner', 'chiều dài liner', 'inner tube', 'độ nhô', 'do nho',
+                             'sửa', 'sua chua', 'khắc phục', 'khac phuc')):
+        return {'intent': 'procedure'}
+    if any(k in ql for k in ('đi kèm', 'di kem', 'dùng chung', 'dung chung', 'tương thích', 'tuong thich',
+                             'đi với', 'di voi', 'companion', 'lắp được với', 'lap duoc voi')):
+        return {'intent': 'compatibility'}
+    if any(k in ql for k in ('bộ tiêu hao', 'bo tieu hao', 'vật tư cho', 'vat tu cho', 'set linh kiện',
+                             'bộ linh kiện', 'bo linh kien', 'bộ vật tư', 'consumable')):
+        return {'intent': 'consumable_set'}
     if any(k in ql for k in ('công nợ', 'cong no', 'còn nợ', 'no bao nhieu', 'nợ', 'phải thu')):
         # Thử bắt tên KH sau từ khóa (đơn giản): cụm chữ hoa hoặc sau "của"
         m = re.search(r'(?:của|cua)\s+([\w\sÀ-ỹ]+?)(?:\s+còn|\s+nợ|\?|$)', q, re.I)
@@ -563,6 +577,86 @@ def tool_stock_lookup(question: str) -> str:
     return f"Tồn **{part.display_name_vi}** (`{part.tokin_part_no}`): **{total}**\n{by}"
 
 
+# ── Tool tra cứu kỹ thuật: lắp đặt/sửa chữa · tương thích · bộ tiêu hao ──────
+_PROC_STOP = {'cách', 'cach', 'thay', 'lắp', 'lap', 'đặt', 'dat', 'quy', 'trình', 'trinh',
+              'hướng', 'huong', 'dẫn', 'dan', 'cho', 'là', 'la', 'gì', 'gi', 'của', 'cua',
+              'bao', 'nhiêu', 'nhieu', 'mm', 'như', 'nhu', 'thế', 'the', 'nào', 'nao', 'và', 'va'}
+
+
+def tool_procedure(question: str) -> str:
+    """Tra cứu lắp đặt/sửa chữa/thông số kỹ thuật từ ProcedureQA (migrate từ chatbot)."""
+    from django.db.models import Q as _Q
+
+    from apps.catalog.models import ProcedureQA
+    toks = [t for t in re.split(r'[\s,?]+', question.lower())
+            if t and t not in _PROC_STOP and len(t) >= 2]
+    if not toks:
+        return "Anh/chị cho em từ khóa (liner, tip, nozzle, torque, tên súng...) để tra hướng dẫn ạ."
+    cond = _Q()
+    for t in toks:
+        cond |= _Q(question__icontains=t) | _Q(answer__icontains=t)
+    rows = list(ProcedureQA.objects.filter(cond)[:30])
+    if not rows:
+        return ("Em chưa thấy hướng dẫn khớp. Thử từ khóa cụ thể hơn (liner, tip, nozzle, "
+                "torque, model súng...) ạ.")
+    rows.sort(key=lambda r: sum(t in (r.question + r.answer).lower() for t in toks), reverse=True)
+    out = [f"**{r.question}**\n{r.answer}" for r in rows[:3]]
+    return "\n\n".join(out)
+
+
+def tool_compatibility(question: str) -> str:
+    """Đồ đi kèm/tương thích với 1 mã — từ CompatibilityEdge (7541 cạnh)."""
+    from apps.catalog.models import CompatibilityEdge, Part
+    codes = re.findall(r'\b\d{6}\b', question)
+    if not codes:
+        return "Anh/chị cho em **mã sản phẩm** (6 số, vd 001002) để tra đồ đi kèm ạ."
+    pn = codes[0]
+    edges = list(CompatibilityEdge.objects.filter(from_part=pn)
+                 .order_by('-is_mandatory', 'priority_rank')[:15])
+    if not edges:
+        return f"Mã {pn} chưa có dữ liệu đồ đi kèm trong hệ thống."
+    names = {p.tokin_part_no: p.display_name_vi
+             for p in Part.objects.filter(tokin_part_no__in=[e.to_part for e in edges])}
+    lines = [f"• {e.to_part} — {names.get(e.to_part, '')}"
+             + (" *(bắt buộc)*" if e.is_mandatory else "") for e in edges]
+    return f"Đồ đi kèm / tương thích với **{pn}**:\n" + "\n".join(lines)
+
+
+def tool_consumable_set(question: str) -> str:
+    """Bộ vật tư tiêu hao cho 1 súng hàn — từ ConsumableSet (20 bộ)."""
+    from apps.catalog.models import ConsumableSet, Torch
+    m = re.search(r'\b([A-Za-z]{2,}-?\d{2,}[A-Za-z0-9]*)\b', question)
+    model = (m.group(1).upper() if m else '')
+    sets = list(ConsumableSet.objects.prefetch_related('items'))
+    sset = None
+    if model:
+        # 1) khớp trực tiếp theo torch_models / set_id
+        for cs in sets:
+            if model in [str(t).upper() for t in (cs.torch_models or [])] or model in cs.set_id.upper():
+                sset = cs
+                break
+        # 2) torch_models rỗng → suy hệ + dòng điện từ Torch rồi khớp set
+        if sset is None:
+            t = Torch.objects.filter(model_code__iexact=model).first()
+            if t and getattr(t, 'ecosystem', '') and getattr(t, 'current_class', ''):
+                eco, cc = str(t.ecosystem).upper(), str(t.current_class).upper().replace('A', '')
+                for cs in sets:
+                    if (str(cs.ecosystem).upper() == eco
+                            and cc in str(cs.torch_current_class).upper()):
+                        sset = cs
+                        break
+    if sset is None:
+        sets = ConsumableSet.objects.all()[:8]
+        names = "\n".join(f"• {s.set_id}: {s.display_name_vi}" for s in sets)
+        return ("Anh/chị cho em **model súng hàn** (vd TK-308RR) để tra bộ tiêu hao ạ.\n"
+                f"Một số bộ có sẵn:\n{names}")
+    items = sset.items.order_by('-is_mandatory', 'priority_rank')
+    lines = [f"• {it.part_no} — {it.note or it.part_role}"
+             + (f" ×{it.default_quantity}" if it.default_quantity > 1 else '')
+             + (" *(bắt buộc)*" if it.is_mandatory else '') for it in items]
+    return f"**{sset.display_name_vi}**:\n" + "\n".join(lines)
+
+
 def answer(question: str, user) -> str:
     """Điểm vào chính: yêu cầu + user → trả lời/hành động (role-gated, data thật)."""
     from apps.accounts.roles import can_use_intent, role_of
@@ -625,6 +719,12 @@ def answer(question: str, user) -> str:
         return tool_customer_orders(user, cust_name)
     if name == 'stock_lookup':
         return tool_stock_lookup(question)
+    if name == 'procedure':
+        return tool_procedure(question)
+    if name == 'compatibility':
+        return tool_compatibility(question)
+    if name == 'consumable_set':
+        return tool_consumable_set(question)
     if name == 'lookup_doc':
         return tool_lookup_doc(question)
 

@@ -8,11 +8,12 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .stock_availability import StockAvailabilityView
-from .views import PartViewSet, TorchViewSet
+from .views import PartViewSet, TorchViewSet, ProcedureViewSet
 
 router = DefaultRouter()
-router.register(r'parts',   PartViewSet,   basename='part')
-router.register(r'torches', TorchViewSet,  basename='torch')
+router.register(r'parts',      PartViewSet,      basename='part')
+router.register(r'torches',    TorchViewSet,     basename='torch')
+router.register(r'procedures', ProcedureViewSet, basename='procedure')
 
 urlpatterns = [
     # Bot khách: tình trạng còn hàng (thô, có key) — đặt trước router.

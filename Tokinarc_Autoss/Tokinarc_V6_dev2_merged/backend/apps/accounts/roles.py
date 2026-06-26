@@ -124,8 +124,11 @@ ASSISTANT_INTENT_ROLES: dict[str, frozenset[str]] = {
     'create_contract':    SALES_ROLES,
     'wms_inbound':        WAREHOUSE_ROLES,
     'wms_outbound':       WAREHOUSE_ROLES,
-    # Tra cứu tài liệu/sản phẩm Tokin — mọi nhân viên
+    # Tra cứu tài liệu/sản phẩm/kỹ thuật Tokin — mọi nhân viên
     'lookup_doc':         INTERNAL_ROLES,
+    'procedure':          INTERNAL_ROLES,   # lắp đặt/sửa chữa/thông số kỹ thuật
+    'compatibility':      INTERNAL_ROLES,   # đồ đi kèm/tương thích
+    'consumable_set':     INTERNAL_ROLES,   # bộ vật tư tiêu hao
     # Đọc sâu
     'customer_orders':    SALES_ROLES,      # đơn/công nợ của 1 KH
     'stock_lookup':       INTERNAL_ROLES,   # tồn của 1 mã ở các kho

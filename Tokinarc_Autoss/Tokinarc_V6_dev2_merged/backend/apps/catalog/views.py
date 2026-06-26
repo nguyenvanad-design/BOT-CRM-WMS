@@ -27,11 +27,38 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from apps.catalog.models import Part, Torch
+from rest_framework import serializers as drf_serializers
+
+from apps.catalog.models import Part, Torch, ProcedureQA
 from apps.catalog.serializers import (
     PartDetailSerializer, PartLiteSerializer,
     TorchDetailSerializer, TorchLiteSerializer,
 )
+
+
+# ─── ProcedureQA — tra cứu lắp đặt / sửa chữa (nội bộ) ────────────────────────
+class ProcedureSerializer(drf_serializers.ModelSerializer):
+    intent_display = drf_serializers.CharField(source='get_intent_display', read_only=True)
+
+    class Meta:
+        model = ProcedureQA
+        fields = ['id', 'intent', 'intent_display', 'question', 'answer', 'source']
+
+
+class ProcedureViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """Tra cứu Q&A lắp đặt/sửa chữa cho nhân sự nội bộ. ?q=... &intent=INSTALLATION|REPAIR|LOOKUP"""
+    serializer_class = ProcedureSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = ProcedureQA.objects.all()
+        intent = (self.request.query_params.get('intent') or '').upper()
+        q = self.request.query_params.get('q') or self.request.query_params.get('search')
+        if intent in ('INSTALLATION', 'REPAIR', 'LOOKUP'):
+            qs = qs.filter(intent=intent)
+        if q:
+            qs = qs.filter(Q(question__icontains=q) | Q(answer__icontains=q))
+        return qs
 
 
 # ─── PartViewSet ─────────────────────────────────────────────────────────────

@@ -52,6 +52,7 @@ const CRM_NAV: NavGroup[] = [
   { group: 'Dịch vụ', items: [
     { to: '/tickets', icon: <TicketIcon size={16} />, label: 'Service Ticket' },
     { to: '/warranty', icon: <ShieldCheck size={16} />, label: 'Bảo hành' },
+    { to: '/procedures', icon: <Wrench size={16} />, label: 'Lắp đặt / Sửa chữa' },
     { to: '/returns', icon: <Undo2 size={16} />, label: 'Trả hàng (RMA)' },
   ]},
   { group: 'Sản phẩm & AI', items: [
@@ -117,6 +118,7 @@ const SERVICE_NAV: NavGroup[] = [
     { to: '/returns', icon: <Undo2 size={16} />, label: 'Trả hàng (RMA)' },
   ]},
   { group: 'Tra cứu', items: [
+    { to: '/procedures', icon: <Wrench size={16} />, label: 'Lắp đặt / Sửa chữa' },
     { to: '/customers', icon: <Building2 size={16} />, label: 'Khách hàng' },
     { to: '/products', icon: <Wrench size={16} />, label: 'Sản phẩm' },
   ]},

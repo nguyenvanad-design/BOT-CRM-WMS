@@ -27,6 +27,7 @@ import { ProductsPage } from '@/pages/crm/Products'
 import { CrmForecastPage } from '@/pages/crm/Forecast'
 import { SalesPerformancePage } from '@/pages/crm/SalesPerformance'
 import { WarrantyPage } from '@/pages/crm/Warranty'
+import { ProceduresPage } from '@/pages/crm/Procedures'
 import { ScanPage } from '@/pages/wms/Scan'
 import { WmsCycleCountPage } from '@/pages/wms/CycleCount'
 import { TracePage } from '@/pages/wms/Trace'
@@ -111,6 +112,7 @@ export function App() {
           <Route path="contracts" element={<ContractsPage />} />
           <Route path="activities" element={<ActivitiesPage />} />
           <Route path="warranty" element={<WarrantyPage />} />
+          <Route path="procedures" element={<ProceduresPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="ai" element={<AIHubPage />} />
 

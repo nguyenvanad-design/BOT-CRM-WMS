@@ -401,6 +401,29 @@ class PartEmbedding(models.Model):
         ]
 
 
+# ─── ProcedureQA — tra cứu lắp đặt / sửa chữa nội bộ ──────────────────────────
+class ProcedureQA(models.Model):
+    """Hỏi-đáp lắp đặt / sửa chữa / tra cứu — migrate từ chatbot procedural_qa_kb.
+    Cho nhân sự nội bộ (kỹ sư dịch vụ, kho) tra cứu quy trình + cách xử lý lỗi."""
+    KIND = [
+        ('INSTALLATION', 'Lắp đặt'),
+        ('REPAIR', 'Sửa chữa'),
+        ('LOOKUP', 'Tra cứu'),
+    ]
+    intent   = models.CharField(max_length=20, choices=KIND, db_index=True)
+    question = models.CharField(max_length=400)
+    answer   = models.TextField()
+    source   = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        db_table = 'catalog_procedure_qa'
+        ordering = ['intent', 'question']
+        indexes = [models.Index(fields=['intent'])]
+
+    def __str__(self) -> str:
+        return f"[{self.intent}] {self.question[:60]}"
+
+
 # ─── SeedMeta ────────────────────────────────────────────────────────────────
 class SeedMeta(models.Model):
     """
