@@ -5,10 +5,12 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ClipboardCheck, Plus, ScanLine, CheckCheck } from 'lucide-react'
+import { ClipboardCheck, Plus, ScanLine, CheckCheck, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { useAuth, isWmsControl } from '@/lib/auth/store'
+import { CameraScanner } from '@/components/CameraScanner'
+import type { CatalogPart, SerialNumber } from '@/lib/types'
 import { PageHeader, Card, Button, Tag, TableCard, Th, Td, RowMsg } from '@/components/ui'
 
 interface CCLine { id: string; bin_code: string; part_name: string; system_qty: number; counted_qty: number; diff: number }
@@ -17,8 +19,23 @@ interface CC { id: string; code: string; warehouse_code: string; status: string;
 export function WmsCycleCountPage() {
   const qc = useQueryClient()
   const canApply = isWmsControl(useAuth((s) => s.user?.role))
+  const [tab, setTab] = useState<'count' | 'lookup'>('count')   // Kiểm kê / Tra cứu
   const [openId, setOpenId] = useState<string | null>(null)
   const [code, setCode] = useState(''); const [bin, setBin] = useState(''); const [counted, setCounted] = useState('')
+  const [lookupQ, setLookupQ] = useState('')
+
+  // Tra cứu: quét/nhập mã → tìm phụ tùng (catalog) + serial (WMS).
+  const lookup = useQuery({
+    queryKey: ['scan-lookup', lookupQ],
+    queryFn: async () => {
+      const [parts, serials] = await Promise.all([
+        api.get<{ results: CatalogPart[] }>('/catalog/parts/', { params: { search: lookupQ.trim() } }),
+        api.get<{ results: SerialNumber[] }>('/wms/serials/', { params: { search: lookupQ.trim() } }),
+      ])
+      return { parts: parts.data.results.slice(0, 6), serials: serials.data.results.slice(0, 6) }
+    },
+    enabled: tab === 'lookup' && lookupQ.trim().length >= 2,
+  })
 
   const list = useQuery({
     queryKey: ['cycle-counts'],
@@ -55,11 +72,60 @@ export function WmsCycleCountPage() {
 
   return (
     <div className="max-w-3xl">
-      <PageHeader icon={<ClipboardCheck size={20} className="text-flame" />} title="Kiểm kê kho"
-        subtitle="Tạo phiên → quét đếm → áp dụng điều chỉnh tồn"
-        actions={<Button onClick={() => create.mutate()} disabled={create.isPending || !warehouses.data?.length}>
-          <Plus size={14} /> Phiên mới</Button>} />
+      <PageHeader icon={<ClipboardCheck size={20} className="text-flame" />} title="Kiểm kê & Tra cứu"
+        subtitle="Kiểm kê: phiên → quét đếm → áp dụng · Tra cứu: quét xem SP + tồn"
+        actions={tab === 'count'
+          ? <Button onClick={() => create.mutate()} disabled={create.isPending || !warehouses.data?.length}>
+              <Plus size={14} /> Phiên mới</Button>
+          : undefined} />
 
+      <div className="flex gap-1.5 mb-4">
+        <button onClick={() => setTab('count')}
+          className={`flex items-center gap-1.5 text-sm rounded-md px-3 py-1.5 border transition-colors ${tab === 'count' ? 'border-flame text-flame bg-flame/10' : 'border-line text-txt-2 hover:text-txt'}`}>
+          <ClipboardCheck size={14} /> Kiểm kê
+        </button>
+        <button onClick={() => setTab('lookup')}
+          className={`flex items-center gap-1.5 text-sm rounded-md px-3 py-1.5 border transition-colors ${tab === 'lookup' ? 'border-flame text-flame bg-flame/10' : 'border-line text-txt-2 hover:text-txt'}`}>
+          <Search size={14} /> Tra cứu
+        </button>
+      </div>
+
+      {/* TRA CỨU — quét/nhập mã → xem SP + tồn + serial */}
+      {tab === 'lookup' && (
+        <div className="max-w-xl space-y-3">
+          <CameraScanner onScan={(c) => setLookupQ(c)} />
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-2" />
+            <input value={lookupQ} onChange={(e) => setLookupQ(e.target.value)}
+              placeholder="Quét hoặc nhập mã hàng / serial…"
+              className="w-full bg-ink-3 border border-line rounded-md pl-9 pr-3 py-2 text-sm focus:border-flame focus:outline-none" />
+          </div>
+          {lookup.isLoading && <p className="text-xs text-txt-2">Đang tìm…</p>}
+          {lookup.data && lookup.data.parts.length === 0 && lookup.data.serials.length === 0 && lookupQ.trim().length >= 2 && (
+            <Card><RowMsg colSpan={1}>Không tìm thấy "{lookupQ}".</RowMsg></Card>
+          )}
+          {(lookup.data?.parts ?? []).map((p) => (
+            <Card key={p.tokin_part_no}>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-flame">{p.tokin_part_no}</span>
+                <span className="text-sm flex-1">{p.display_name_vi}</span>
+                <span className="text-sm tabular-nums text-txt-2">{p.price_display}</span>
+              </div>
+            </Card>
+          ))}
+          {(lookup.data?.serials ?? []).map((s) => (
+            <Card key={s.serial}>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-mono text-flame">{s.serial}</span>
+                <span className="flex-1">{s.torch}</span>
+                <Tag tone="gray">{s.status}</Tag>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {tab === 'count' && (<>
       {!openId && (
         <TableCard>
           <thead><tr className="border-b border-line"><Th>Mã phiên</Th><Th>Kho</Th><Th>Trạng thái</Th><Th /></tr></thead>
@@ -94,12 +160,15 @@ export function WmsCycleCountPage() {
               )}
             </div>
             {cc.status === 'open' && (
-              <div className="grid grid-cols-3 gap-2">
-                <Inp label="Mã hàng" v={code} set={setCode} ph="Quét/nhập mã" />
-                <Inp label="Mã ô" v={bin} set={setBin} ph="HCM-A-R01-B01" />
-                <div className="flex gap-2 items-end">
-                  <Inp label="Số đếm" v={counted} set={setCounted} ph="0" type="number" />
-                  <Button onClick={() => scan.mutate()} disabled={scan.isPending}><ScanLine size={14} /></Button>
+              <div className="space-y-2">
+                <CameraScanner onScan={(c) => setCode(c)} />
+                <div className="grid grid-cols-3 gap-2">
+                  <Inp label="Mã hàng" v={code} set={setCode} ph="Quét/nhập mã" />
+                  <Inp label="Mã ô" v={bin} set={setBin} ph="HCM-A-R01-B01" />
+                  <div className="flex gap-2 items-end">
+                    <Inp label="Số đếm" v={counted} set={setCounted} ph="0" type="number" />
+                    <Button onClick={() => scan.mutate()} disabled={scan.isPending}><ScanLine size={14} /></Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -124,6 +193,7 @@ export function WmsCycleCountPage() {
           </TableCard>
         </>
       )}
+      </>)}
     </div>
   )
 }

@@ -28,7 +28,6 @@ import { CrmForecastPage } from '@/pages/crm/Forecast'
 import { SalesPerformancePage } from '@/pages/crm/SalesPerformance'
 import { WarrantyPage } from '@/pages/crm/Warranty'
 import { ProceduresPage } from '@/pages/crm/Procedures'
-import { ScanPage } from '@/pages/wms/Scan'
 import { WmsCycleCountPage } from '@/pages/wms/CycleCount'
 import { TracePage } from '@/pages/wms/Trace'
 import { WmsOpsKpiPage } from '@/pages/wms/OpsKpi'
@@ -128,7 +127,7 @@ export function App() {
           <Route path="wms/outbound" element={<OutboundPage />} />
           <Route path="wms/warehouses" element={<WarehousesPage />} />
           <Route path="wms/map" element={<WarehouseMapPage />} />
-          <Route path="wms/scan" element={<ScanPage />} />
+          <Route path="wms/scan" element={<Navigate to="/wms/cycle-count" replace />} />
           <Route path="wms/cycle-count" element={<WmsCycleCountPage />} />
           <Route path="wms/lots" element={<Navigate to="/wms/trace" replace />} />
           <Route path="wms/ops-kpi" element={<WmsOpsKpiPage />} />
