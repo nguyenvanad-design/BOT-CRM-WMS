@@ -30,11 +30,9 @@ import { WarrantyPage } from '@/pages/crm/Warranty'
 import { ProceduresPage } from '@/pages/crm/Procedures'
 import { WmsCycleCountPage } from '@/pages/wms/CycleCount'
 import { TracePage } from '@/pages/wms/Trace'
-import { WmsOpsKpiPage } from '@/pages/wms/OpsKpi'
 import { PurchaseOrdersPage } from '@/pages/purchasing/PurchaseOrders'
 import { SuppliersPage } from '@/pages/purchasing/Suppliers'
 import { WarehouseMapPage } from '@/pages/wms/WarehouseMap'
-import { WmsReportsPage } from '@/pages/wms/Reports'
 import { ContractsPage } from '@/pages/crm/Contracts'
 import { ActivitiesPage } from '@/pages/crm/Activities'
 import { AIHubPage } from '@/pages/crm/AIHub'
@@ -130,13 +128,13 @@ export function App() {
           <Route path="wms/scan" element={<Navigate to="/wms/cycle-count" replace />} />
           <Route path="wms/cycle-count" element={<WmsCycleCountPage />} />
           <Route path="wms/lots" element={<Navigate to="/wms/trace" replace />} />
-          <Route path="wms/ops-kpi" element={<WmsOpsKpiPage />} />
+          <Route path="wms/ops-kpi" element={<Navigate to="/wms/dashboard" replace />} />
 
           {/* ── Mua hàng ── */}
           <Route path="purchasing" element={<Navigate to="/purchasing/orders" replace />} />
           <Route path="purchasing/orders" element={<RequireRole roles={[...WMS_CTRL]}><PurchaseOrdersPage /></RequireRole>} />
           <Route path="purchasing/suppliers" element={<RequireRole roles={[...WMS_CTRL]}><SuppliersPage /></RequireRole>} />
-          <Route path="wms/reports" element={<WmsReportsPage />} />
+          <Route path="wms/reports" element={<Navigate to="/wms/dashboard" replace />} />
 
           {/* ── CEO (manager/admin) ── */}
           <Route path="ceo" element={<Navigate to="/ceo/overview" replace />} />

@@ -11,9 +11,12 @@ import { MOVE_REASON_LABEL, MOVE_REASON_TONE } from '@/lib/wms'
 import { formatDate } from '@/lib/crm'
 import type { InventoryItem, SerialNumber, InboundOrder, OutboundOrder, StockMovement } from '@/lib/types'
 import { Card, SectionTitle, StatCard, PageHeader, Tag, TableCard, Th, Td, RowMsg } from '@/components/ui'
+import { useAuth, isWmsControl } from '@/lib/auth/store'
+import { WmsOpsKpiPage } from '@/pages/wms/OpsKpi'
 
 export function WmsDashboardPage() {
   const nav = useNavigate()
+  const canKpi = isWmsControl(useAuth((s) => s.user?.role))   // KPI sâu: chỉ quản lý kho
   const inv = useQuery({ queryKey: ['wms', 'inv'], queryFn: () => fetchAll<InventoryItem>('/wms/inventory/') })
   const serials = useQuery({ queryKey: ['wms', 'serials'], queryFn: () => fetchAll<SerialNumber>('/wms/serials/') })
   const inbound = useQuery({ queryKey: ['wms', 'inbound'], queryFn: () => fetchAll<InboundOrder>('/wms/inbound/') })
@@ -90,6 +93,9 @@ export function WmsDashboardPage() {
           </tbody>
         </TableCard>
       </Card>
+
+      {/* KPI vận hành sâu (năng suất, độ chính xác kiểm kê, hiệu suất NV) — chỉ quản lý kho */}
+      {canKpi && <div className="mt-6 border-t border-line pt-2"><WmsOpsKpiPage /></div>}
     </div>
   )
 }
