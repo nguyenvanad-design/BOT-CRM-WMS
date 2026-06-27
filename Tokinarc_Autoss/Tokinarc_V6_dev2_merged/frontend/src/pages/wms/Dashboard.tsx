@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { LayoutDashboard } from 'lucide-react'
 import { fetchAll } from '@/lib/list'
-import { apiError } from '@/lib/api'
+import { api, apiError } from '@/lib/api'
+import { TodayTasks, type TodayTask } from '@/components/TodayTasks'
 import { MOVE_REASON_LABEL, MOVE_REASON_TONE } from '@/lib/wms'
 import { formatDate } from '@/lib/crm'
 import type { InventoryItem, SerialNumber, InboundOrder, OutboundOrder, StockMovement } from '@/lib/types'
@@ -22,6 +23,11 @@ export function WmsDashboardPage() {
   const inbound = useQuery({ queryKey: ['wms', 'inbound'], queryFn: () => fetchAll<InboundOrder>('/wms/inbound/') })
   const outbound = useQuery({ queryKey: ['wms', 'outbound'], queryFn: () => fetchAll<OutboundOrder>('/wms/outbound/') })
   const moves = useQuery({ queryKey: ['wms', 'moves'], queryFn: () => fetchAll<StockMovement>('/wms/stock-movements/') })
+  const incoming = useQuery({
+    queryKey: ['wms', 'incoming'],
+    queryFn: async () => (await api.get<{ count: number; overdue: number }>('/purchasing/orders/incoming/')).data,
+    retry: false,   // NV kho có thể chưa có quyền — không spam retry
+  })
 
   const items = inv.data?.items ?? []
   const lowStock = items.filter((i) => i.qty_on_hand <= i.min_level)
@@ -29,6 +35,16 @@ export function WmsDashboardPage() {
   const serialInStock = (serials.data?.items ?? []).filter((s) => s.status === 'in_stock').length
   const inboundPending = (inbound.data?.items ?? []).filter((o) => o.status === 'draft' || o.status === 'confirmed').length
   const outboundPending = (outbound.data?.items ?? []).filter((o) => o.status === 'picking' || o.status === 'picked').length
+
+  // "Việc hôm nay của kho" — gom tín hiệu sẵn có thành việc cần làm.
+  const in_overdue = incoming.data?.overdue ?? 0
+  const tasks: TodayTask[] = [
+    { label: 'Mặt hàng sắp hết → báo mua hàng', count: lowStock.length, tone: 'danger', to: '/wms/inventory', cta: 'Báo mua' },
+    { label: `Hàng đang về cần chuẩn bị nhận${in_overdue ? ` (${in_overdue} trễ)` : ''}`, count: incoming.data?.count ?? 0, tone: in_overdue ? 'danger' : 'warn', to: '/wms/inbound' },
+    { label: 'Đơn nhập chờ xử lý', count: inboundPending, tone: 'warn', to: '/wms/inbound' },
+    { label: 'Đơn xuất chờ soạn', count: outboundPending, tone: 'flame', to: '/wms/outbound' },
+    { label: 'Kiểm kê khu được phân hôm nay', tone: 'flame', to: '/wms/cycle-count', cta: 'Bắt đầu' },
+  ]
 
   return (
     <div className="max-w-6xl">
@@ -45,6 +61,8 @@ export function WmsDashboardPage() {
         <StatCard label="Đơn nhập chờ" tone="warn" value={inbound.isLoading ? '…' : inboundPending} onClick={() => nav('/wms/inbound')} />
         <StatCard label="Đơn xuất chờ" tone="flame" value={outbound.isLoading ? '…' : outboundPending} onClick={() => nav('/wms/outbound')} />
       </div>
+
+      <TodayTasks items={tasks} loading={inv.isLoading} />
 
       <Card className="mb-4">
         <SectionTitle action={<button className="text-xs text-flame hover:underline" onClick={() => nav('/wms/low-stock')}>Xem tất cả</button>}>

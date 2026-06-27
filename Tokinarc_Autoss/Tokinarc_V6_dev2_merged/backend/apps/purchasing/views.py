@@ -42,7 +42,8 @@ class PurchasingPermission(permissions.BasePermission):
             # vẫn cho xem chi tiết 1 PO (retrieve) để phục vụ nhận hàng.
             if r in PO_WRITE_ROLES:
                 return True
-            return action == 'retrieve' and r in WMS_OP_ROLES
+            # NV kho: xem chi tiết 1 PO (nhận hàng) + "Hàng đang về" (chuẩn bị nhận).
+            return action in ('retrieve', 'incoming') and r in WMS_OP_ROLES
         # Nhận hàng theo PO: cho phép vai trò kho (kiểm tra kỹ trong action).
         if action == 'receive':
             return r in WMS_OP_ROLES

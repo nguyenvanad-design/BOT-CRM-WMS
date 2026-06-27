@@ -7,17 +7,18 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { LayoutDashboard } from 'lucide-react'
 import { fetchAll, fetchCount } from '@/lib/list'
-import { apiError } from '@/lib/api'
+import { api, apiError } from '@/lib/api'
 import { useAuth, isManager } from '@/lib/auth/store'
 import {
   compactVnd, formatDate, OPP_STAGE_LABEL, OPP_STAGE_TONE,
   TICKET_STATUS_TONE, TICKET_PRIORITY_LABEL, TICKET_PRIORITY_TONE,
 } from '@/lib/crm'
-import type { Opportunity, Ticket } from '@/lib/types'
+import type { Opportunity, Ticket, Lead, Quote, ReceivablesResponse } from '@/lib/types'
 import {
   Card, SectionTitle, StatCard, PageHeader, Tag, Gauge,
   TableCard, Th, Td, RowMsg,
 } from '@/components/ui'
+import { TodayTasks, type TodayTask } from '@/components/TodayTasks'
 import { SalesPerformancePage } from '@/pages/crm/SalesPerformance'
 import { CeoRevenuePage } from '@/pages/ceo/Revenue'
 
@@ -43,6 +44,13 @@ export function DashboardPage() {
     queryKey: ['dash', 'leads', 'count'],
     queryFn: () => fetchCount('/crm/leads/'),
   })
+  const leads = useQuery({ queryKey: ['dash', 'leads'], queryFn: () => fetchAll<Lead>('/crm/leads/') })
+  const quotes = useQuery({ queryKey: ['dash', 'quotes'], queryFn: () => fetchAll<Quote>('/crm/quotes/') })
+  const receivables = useQuery({
+    queryKey: ['dash', 'receivables'],
+    queryFn: async () => (await api.get<ReceivablesResponse>('/crm/receivables/')).data,
+    retry: false,
+  })
 
   const openOpps = (opps.data?.items ?? []).filter((o) => OPEN_STAGES.has(o.stage))
   const pipelineValue = openOpps.reduce((s, o) => s + Number(o.est_value_vnd || 0), 0)
@@ -57,6 +65,17 @@ export function DashboardPage() {
   const closing = [...openOpps]
     .sort((a, b) => (a.expected_close ?? '9999').localeCompare(b.expected_close ?? '9999'))
     .slice(0, 6)
+
+  // "Việc hôm nay của sale" — gom tín hiệu sẵn có thành việc cần làm (đã lọc theo quyền).
+  const newLeads = (leads.data?.items ?? []).filter((l) => l.status === 'new').length
+  const openQuotes = (quotes.data?.items ?? []).filter((q) => q.status === 'sent').length
+  const overdueRecv = (receivables.data?.results ?? []).filter((r) => r.days_overdue > 0).length
+  const tasks: TodayTask[] = [
+    { label: 'Lead mới chưa liên hệ → gọi ngay', count: newLeads, tone: 'warn', to: '/leads', cta: 'Gọi' },
+    { label: 'Báo giá đã gửi chưa chốt → theo đuổi', count: openQuotes, tone: 'flame', to: '/quotes' },
+    { label: 'Công nợ quá hạn → nhắc thanh toán', count: overdueRecv, tone: 'danger', to: '/receivables', cta: 'Nhắc thu' },
+    { label: 'Cơ hội đang mở → đẩy qua giai đoạn', count: openOpps.length, tone: 'flame', to: '/opportunities' },
+  ]
 
   return (
     <div className="max-w-6xl">
@@ -91,6 +110,8 @@ export function DashboardPage() {
           onClick={() => nav('/tickets')}
         />
       </div>
+
+      <TodayTasks items={tasks} loading={leads.isLoading || quotes.isLoading || opps.isLoading} />
 
       <Card className="mb-4">
         <SectionTitle action={<button className="text-xs text-flame hover:underline" onClick={() => nav('/opportunities')}>Xem tất cả</button>}>
