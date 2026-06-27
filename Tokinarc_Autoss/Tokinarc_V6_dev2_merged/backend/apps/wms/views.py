@@ -76,6 +76,15 @@ def _publish(channel: str, payload: dict):
         pass   # event bus optional ở giai đoạn đầu
 
 
+def _resolve_part_code(code: str) -> str:
+    """Quét tem thật: nếu code là barcode/QR (EAN, mã Tokin) ĐÃ GÁN cho 1 Part →
+    trả part_no nội bộ để khớp dòng phiếu. Không gán → giữ nguyên (khớp trực tiếp part_no)."""
+    if not code:
+        return code
+    p = Part.objects.filter(barcode=code).only('tokin_part_no').first()
+    return p.pk if p else code
+
+
 class WarehouseViewSet(viewsets.ModelViewSet):
     """Quản lý kho. Đọc: nội bộ. Tạo/sửa: QL kho trở lên.
     FE cũng đọc để quyết hiện/ẩn switcher (ẩn khi count==1)."""
@@ -233,7 +242,7 @@ class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
           - mode='count'   → set tồn = qty (kiểm kê).
         code = mã phụ tùng (tokin_part_no); bin_code = full_code của ô.
         """
-        code = str(request.data.get('code', '')).strip()
+        code = _resolve_part_code(str(request.data.get('code', '')).strip())
         bin_code = str(request.data.get('bin_code', '')).strip()
         mode = str(request.data.get('mode', 'receive')).strip().lower()
         wh = str(request.data.get('warehouse', '')).strip()
@@ -516,7 +525,7 @@ class InboundViewSet(viewsets.ModelViewSet):
         if inbound.status not in ('draft', 'confirmed', 'partial'):
             return Response({'detail': 'Phiếu đã xử lý.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
-        code = str(request.data.get('code', '')).strip()
+        code = _resolve_part_code(str(request.data.get('code', '')).strip())
         try:
             qty = int(request.data.get('qty', 1))
         except (TypeError, ValueError):
@@ -589,7 +598,7 @@ class CycleCountViewSet(viewsets.ModelViewSet):
         if cc.status != 'open':
             return Response({'detail': 'Phiên đã đóng.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
-        code = str(request.data.get('code', '')).strip()
+        code = _resolve_part_code(str(request.data.get('code', '')).strip())
         bin_code = str(request.data.get('bin_code', '')).strip()
         try:
             counted = int(request.data.get('counted_qty'))
@@ -743,7 +752,7 @@ class OutboundViewSet(viewsets.ModelViewSet):
         if outbound.status in ('shipped', 'cancelled'):
             return Response({'detail': 'Phiếu đã xử lý.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
-        code = str(request.data.get('code', '')).strip()
+        code = _resolve_part_code(str(request.data.get('code', '')).strip())
         bin_code = str(request.data.get('bin_code', '')).strip()
         try:
             qty = int(request.data.get('qty', 1))

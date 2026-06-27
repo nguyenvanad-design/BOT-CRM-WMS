@@ -72,7 +72,7 @@ class PartViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
 
     filter_backends   = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields  = ['category', 'ecosystem', 'current_class', 'is_priority_sell']
-    search_fields     = ['tokin_part_no', 'display_name_vi', 'display_name_en', 'category']
+    search_fields     = ['tokin_part_no', 'display_name_vi', 'display_name_en', 'category', 'barcode']
     ordering_fields   = ['tokin_part_no', 'category', 'price_vnd']
 
     def get_serializer_class(self):
@@ -102,6 +102,25 @@ class PartViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
             'margin_vnd': margin if cost else None,
             'margin_pct': round(margin / sell * 100, 1) if (sell and cost) else None,
         })
+
+    @action(detail=True, methods=['post'], url_path='set-barcode', permission_classes=[IsAuthenticated])
+    def set_barcode(self, request, tokin_part_no=None):
+        """Quét-gán: gán barcode/QR (EAN, mã Tokin) trên tem cho part này → lần sau quét ra ngay.
+        Chỉ nhân viên nội bộ. Nếu mã đã gán cho part KHÁC → báo lỗi (tránh trùng)."""
+        from apps.accounts.roles import Role, role_of
+        if role_of(request.user) == Role.CUSTOMER:
+            return Response({'detail': 'Chỉ nhân viên nội bộ được gán mã.'}, status=403)
+        code = (request.data.get('barcode') or '').strip()
+        if not code:
+            return Response({'detail': 'Thiếu mã barcode.'}, status=400)
+        clash = Part.objects.filter(barcode=code).exclude(pk=tokin_part_no).first()
+        if clash is not None:
+            return Response({'detail': f'Mã "{code}" đã gán cho {clash.pk} ({clash.display_name_vi}).',
+                             'code': 'BARCODE_TAKEN'}, status=409)
+        part = self.get_object()
+        part.barcode = code
+        part.save(update_fields=['barcode'])
+        return Response({'part_no': part.pk, 'name': part.display_name_vi, 'barcode': code})
 
     @action(detail=False, methods=['get'])
     def search(self, request):

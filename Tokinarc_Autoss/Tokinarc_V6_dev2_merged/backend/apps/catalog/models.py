@@ -114,6 +114,10 @@ class Part(models.Model):
     display_name_vi = models.CharField(max_length=200)
     display_name_en = models.CharField(max_length=200, blank=True)
 
+    # Barcode/QR nhà SX (EAN-13 / mã Tokin trên tem) → map về part_no nội bộ.
+    # Học dần bằng "quét-gán": lần đầu quét tem lạ → gán cho 1 part → lưu vĩnh viễn.
+    barcode         = models.CharField(max_length=64, blank=True, db_index=True)
+
     # Spec promoted
     wire_size_mm    = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
     total_length_mm = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
