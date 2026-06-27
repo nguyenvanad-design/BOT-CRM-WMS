@@ -35,6 +35,21 @@ class CustomerStatus(models.TextChoices):
     INACTIVE  = 'inactive',  'Không hoạt động'
 
 
+class PriceTier(models.Model):
+    """Bảng giá theo PHÂN KHÚC khách (segment). Giá đề xuất = giá niêm yết × (1 − discount%).
+    Chỉ GỢI Ý cho sale (vẫn sửa tay được) → giá nhất quán + báo giá nhanh."""
+    segment      = models.CharField(max_length=20, choices=CustomerSegment.choices, unique=True)
+    discount_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # % giảm so với giá niêm yết
+    label        = models.CharField(max_length=40, blank=True)
+
+    class Meta:
+        db_table = 'crm_price_tier'
+        ordering = ['segment']
+
+    def __str__(self) -> str:
+        return f"{self.segment}: -{self.discount_pct}%"
+
+
 class ContactChannel(models.TextChoices):
     ZALO  = 'zalo',  'Zalo'
     PHONE = 'phone', 'Điện thoại'

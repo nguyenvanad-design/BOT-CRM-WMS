@@ -17,7 +17,7 @@ from .activity_feed import MyActivityFeedView
 from .lead_intake import LeadIntakeView
 from .lead_report import LeadSourceReportView
 from .receivables import ReceivablesView
-from .views import CustomerViewSet
+from .views import CustomerViewSet, PartQuoteInfoView
 from .views_ext import (
     LeadViewSet, OpportunityViewSet, QuoteViewSet, TicketViewSet, VisitViewSet,
 )
@@ -48,6 +48,8 @@ urlpatterns = [
     path('my-activity/', MyActivityFeedView.as_view(), name='my-activity'),
     # Báo cáo lead theo nguồn / chiến dịch.
     path('lead-sources/', LeadSourceReportView.as_view(), name='lead-sources'),
+    # Gợi giá theo phân khúc + tồn khả dụng cho form báo giá/đơn.
+    path('part-quote-info/', PartQuoteInfoView.as_view(), name='part-quote-info'),
 ] + router.urls + [
     path('receivables/', ReceivablesView.as_view(), name='receivables'),
 ]

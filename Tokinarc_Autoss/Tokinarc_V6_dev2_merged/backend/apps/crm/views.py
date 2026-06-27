@@ -16,6 +16,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.common.models import AuditLog
 
@@ -25,6 +26,41 @@ from .permissions import (
     IsAuthenticatedWithRole,
     filter_customers_for_user,
 )
+
+
+class PartQuoteInfoView(APIView):
+    """Thông tin 1 SP cho form báo giá/đơn (sale+):
+    tên + giá niêm yết + GIÁ ĐỀ XUẤT theo phân khúc KH + TỒN KHẢ DỤNG.
+    GET ?part_no=...&customer=... """
+    permission_classes = [IsAuthenticatedWithRole]
+
+    def get(self, request):
+        from apps.catalog.models import Part
+
+        from . import pricing
+        part_no = (request.query_params.get('part_no') or '').strip()
+        if not part_no:
+            return Response({'found': False})
+        part = Part.objects.filter(pk=part_no).first()
+        if part is None:
+            return Response({'found': False})
+        segment = ''
+        cust_id = request.query_params.get('customer')
+        if cust_id:
+            c = Customer.objects.filter(pk=cust_id).first()
+            segment = c.segment if c else ''
+        list_price = int(part.price_vnd or 0)
+        return Response({
+            'found': True,
+            'part_no': part.pk,
+            'part_name': getattr(part, 'display_name_vi', '') or '',
+            'list_price_vnd': list_price,
+            'suggested_price_vnd': pricing.suggested_unit_price(list_price, segment),
+            'discount_pct': pricing.tier_discount(segment),
+            'segment': segment,
+            'available_qty': pricing.part_available_qty(part.pk),
+            'is_contact_price': bool(getattr(part, 'is_contact_price', False)),
+        })
 from .serializers import (
     Customer360Serializer,
     CustomerDetailSerializer,
