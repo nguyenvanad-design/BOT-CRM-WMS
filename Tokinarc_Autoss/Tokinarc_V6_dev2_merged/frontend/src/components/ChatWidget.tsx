@@ -8,31 +8,65 @@ import { useEffect, useRef, useState } from 'react'
 import { MessageCircle, Send, Loader2, ChevronDown, ChevronUp, Trash2, Paperclip, X } from 'lucide-react'
 import { askAssistant } from '@/lib/assistant'
 import { apiError } from '@/lib/api'
-import { useAuth, isManager } from '@/lib/auth/store'
+import { useAuth } from '@/lib/auth/store'
 import type { Role } from '@/lib/types'
 
 interface Msg { role: 'user' | 'bot' | 'error'; text: string }
 
-/** Gợi ý theo vai trò — chỉ gợi việc role đó được phép làm. */
+/** Gợi ý RIÊNG theo vai trò — chỉ gợi việc role đó ĐƯỢC PHÉP làm với AI. */
 function suggestionsFor(role?: Role): string[] {
-  if (isManager(role)) return [
-    'Báo cáo điều hành',
-    'Đánh giá kế hoạch pipeline',
-    'Doanh thu tháng này?',
-    'Khách nào chưa mua 3 tháng?',
-  ]
-  if (role === 'warehouse') return [
-    'Nhập kho 100 x 001002',
-    'Xuất kho 20 x 001002',
-    'Tra cứu phụ tùng 001002',
-  ]
-  if (role === 'sales') return [
-    'Tạo lead Nguyễn Văn A, công ty ABC, 0901234567',
-    'Làm báo giá cho Công ty ABC: 5 x 001002',
-    'Soạn hợp đồng từ báo giá BG-0007',
-    'Tra cứu phụ tùng 001002',
-  ]
-  return ['Tra cứu phụ tùng 001002', 'Tra cứu súng hàn']
+  switch (role) {
+    case 'sales':        // NV kinh doanh — bán hàng của mình
+      return [
+        'Tạo lead Nguyễn Văn A, công ty ABC, 0901234567',
+        'Làm báo giá cho Công ty ABC: 5 x 001002',
+        'Soạn hợp đồng từ báo giá BG-0007',
+        'Tra cứu phụ tùng 001002',
+      ]
+    case 'manager':      // Quản lý kinh doanh — điều hành sales + tài chính
+      return [
+        'Doanh thu tháng này?',
+        'Đánh giá kế hoạch pipeline',
+        'Khách nào chưa mua 3 tháng?',
+        'Top khách hàng',
+      ]
+    case 'ceo':          // CEO — toàn cảnh điều hành
+      return [
+        'Báo cáo điều hành',
+        'Doanh thu tháng này?',
+        'Công nợ khách hàng',
+        'Top khách hàng',
+      ]
+    case 'warehouse':    // NV kho — thao tác kho + kỹ thuật
+      return [
+        'Nhập kho 100 x 001002',
+        'Xuất kho 20 x 001002',
+        'Tồn của 001002 ở các kho',
+        'Cách thay liner TK-308RR',
+      ]
+    case 'wh_manager':   // Quản lý kho — tồn + vận hành kho
+      return [
+        'Tồn của 001002 ở các kho',
+        'Nhập kho 100 x 001002',
+        'Bộ tiêu hao cho súng TK-308RR',
+        'Tra cứu lắp đặt / sửa chữa',
+      ]
+    case 'service':      // Kỹ sư dịch vụ — kỹ thuật/lắp đặt/sửa chữa
+      return [
+        'Cách thay liner TK-308RR',
+        'Quy trình lắp đặt súng hàn',
+        'Bộ tiêu hao cho TK-308RR',
+        'Tra cứu phụ tùng 001002',
+      ]
+    case 'admin':
+      return [
+        'Báo cáo điều hành',
+        'Doanh thu tháng này?',
+        'Tra cứu phụ tùng 001002',
+      ]
+    default:             // mặc định — chỉ tra cứu
+      return ['Tra cứu phụ tùng 001002', 'Tra cứu súng hàn']
+  }
 }
 
 export function ChatWidget() {
