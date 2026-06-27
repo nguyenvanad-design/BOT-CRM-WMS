@@ -2,6 +2,7 @@
 from django.urls import path
 from .views import (KpiOverviewView, RevenueMonthlyView, RevenueBySegmentView,
                     DebtAgingView, PayableView, InventoryValueView, PipelineForecastView,
+                    InventoryAgingView, DeadStockView,
                     AssistantQueryView, AssistantSummaryView, SummaryExportView,
                     SalesPerformanceView)
 urlpatterns = [
@@ -12,6 +13,8 @@ urlpatterns = [
     path('debt-aging/', DebtAgingView.as_view()),
     path('payable/', PayableView.as_view()),
     path('inventory/value/', InventoryValueView.as_view()),
+    path('inventory/aging/', InventoryAgingView.as_view()),
+    path('inventory/dead-stock/', DeadStockView.as_view()),
     path('forecast/pipeline/', PipelineForecastView.as_view()),
     path('assistant/query/', AssistantQueryView.as_view()),
     path('assistant/summary/', AssistantSummaryView.as_view()),

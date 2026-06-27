@@ -103,6 +103,7 @@ const CEO_NAV: NavGroup[] = [
   ]},
   { group: 'Vận hành', items: [
     { to: '/ceo/inventory', icon: <Package size={16} />, label: 'Tồn kho' },
+    { to: '/ceo/aging', icon: <History size={16} />, label: 'Tuổi tồn & Hàng chậm' },
   ]},
 ]
 

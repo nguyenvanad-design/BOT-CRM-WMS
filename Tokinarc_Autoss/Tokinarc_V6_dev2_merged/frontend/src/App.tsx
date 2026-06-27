@@ -46,6 +46,7 @@ import { CeoRevenuePage } from '@/pages/ceo/Revenue'
 import { CeoForecastPage } from '@/pages/ceo/Forecast'
 import { CeoDebtPage } from '@/pages/ceo/Debt'
 import { CeoInventoryPage } from '@/pages/ceo/Inventory'
+import { CeoAgingPage } from '@/pages/ceo/Aging'
 import { CeoAISummaryPage } from '@/pages/ceo/AISummary'
 import { ApprovalsPage } from '@/pages/ceo/Approvals'
 import { AdminUsersPage } from '@/pages/admin/Users'
@@ -144,6 +145,7 @@ export function App() {
           <Route path="ceo/forecast" element={<RequireRole roles={[...MGR]}><CeoForecastPage /></RequireRole>} />
           <Route path="ceo/debt" element={<RequireRole roles={[...MGR]}><CeoDebtPage /></RequireRole>} />
           <Route path="ceo/inventory" element={<RequireRole roles={[...MGR]}><CeoInventoryPage /></RequireRole>} />
+          <Route path="ceo/aging" element={<RequireRole roles={[...MGR]}><CeoAgingPage /></RequireRole>} />
           <Route path="ceo/ai-summary" element={<RequireRole roles={[...MGR]}><CeoAISummaryPage /></RequireRole>} />
 
           {/* ── Quản trị (admin/superuser) ── */}

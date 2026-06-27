@@ -144,6 +144,73 @@ def inventory_value(warehouse_code: str | None = None) -> dict:
     }
 
 
+def inventory_aging() -> dict:
+    """Tuổi tồn theo received_at (ngày nhập đầu — FIFO). Bucket + giá trị theo GIÁ VỐN.
+    Giúp thấy vốn đang chôn ở hàng để lâu."""
+    from apps.wms.models import InventoryItem
+
+    today = date.today()
+    order = ['0-30', '31-90', '91-180', '180+', 'unknown']
+    buckets = {k: {'lines': 0, 'qty': 0, 'value_vnd': 0} for k in order}
+    qs = InventoryItem.objects.filter(part__isnull=False, qty_on_hand__gt=0).select_related('part')
+    for i in qs:
+        cost = int(i.part.cost_vnd or 0)
+        if not i.received_at:
+            key = 'unknown'
+        else:
+            age = (today - i.received_at.date()).days
+            key = '0-30' if age <= 30 else '31-90' if age <= 90 else '91-180' if age <= 180 else '180+'
+        b = buckets[key]
+        b['lines'] += 1
+        b['qty'] += i.qty_on_hand
+        b['value_vnd'] += i.qty_on_hand * cost
+    return {
+        'buckets': [{'bucket': k, **buckets[k]} for k in order],
+        'total_value_vnd': sum(b['value_vnd'] for b in buckets.values()),
+    }
+
+
+def dead_stock(days: int = 90) -> dict:
+    """Hàng CHẬM/CHẾT: còn tồn nhưng KHÔNG xuất trong `days` ngày (hoặc chưa từng xuất).
+    Trả về danh sách theo vốn chôn giảm dần (tiền chết nhiều nhất lên đầu)."""
+    from django.db.models import Max
+
+    from apps.wms.models import InventoryItem, StockMovement
+
+    cutoff = date.today() - timedelta(days=days)
+    # Lần XUẤT gần nhất (delta < 0) theo part.
+    last_out = dict(
+        StockMovement.objects.filter(delta__lt=0, part__isnull=False)
+        .values_list('part').annotate(last=Max('ts')).values_list('part', 'last'))
+
+    rows: dict = {}
+    for i in (InventoryItem.objects.filter(part__isnull=False, qty_on_hand__gt=0)
+              .select_related('part')):
+        r = rows.setdefault(i.part_id, {
+            'part_no': i.part_id,
+            'name': getattr(i.part, 'display_name_vi', '') or str(i.part_id),
+            'qty': 0, 'cost_vnd': int(i.part.cost_vnd or 0)})
+        r['qty'] += i.qty_on_hand
+
+    out = []
+    for pid, r in rows.items():
+        last = last_out.get(pid)
+        last_d = last.date() if last else None
+        if last_d is None or last_d < cutoff:
+            out.append({
+                'part_no': r['part_no'], 'name': r['name'], 'qty': r['qty'],
+                'value_vnd': r['qty'] * r['cost_vnd'],
+                'last_out': last_d.isoformat() if last_d else None,
+                'days_idle': (date.today() - last_d).days if last_d else None,
+            })
+    out.sort(key=lambda x: -x['value_vnd'])
+    return {
+        'days': days, 'count': len(out),
+        'tied_value_vnd': sum(x['value_vnd'] for x in out),
+        'results': out[:100],
+    }
+
+
 def pipeline_forecast() -> list[dict]:
     """Trống nếu Opportunity chưa có (CRM chưa mở rộng)."""
     if not _HAS_OPPORTUNITY:

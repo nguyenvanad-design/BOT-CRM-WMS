@@ -66,6 +66,19 @@ class InventoryValueView(_Base):
         return Response(services.inventory_value(request.query_params.get('warehouse')))
 
 
+class InventoryAgingView(_Base):
+    """Tuổi tồn (bucket theo ngày nhập) + giá trị theo giá vốn (manager+)."""
+    def get(self, request):
+        return Response(services.inventory_aging())
+
+
+class DeadStockView(_Base):
+    """Hàng chậm/chết: còn tồn nhưng lâu không xuất (manager+). ?days=90."""
+    def get(self, request):
+        days = request.query_params.get('days')
+        return Response(services.dead_stock(int(days) if days else 90))
+
+
 class PipelineForecastView(_Base):
     def get(self, request):
         return Response(services.pipeline_forecast())
