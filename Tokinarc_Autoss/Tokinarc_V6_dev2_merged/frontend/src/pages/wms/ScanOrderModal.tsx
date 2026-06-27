@@ -7,11 +7,12 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ScanLine, Check, Truck } from 'lucide-react'
+import { ScanLine, Check, Truck, Camera } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
 import { Modal } from '@/components/Modal'
 import { Button, Tag } from '@/components/ui'
+import { CameraScanner } from '@/components/CameraScanner'
 
 interface Line { id: string; part: string | null; torch: string | null; qty_expected?: number; qty_received?: number; qty_ordered?: number; qty_picked?: number }
 interface Order { id: string; code: string; status: string; lines: Line[] }
@@ -22,6 +23,7 @@ export function ScanOrderModal({ open, onClose, kind, orderId }: {
   const qc = useQueryClient()
   const [code, setCode] = useState(''); const [bin, setBin] = useState(''); const [qty, setQty] = useState('1')
   const [lot, setLot] = useState('')
+  const [showCam, setShowCam] = useState(false)   // bật camera điện thoại quét
 
   const order = useQuery({
     queryKey: ['wms-order', kind, orderId],
@@ -81,6 +83,14 @@ export function ScanOrderModal({ open, onClose, kind, orderId }: {
         </>
       }>
       <div className="space-y-3">
+        {/* Camera điện thoại — quét trúng mã → tự điền ô Mã hàng */}
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={() => setShowCam((v) => !v)}>
+            <Camera size={14} /> {showCam ? 'Tắt camera' : 'Quét bằng camera'}
+          </Button>
+        </div>
+        {showCam && <CameraScanner onScan={(c) => { setCode(c); toast.success(`Đã quét: ${c}`) }} />}
+
         <div className={`grid ${kind === 'outbound' ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
           <Inp label="Mã hàng" v={code} set={setCode} ph="Quét/nhập mã" />
           {kind === 'outbound' && <Inp label="Mã ô" v={bin} set={setBin} ph="HCM-A-R01-B01" />}
