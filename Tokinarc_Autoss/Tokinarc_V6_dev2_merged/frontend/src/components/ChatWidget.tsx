@@ -44,12 +44,12 @@ function suggestionsFor(role?: Role): string[] {
         'Tồn của 001002 ở các kho',
         'Cách thay liner TK-308RR',
       ]
-    case 'wh_manager':   // Quản lý kho — tồn + vận hành kho
+    case 'wh_manager':   // Quản lý kho — nhập hàng + hàng chậm + tồn
       return [
+        'Nên nhập hàng gì?',
+        'Hàng nào bán chậm?',
         'Tồn của 001002 ở các kho',
         'Nhập kho 100 x 001002',
-        'Bộ tiêu hao cho súng TK-308RR',
-        'Tra cứu lắp đặt / sửa chữa',
       ]
     case 'service':      // Kỹ sư dịch vụ — kỹ thuật/lắp đặt/sửa chữa
       return [

@@ -211,6 +211,49 @@ def dead_stock(days: int = 90) -> dict:
     }
 
 
+def reorder_suggestions(days: int = 60, lead_time_days: int = 14, target_days: int = 30) -> dict:
+    """ĐỀ NGHỊ NHẬP HÀNG dựa trên tốc độ bán (xuất) gần đây + tồn khả dụng.
+    Mã 'cần nhập' = đủ dùng < lead_time NGÀY, hoặc tồn ≤ định mức (min_level).
+    suggest_qty = bù đủ dùng target_days (hoặc bù về min)."""
+    from apps.wms.models import InventoryItem, StockMovement
+
+    since = date.today() - timedelta(days=days)
+    sold: dict = {}
+    for r in (StockMovement.objects.filter(delta__lt=0, part__isnull=False, ts__date__gte=since)
+              .values('part').annotate(q=Sum('delta'))):
+        sold[r['part']] = -int(r['q'] or 0)   # delta âm → đảo dấu thành SL bán
+
+    rows: dict = {}
+    for i in InventoryItem.objects.filter(part__isnull=False).select_related('part'):
+        r = rows.setdefault(i.part_id, {
+            'part_no': i.part_id,
+            'name': getattr(i.part, 'display_name_vi', '') or str(i.part_id),
+            'available': 0, 'min': 0})
+        r['available'] += (i.qty_on_hand - i.qty_reserved)
+        r['min'] = max(r['min'], i.min_level or 0)
+
+    out = []
+    for pid, r in rows.items():
+        daily = sold.get(pid, 0) / days if sold.get(pid) else 0.0
+        avail = r['available']
+        cover = (avail / daily) if daily > 0 else None
+        need = (cover is not None and cover < lead_time_days) or (r['min'] > 0 and avail <= r['min'])
+        if not need:
+            continue
+        target_qty = int(round(daily * target_days)) if daily > 0 else r['min']
+        suggest = max(target_qty - avail, (r['min'] - avail) if r['min'] else 0)
+        if suggest <= 0:
+            suggest = max(r['min'] - avail, 1)
+        out.append({
+            'part_no': r['part_no'], 'name': r['name'], 'available': avail,
+            'min_level': r['min'], 'daily_sold': round(daily, 2),
+            'days_cover': round(cover, 1) if cover is not None else None,
+            'suggest_qty': suggest,
+        })
+    out.sort(key=lambda x: (x['days_cover'] is None, x['days_cover'] if x['days_cover'] is not None else 1e9))
+    return {'days': days, 'lead_time_days': lead_time_days, 'count': len(out), 'results': out[:50]}
+
+
 def pipeline_forecast() -> list[dict]:
     """Trống nếu Opportunity chưa có (CRM chưa mở rộng)."""
     if not _HAS_OPPORTUNITY:

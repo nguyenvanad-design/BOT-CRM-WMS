@@ -121,6 +121,36 @@ def tool_dormant_customers(months: int = 3) -> str:
             f"(nguy cơ rời):\n{lines}")
 
 
+def tool_reorder() -> str:
+    """AI Reorder: đề nghị nhập hàng theo tốc độ bán + tồn khả dụng."""
+    from . import services
+    d = services.reorder_suggestions()
+    if d['count'] == 0:
+        return "Hiện không có mã nào cần nhập gấp — tồn đủ dùng. ✅"
+    lines = []
+    for r in d['results'][:12]:
+        cover = f"đủ {r['days_cover']} ngày" if r['days_cover'] is not None else "chưa có lịch sử bán"
+        lines.append(f"• {r['part_no']} {r['name'][:30]} — còn {r['available']} ({cover}) → nên nhập ~{r['suggest_qty']}")
+    return (f"🛒 Đề nghị nhập hàng — {d['count']} mã sắp thiếu (đủ dùng < {d['lead_time_days']} ngày):\n"
+            + "\n".join(lines))
+
+
+def tool_slow_moving(days: int = 90) -> str:
+    """AI Slow-moving: hàng bán chậm/chết — vốn đang chôn."""
+    from . import services
+    d = services.dead_stock(days)
+    if d['count'] == 0:
+        return f"Không có hàng bán chậm trong {days} ngày qua. 🎉"
+    tied = f"{int(d['tied_value_vnd']):,}".replace(',', '.')
+    lines = []
+    for r in d['results'][:12]:
+        idle = f"{r['days_idle']} ngày không xuất" if r['days_idle'] is not None else "chưa từng xuất"
+        val = f"{int(r['value_vnd']):,}".replace(',', '.')
+        lines.append(f"• {r['part_no']} {r['name'][:30]} — tồn {r['qty']}, vốn chôn {val}đ ({idle})")
+    return (f"🐌 Hàng bán chậm/chết >{days} ngày — {d['count']} mã, vốn chôn {tied}đ:\n"
+            + "\n".join(lines))
+
+
 # ── Router: hiểu câu hỏi → intent + params ──────────────────────────────────
 def _from_chatbot_env(var: str) -> str:
     """Đọc 1 biến từ chatbot/.env (dev, cùng máy)."""
@@ -208,6 +238,13 @@ def _keyword_intent(q: str) -> dict:
         return {'intent': 'evaluate_plan'}
     if any(k in ql for k in ('đơn của', 'don cua', 'đơn hàng của', 'don hang cua', 'mua gì', 'lịch sử mua')):
         return {'intent': 'customer_orders'}
+    if any(k in ql for k in ('đề nghị nhập', 'de nghi nhap', 'nên nhập', 'nen nhap', 'cần nhập', 'can nhap',
+                             'reorder', 'nhập thêm', 'nhap them', 'đặt thêm hàng', 'cần đặt hàng', 'sắp hết hàng gì')):
+        return {'intent': 'reorder_suggestion'}
+    if any(k in ql for k in ('bán chậm', 'ban cham', 'hàng chậm', 'hang cham', 'hàng ế', 'hang e',
+                             'chậm luân chuyển', 'cham luan chuyen', 'tồn lâu', 'ton lau',
+                             'slow moving', 'dead stock', 'hàng chết', 'hang chet')):
+        return {'intent': 'slow_moving'}
     if any(k in ql for k in ('tồn', 'ton kho', 'còn hàng', 'con hang', 'kho còn', 'số lượng tồn')):
         return {'intent': 'stock_lookup'}
     if any(k in ql for k in ('cách thay', 'cach thay', 'cách lắp', 'cach lap', 'quy trình', 'quy trinh',
@@ -661,7 +698,13 @@ def answer(question: str, user) -> str:
     """Điểm vào chính: yêu cầu + user → trả lời/hành động (role-gated, data thật)."""
     from apps.accounts.roles import can_use_intent, role_of
 
-    intent = _llm_intent(question) or _keyword_intent(question)
+    intent = _llm_intent(question) or {}
+    kw = _keyword_intent(question)
+    # Ưu tiên từ khóa cho intent VẬN HÀNH KHO (LLM hay nhầm "bán chậm" → dormant_customers).
+    if kw.get('intent') in ('reorder_suggestion', 'slow_moving'):
+        intent = kw
+    elif intent.get('intent', 'unknown') == 'unknown':
+        intent = kw
     name = intent.get('intent', 'unknown')
     role = role_of(user)
 
@@ -679,6 +722,10 @@ def answer(question: str, user) -> str:
         return tool_top_customers()
     if name == 'dormant_customers':
         return tool_dormant_customers(int(intent.get('months') or 3))
+    if name == 'reorder_suggestion':
+        return tool_reorder()
+    if name == 'slow_moving':
+        return tool_slow_moving()
     if name == 'ceo_report':
         return tool_ceo_report()
     if name == 'evaluate_plan':
