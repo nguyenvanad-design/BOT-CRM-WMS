@@ -6,7 +6,7 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   Flame, LogOut, LayoutDashboard, TrendingUp, Building2,
-  Radar, Target, Filter, FileText, ScrollText, MapPin, Phone,
+  Radar, Target, FileText, ScrollText, MapPin, Phone,
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
   Package, Barcode, History, PackageCheck,
   Warehouse, Map as MapIcon, Crown, Bot, ClipboardCheck,
@@ -34,8 +34,7 @@ const CRM_NAV: NavGroup[] = [
   { group: 'Khách hàng', items: [
     { to: '/customers', icon: <Building2 size={16} />, label: 'Khách hàng' },
     { to: '/leads', icon: <Radar size={16} />, label: 'Leads' },
-    { to: '/opportunities', icon: <Target size={16} />, label: 'Opportunity' },
-    { to: '/pipeline', icon: <Filter size={16} />, label: 'Pipeline' },
+    { to: '/opportunities', icon: <Target size={16} />, label: 'Cơ hội' },
   ]},
   { group: 'Bán hàng', items: [
     { to: '/quotes', icon: <FileText size={16} />, label: 'Báo giá' },

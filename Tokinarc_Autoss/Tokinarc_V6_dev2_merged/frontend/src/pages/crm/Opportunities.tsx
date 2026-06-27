@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { Target, Plus } from 'lucide-react'
+import { Target, Plus, List, KanbanSquare } from 'lucide-react'
 import { apiError } from '@/lib/api'
 import { fetchPage, PAGE_SIZE } from '@/lib/list'
 import { compactVnd, formatDate, OPP_STAGE_LABEL, OPP_STAGE_TONE } from '@/lib/crm'
@@ -15,10 +15,12 @@ import {
   PageHeader, Button, Tag, Gauge, TableCard, Th, Td, RowMsg, Pagination,
 } from '@/components/ui'
 import { OpportunityForm } from '@/pages/crm/forms/OpportunityForm'
+import { PipelinePage } from '@/pages/crm/Pipeline'
 
 export function OpportunitiesPage() {
   const nav = useNavigate()
   const [page, setPage] = useState(1)
+  const [view, setView] = useState<'list' | 'board'>('list')   // Bảng / Kanban (Pipeline)
   const [formOpen, setFormOpen] = useState(false)
   const openCreate = () => setFormOpen(true)
 
@@ -34,11 +36,24 @@ export function OpportunitiesPage() {
     <div className="max-w-6xl">
       <PageHeader
         icon={<Target size={20} className="text-flame" />}
-        title="Opportunity"
+        title="Cơ hội"
         subtitle={data ? `${data.count} cơ hội` : undefined}
-        actions={<Button onClick={openCreate}><Plus size={14} /> Tạo Opportunity</Button>}
+        actions={<Button onClick={openCreate}><Plus size={14} /> Tạo cơ hội</Button>}
       />
 
+      {/* Chuyển xem: Bảng (danh sách) ↔ Kanban (Pipeline kéo-thả cho deal lớn) */}
+      <div className="flex gap-1.5 mb-4">
+        <button onClick={() => setView('list')}
+          className={`flex items-center gap-1.5 text-sm rounded-md px-3 py-1.5 border transition-colors ${view === 'list' ? 'border-flame text-flame bg-flame/10' : 'border-line text-txt-2 hover:text-txt'}`}>
+          <List size={14} /> Bảng
+        </button>
+        <button onClick={() => setView('board')}
+          className={`flex items-center gap-1.5 text-sm rounded-md px-3 py-1.5 border transition-colors ${view === 'board' ? 'border-flame text-flame bg-flame/10' : 'border-line text-txt-2 hover:text-txt'}`}>
+          <KanbanSquare size={14} /> Kanban (Pipeline)
+        </button>
+      </div>
+
+      {view === 'board' ? <PipelinePage embedded /> : (<>
       <TableCard>
         <thead>
           <tr className="border-b border-line">
@@ -70,6 +85,7 @@ export function OpportunitiesPage() {
           onPrev={() => setPage((p) => p - 1)} onNext={() => setPage((p) => p + 1)}
         />
       )}
+      </>)}
 
       <OpportunityForm open={formOpen} onClose={() => setFormOpen(false)} />
     </div>

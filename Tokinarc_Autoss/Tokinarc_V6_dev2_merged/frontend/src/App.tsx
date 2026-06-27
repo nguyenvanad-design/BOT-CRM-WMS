@@ -14,7 +14,6 @@ import { Customer360Page } from '@/pages/crm/Customer360'
 import { LeadsPage } from '@/pages/crm/Leads'
 import { OpportunitiesPage } from '@/pages/crm/Opportunities'
 import { OpportunityDetailPage } from '@/pages/crm/OpportunityDetail'
-import { PipelinePage } from '@/pages/crm/Pipeline'
 import { QuotesPage } from '@/pages/crm/Quotes'
 import { ReceivablesPage } from '@/pages/crm/Receivables'
 import { InvoicesPage } from '@/pages/crm/Invoices'
@@ -89,7 +88,7 @@ export function App() {
           <Route path="leads" element={<LeadsPage />} />
           <Route path="opportunities" element={<OpportunitiesPage />} />
           <Route path="opportunities/:id" element={<OpportunityDetailPage />} />
-          <Route path="pipeline" element={<PipelinePage />} />
+          <Route path="pipeline" element={<Navigate to="/opportunities" replace />} />
           <Route path="quotes" element={<QuotesPage />} />
           <Route path="receivables" element={<ReceivablesPage />} />
           <Route path="orders" element={<OrdersPage />} />

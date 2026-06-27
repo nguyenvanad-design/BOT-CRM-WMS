@@ -13,7 +13,7 @@ import { compactVnd, OPP_STAGE_LABEL, OPP_STAGE_TONE, OPP_STAGE_ORDER } from '@/
 import type { Opportunity, OppStage } from '@/lib/types'
 import { PageHeader, Tag } from '@/components/ui'
 
-export function PipelinePage() {
+export function PipelinePage({ embedded = false }: { embedded?: boolean }) {
   const qc = useQueryClient()
   const [dragId, setDragId] = useState<string | null>(null)
 
@@ -43,11 +43,11 @@ export function PipelinePage() {
     if (opp && opp.stage !== stage) move.mutate({ id: opp.id, stage })
   }
 
-  if (isLoading) return <Shell><p className="text-txt-2 text-sm">Đang tải…</p></Shell>
-  if (isError) return <Shell><p className="text-danger text-sm">Lỗi: {apiError(error)}</p></Shell>
+  if (isLoading) return <Shell embedded={embedded}><p className="text-txt-2 text-sm">Đang tải…</p></Shell>
+  if (isError) return <Shell embedded={embedded}><p className="text-danger text-sm">Lỗi: {apiError(error)}</p></Shell>
 
   return (
-    <Shell>
+    <Shell embedded={embedded}>
       <div className="flex gap-3 overflow-x-auto pb-2">
         {OPP_STAGE_ORDER.map((stage) => {
           const col = items.filter((o) => o.stage === stage)
@@ -93,14 +93,16 @@ export function PipelinePage() {
   )
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, embedded }: { children: React.ReactNode; embedded?: boolean }) {
   return (
     <div>
-      <PageHeader
-        icon={<Filter size={20} className="text-flame" />}
-        title="Pipeline"
-        subtitle="Kéo-thả deal để đổi giai đoạn"
-      />
+      {!embedded && (
+        <PageHeader
+          icon={<Filter size={20} className="text-flame" />}
+          title="Pipeline"
+          subtitle="Kéo-thả deal để đổi giai đoạn"
+        />
+      )}
       {children}
     </div>
   )
