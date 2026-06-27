@@ -68,6 +68,38 @@ def test_me_requires_auth(sale):
 
 
 @pytest.mark.django_db
+def test_change_password_requires_correct_old(sale):
+    c = APIClient()
+    c.force_authenticate(sale)
+    # MK cũ SAI → chặn 400, KHÔNG đổi
+    r = c.patch('/api/v1/auth/me/', {'password': 'newpass123', 'old_password': 'wrong'}, format='json')
+    assert r.status_code == 400
+    sale.refresh_from_db()
+    assert sale.check_password('secret12345')
+    # Thiếu old_password → chặn
+    r = c.patch('/api/v1/auth/me/', {'password': 'newpass123'}, format='json')
+    assert r.status_code == 400
+    sale.refresh_from_db()
+    assert sale.check_password('secret12345')
+    # MK cũ ĐÚNG → đổi OK
+    r = c.patch('/api/v1/auth/me/', {'password': 'newpass123', 'old_password': 'secret12345'}, format='json')
+    assert r.status_code == 200
+    sale.refresh_from_db()
+    assert sale.check_password('newpass123')
+
+
+@pytest.mark.django_db
+def test_edit_profile_without_password_needs_no_old(sale):
+    c = APIClient()
+    c.force_authenticate(sale)
+    # Sửa hồ sơ KHÔNG đổi MK → không cần old_password
+    r = c.patch('/api/v1/auth/me/', {'display_name': 'Minh 2'}, format='json')
+    assert r.status_code == 200
+    sale.refresh_from_db()
+    assert sale.display_name == 'Minh 2'
+
+
+@pytest.mark.django_db
 def test_set_role_admin_only(sale):
     admin = User.objects.create(username='ad', role=Role.ADMIN, is_staff=True, is_superuser=True)
     target = User.objects.create(username='t', role=Role.SALES)

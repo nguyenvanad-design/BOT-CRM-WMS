@@ -106,8 +106,12 @@ class MeView(APIView):
                 setattr(u, f, str(request.data[f]).strip())
         pwd = request.data.get('password')
         if pwd:
+            # Bắt buộc xác nhận MẬT KHẨU HIỆN TẠI (chống đổi lén khi máy bỏ ngỏ session).
+            old = str(request.data.get('old_password') or '')
+            if not u.check_password(old):
+                return Response({'detail': 'Mật khẩu hiện tại không đúng.'}, status=400)
             if len(str(pwd)) < 6:
-                return Response({'detail': 'Mật khẩu tối thiểu 6 ký tự.'}, status=400)
+                return Response({'detail': 'Mật khẩu mới tối thiểu 6 ký tự.'}, status=400)
             u.set_password(str(pwd))
         u.save()
         return Response(UserSerializer(u).data)

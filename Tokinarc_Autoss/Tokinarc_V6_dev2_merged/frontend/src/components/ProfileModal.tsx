@@ -20,21 +20,23 @@ export function ProfileModal({ open, onClose }: { open: boolean; onClose: () => 
   const [display, setDisplay] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [oldPw, setOldPw] = useState('')
   const [pw, setPw] = useState('')
 
   useEffect(() => {
     if (open && user) {
       setDisplay(user.display_name ?? ''); setPhone(user.phone ?? '')
-      setEmail(user.email ?? ''); setPw('')
+      setEmail(user.email ?? ''); setOldPw(''); setPw('')
     }
   }, [open, user])
 
   const save = useMutation({
     mutationFn: async () => {
+      if (pw.trim() && !oldPw.trim()) throw new Error('Nhập mật khẩu hiện tại để đổi mật khẩu.')
       const body: Record<string, unknown> = {
         display_name: display.trim(), phone: phone.trim(), email: email.trim(),
       }
-      if (pw.trim()) body.password = pw.trim()
+      if (pw.trim()) { body.password = pw.trim(); body.old_password = oldPw }
       return (await api.patch<User>('/auth/me/', body)).data
     },
     onSuccess: (u) => {
@@ -65,8 +67,17 @@ export function ProfileModal({ open, onClose }: { open: boolean; onClose: () => 
         <TextInput label="Điện thoại" value={phone} onChange={(e) => setPhone(e.target.value)} />
       </FieldRow>
       <TextInput label="Email" type="email" full value={email} onChange={(e) => setEmail(e.target.value)} />
-      <TextInput label="Mật khẩu mới (để trống = giữ nguyên)" type="password" full
-        value={pw} onChange={(e) => setPw(e.target.value)} />
+
+      <div className="mt-4 pt-3 border-t border-line">
+        <p className="text-[11px] uppercase tracking-wide text-txt-2 font-semibold mb-2">🔑 Đổi mật khẩu</p>
+        <p className="text-xs text-txt-2 mb-2">Để trống cả 2 ô nếu không đổi.</p>
+        <FieldRow>
+          <TextInput label="Mật khẩu hiện tại" type="password"
+            value={oldPw} onChange={(e) => setOldPw(e.target.value)} />
+          <TextInput label="Mật khẩu mới (≥ 6 ký tự)" type="password"
+            value={pw} onChange={(e) => setPw(e.target.value)} />
+        </FieldRow>
+      </div>
     </Modal>
   )
 }

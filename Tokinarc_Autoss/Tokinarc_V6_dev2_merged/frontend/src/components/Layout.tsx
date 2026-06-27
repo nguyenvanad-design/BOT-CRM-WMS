@@ -224,10 +224,13 @@ export function Layout() {
           </button>
           <div className="flex-1" />
           <NotificationBell />
-          <button onClick={() => setProfileOpen(true)} title="Tài khoản của tôi"
-            className="text-right leading-tight hover:opacity-80 transition-opacity">
-            <div className="text-sm font-medium truncate max-w-[40vw]">{user?.display_name || user?.username}</div>
-            <div className="text-xs text-txt-2">{ROLE_LABEL[user?.role ?? ''] ?? user?.role}</div>
+          <button onClick={() => setProfileOpen(true)} title="Tài khoản của tôi — đổi mật khẩu"
+            className="flex items-center gap-2 rounded-md px-2 py-1 border border-line hover:border-flame hover:bg-ink-3 transition-colors">
+            <div className="text-right leading-tight">
+              <div className="text-sm font-medium truncate max-w-[36vw]">{user?.display_name || user?.username}</div>
+              <div className="text-xs text-txt-2">{ROLE_LABEL[user?.role ?? ''] ?? user?.role}</div>
+            </div>
+            <UserCog size={16} className="text-txt-2 shrink-0" />
           </button>
           <button
             onClick={onLogout}
