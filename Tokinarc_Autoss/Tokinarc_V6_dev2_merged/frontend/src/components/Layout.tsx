@@ -13,7 +13,7 @@ import {
   ShoppingCart, Building, Undo2, CalendarDays, UserCog,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { useAuth, isWmsControl, isManager, isAdmin } from '@/lib/auth/store'
+import { useAuth, isWmsControl, isManager } from '@/lib/auth/store'
 import { ChatWidget } from '@/components/ChatWidget'
 import { NotificationBell } from '@/components/NotificationBell'
 import { ProfileModal } from '@/components/ProfileModal'
@@ -149,9 +149,9 @@ export function Layout() {
   const canCtrl = isWmsControl(role)
   const canMgr = isManager(role)
   const navVisible = (it: NavItem) => (!it.ctrl || canCtrl) && (!it.mgr || canMgr)
-  // Admin thấy MỌI tab; vai trò khác chỉ thấy tab của mình.
+  // Mỗi vai trò chỉ thấy "khu" của mình — admin CHỈ thấy tab Quản trị (tách bạch IT vs nghiệp vụ).
   const visibleModules = MODULES.filter((m) =>
-    isAdmin(user) ? true : (!!role && (m.roles as readonly string[]).includes(role)))
+    !!role && (m.roles as readonly string[]).includes(role))
   const pathKey = loc.pathname.startsWith('/wms') || loc.pathname.startsWith('/purchasing') ? 'wms'
     : loc.pathname.startsWith('/ceo') ? 'ceo'
     : loc.pathname.startsWith('/admin') ? 'admin' : 'crm'
@@ -242,7 +242,7 @@ export function Layout() {
         <main className="flex-1 min-h-0 p-4 sm:p-6 overflow-auto">
           <Outlet />
         </main>
-        <ChatWidget />
+        {role !== 'admin' && <ChatWidget />}   {/* admin = quản trị hệ thống, không dùng trợ lý nghiệp vụ */}
       </div>
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>

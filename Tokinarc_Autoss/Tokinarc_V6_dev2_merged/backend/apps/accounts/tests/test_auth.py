@@ -67,6 +67,32 @@ def test_me_requires_auth(sale):
     assert r.status_code == 200 and r.data['username'] == 'sale1'
 
 
+def test_admin_excluded_from_business_roles():
+    """Admin = quản trị hệ thống, KHÔNG nằm trong nhóm role nghiệp vụ nào."""
+    from apps.accounts.roles import (
+        MANAGER_ROLES, CEO_ROLES, SALES_ROLES, WAREHOUSE_ROLES,
+        WMS_OP_ROLES, WMS_CONTROL_ROLES, Role,
+    )
+    for s in (MANAGER_ROLES, CEO_ROLES, SALES_ROLES, WAREHOUSE_ROLES,
+              WMS_OP_ROLES, WMS_CONTROL_ROLES):
+        assert Role.ADMIN not in s
+    # nhưng vẫn là role hợp lệ + giữ quyền quản trị (IsSystemAdmin) — kiểm ở test khác
+    from apps.accounts.roles import ALL_ROLES
+    assert Role.ADMIN in ALL_ROLES
+
+
+@pytest.mark.django_db
+def test_admin_blocked_from_business_endpoints(db):
+    from apps.accounts.models import Role as R, User
+    admin = User.objects.create(username='ad2', role=R.ADMIN, is_staff=True, is_superuser=True)
+    c = APIClient(); c.force_authenticate(admin)
+    # CHẶN: tài chính/điều hành + tạo nghiệp vụ
+    assert c.get('/api/v1/analytics/payable/').status_code == 403
+    assert c.post('/api/v1/crm/customers/', {'name': 'X'}, format='json').status_code == 403
+    # GIỮ: quản trị người dùng
+    assert c.get('/api/v1/accounts/users/').status_code == 200
+
+
 @pytest.mark.django_db
 def test_change_password_requires_correct_old(sale):
     c = APIClient()

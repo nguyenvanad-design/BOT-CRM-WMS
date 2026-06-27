@@ -49,19 +49,19 @@ ROLE_HIERARCHY: dict[str, int] = {
 
 # CEO có toàn bộ quyền đọc/điều hành mức quản lý (đứng trên manager).
 # Lưu ý: wh_manager KHÔNG thuộc MANAGER_ROLES (không xem dashboard CEO/tài chính).
-MANAGER_ROLES: frozenset[str] = frozenset({Role.MANAGER, Role.CEO, Role.ADMIN})
+MANAGER_ROLES: frozenset[str] = frozenset({Role.MANAGER, Role.CEO})
 
 # Cấp duyệt 2 (báo giá vượt ngưỡng): chỉ CEO/admin.
-CEO_ROLES: frozenset[str] = frozenset({Role.CEO, Role.ADMIN})
+CEO_ROLES: frozenset[str] = frozenset({Role.CEO})
 
 # ─── WMS: 2 cấp thao tác ─────────────────────────────────────────────────────
 # OP: nghiệp vụ kho (nhập/xuất/chuyển/quét/đếm) — nhân viên kho + cấp trên.
 WMS_OP_ROLES: frozenset[str] = frozenset({
-    Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN})
+    Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO})
 # CONTROL: kiểm soát tồn (điều chỉnh tồn, duyệt chênh lệch kiểm kê, đặt FIFO/FEFO)
 # — KHÔNG cho nhân viên kho thường.
 WMS_CONTROL_ROLES: frozenset[str] = frozenset({
-    Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN})
+    Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO})
 
 
 def is_wms_control(user) -> bool:
@@ -71,19 +71,19 @@ def is_wms_control(user) -> bool:
 # ─── 3. Capabilities (write tools / read tools) ──────────────────────────────
 # Khớp với chatbot/tool_guardrail.py — cập nhật cùng lúc.
 WRITE_TOOL_REQUIREMENTS: dict[str, frozenset[str]] = {
-    'create_quote':           frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'approve_quote':          frozenset({Role.MANAGER, Role.CEO, Role.ADMIN}),   # duyệt cấp 1
-    'approve_quote_l2':       frozenset({Role.CEO, Role.ADMIN}),                 # duyệt cấp 2 (vượt ngưỡng)
-    'quote_to_contract':      frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'move_opportunity_stage': frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'create_visit':           frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'create_ticket':          frozenset({Role.SALES, Role.SERVICE, Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'sign_order':             frozenset({Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'ship_order':             frozenset({Role.SALES, Role.WAREHOUSE, Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'create_payment':         frozenset({Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'wms_pick_confirm':       frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN}),
-    'wms_adjust_inventory':   frozenset({Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN}),  # control: ko cho NV kho
-    'wms_transfer_stock':     frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO, Role.ADMIN}),
+    'create_quote':           frozenset({Role.SALES, Role.MANAGER, Role.CEO}),
+    'approve_quote':          frozenset({Role.MANAGER, Role.CEO}),   # duyệt cấp 1
+    'approve_quote_l2':       frozenset({Role.CEO}),                 # duyệt cấp 2 (vượt ngưỡng)
+    'quote_to_contract':      frozenset({Role.SALES, Role.MANAGER, Role.CEO}),
+    'move_opportunity_stage': frozenset({Role.SALES, Role.MANAGER, Role.CEO}),
+    'create_visit':           frozenset({Role.SALES, Role.MANAGER, Role.CEO}),
+    'create_ticket':          frozenset({Role.SALES, Role.SERVICE, Role.MANAGER, Role.CEO}),
+    'sign_order':             frozenset({Role.MANAGER, Role.CEO}),
+    'ship_order':             frozenset({Role.SALES, Role.WAREHOUSE, Role.MANAGER, Role.CEO}),
+    'create_payment':         frozenset({Role.MANAGER, Role.CEO}),
+    'wms_pick_confirm':       frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO}),
+    'wms_adjust_inventory':   frozenset({Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO}),  # control: ko cho NV kho
+    'wms_transfer_stock':     frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.MANAGER, Role.CEO}),
 }
 
 # Read tools mọi authenticated role đều dùng được (không enforce role riêng).
@@ -106,9 +106,9 @@ INTERNAL_ROLES: frozenset[str] = frozenset(ALL_ROLES - {Role.CUSTOMER})
 #  - Sales: sale + cấp trên (manager/CEO/admin) — manager giám sát mảng sales.
 #  - WMS:   warehouse + CEO/admin. Manager KHÔNG lập phiếu kho qua bot
 #           (việc kho để nhân viên kho; chỉ CEO/admin toàn quyền liên phòng ban).
-SALES_ROLES: frozenset[str] = frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN})
+SALES_ROLES: frozenset[str] = frozenset({Role.SALES, Role.MANAGER, Role.CEO})
 WAREHOUSE_ROLES: frozenset[str] = frozenset({
-    Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.CEO, Role.ADMIN})
+    Role.WAREHOUSE, Role.WAREHOUSE_MANAGER, Role.CEO})
 
 ASSISTANT_INTENT_ROLES: dict[str, frozenset[str]] = {
     # Đọc nghiệp vụ tài chính/điều hành — manager/CEO/admin

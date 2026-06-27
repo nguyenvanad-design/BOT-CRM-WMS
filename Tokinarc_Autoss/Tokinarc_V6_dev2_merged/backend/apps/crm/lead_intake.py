@@ -31,7 +31,7 @@ def _default_owner() -> User | None:
         if u:
             return u
     return (User.objects.filter(role=Role.SALES).order_by('id').first()
-            or User.objects.filter(role=Role.ADMIN).order_by('id').first()
+            or User.objects.filter(role=Role.CEO).order_by('id').first()
             or User.objects.order_by('id').first())
 
 

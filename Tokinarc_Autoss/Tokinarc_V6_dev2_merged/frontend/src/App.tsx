@@ -65,7 +65,8 @@ function RoleHome() {
   if (role === 'warehouse' || role === 'wh_manager') return <Navigate to="/wms/dashboard" replace />
   if (role === 'service') return <Navigate to="/tickets" replace />
   if (role === 'ceo') return <Navigate to="/ceo/overview" replace />
-  return <Navigate to="/dashboard" replace />   // sale, manager, admin → CRM
+  if (role === 'admin') return <Navigate to="/admin/users" replace />   // admin = quản trị hệ thống
+  return <Navigate to="/dashboard" replace />   // sale, manager → CRM
 }
 
 export function App() {

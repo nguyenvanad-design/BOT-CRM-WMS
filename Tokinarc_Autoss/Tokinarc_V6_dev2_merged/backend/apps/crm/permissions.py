@@ -14,7 +14,7 @@ from apps.accounts.roles import (
     is_manager, role_of,
 )
 
-WRITE_ROLES = frozenset({Role.SALES, Role.MANAGER, Role.CEO, Role.ADMIN})
+WRITE_ROLES = frozenset({Role.SALES, Role.MANAGER, Role.CEO})   # admin = quản trị hệ thống, không làm nghiệp vụ
 
 
 class IsAuthenticatedWithRole(permissions.BasePermission):
