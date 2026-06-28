@@ -193,6 +193,96 @@ _INTENT_SCHEMA = (
 )
 
 
+# ─── HYBRID PLANNER: Gemini function-calling (role-scoped) ───────────────────
+# Mỗi "tool" = 1 intent (khớp dispatch trong answer()). Planner chỉ được khai báo
+# các tool mà ROLE được phép → vừa chính xác hơn, vừa enforce quyền + ít token.
+_FC_SYSTEM = (
+    "Bạn là bộ định tuyến cho TRỢ LÝ NỘI BỘ Tokinarc (phân phối phụ tùng hàn). "
+    "Đọc yêu cầu của nhân viên (kèm hội thoại trước nếu có) và GỌI ĐÚNG MỘT công cụ phù hợp, "
+    "trích đủ tham số. Nếu câu mới là phần trả lời/bổ sung cho yêu cầu đang dở (vd cung cấp tên "
+    "khách hàng cho báo giá), hãy gọi đúng công cụ của yêu cầu đó. Câu hỏi tra cứu kỹ thuật/sản "
+    "phẩm/thông số chung → gọi lookup_doc. Nếu không khớp công cụ nào (chào hỏi, ngoài phạm vi) → "
+    "KHÔNG gọi công cụ nào."
+)
+
+
+def _p(props, required=None):
+    return {"type": "object", "properties": props, "required": required or []}
+
+
+# (name khớp intent trong answer(); params khớp key intent.get(...) bên dispatch)
+_FC_DECLS = [
+    {"name": "revenue", "description": "Xem doanh thu/doanh số theo kỳ.",
+     "parameters": _p({"period": {"type": "string", "description": "today | month | year"}})},
+    {"name": "customer_debt", "description": "Công nợ phải thu của 1 khách hàng.",
+     "parameters": _p({"customer_name": {"type": "string"}})},
+    {"name": "top_customers", "description": "Top khách hàng theo doanh số.", "parameters": _p({})},
+    {"name": "dormant_customers", "description": "Khách hàng lâu không mua (ngủ đông, nguy cơ rời).",
+     "parameters": _p({"months": {"type": "integer", "description": "số tháng, mặc định 3"}})},
+    {"name": "ceo_report", "description": "Báo cáo/tóm tắt điều hành toàn công ty.", "parameters": _p({})},
+    {"name": "evaluate_plan", "description": "Đánh giá kế hoạch/pipeline/dự báo kinh doanh.", "parameters": _p({})},
+    {"name": "reorder_suggestion", "description": "Đề nghị NHẬP HÀNG: mã sắp thiếu theo tốc độ bán.", "parameters": _p({})},
+    {"name": "slow_moving", "description": "Hàng BÁN CHẬM/CHẾT: tồn lâu không xuất, vốn chôn.", "parameters": _p({})},
+    {"name": "create_lead", "description": "Tạo lead (khách tiềm năng) mới.",
+     "parameters": _p({"lead_name": {"type": "string"}, "company": {"type": "string"},
+                       "phone": {"type": "string"}}, ["lead_name"])},
+    {"name": "create_quote", "description": "Lập báo giá nháp cho 1 khách hàng (đã là Customer).",
+     "parameters": _p({"customer_name": {"type": "string"}}, ["customer_name"])},
+    {"name": "create_contract", "description": "Soạn hợp đồng từ 1 báo giá đã có.",
+     "parameters": _p({"customer_name": {"type": "string"}, "quote_code": {"type": "string"}})},
+    {"name": "wms_inbound", "description": "Lập phiếu NHẬP KHO.", "parameters": _p({})},
+    {"name": "wms_outbound", "description": "Lập phiếu XUẤT KHO/giao hàng.",
+     "parameters": _p({"customer_name": {"type": "string"}})},
+    {"name": "customer_orders", "description": "Đơn hàng/lịch sử mua của 1 khách hàng.",
+     "parameters": _p({"customer_name": {"type": "string"}})},
+    {"name": "stock_lookup", "description": "Tra tồn kho 1 mã ở các kho.", "parameters": _p({})},
+    {"name": "procedure", "description": "Hướng dẫn lắp đặt/sửa chữa/thông số kỹ thuật (liner, tip, torque...).", "parameters": _p({})},
+    {"name": "compatibility", "description": "Phụ kiện đi kèm/tương thích với 1 sản phẩm.", "parameters": _p({})},
+    {"name": "consumable_set", "description": "Bộ vật tư tiêu hao cho 1 model súng hàn.", "parameters": _p({})},
+    {"name": "lookup_doc", "description": "Tra cứu tài liệu/sản phẩm/thông số Tokin chung.", "parameters": _p({})},
+]
+
+
+def _fc_planner(question: str, role: str, history=None) -> dict | None:
+    """Planner function-calling: Gemini chọn 1 tool (chỉ trong các tool role được phép)
+    + trích tham số → trả intent dict cho dispatch. None nếu không gọi tool / lỗi (→ fallback)."""
+    from apps.accounts.roles import can_use_intent
+    key = _gemini_key()
+    if not key:
+        return None
+    decls = [d for d in _FC_DECLS if can_use_intent(role, d['name'])]
+    if not decls:
+        return None
+    model = _gemini_model()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    contents = []
+    for h in (history or [])[-6:]:
+        r = 'user' if (h.get('role') or '').lower() in ('user', 'human') else 'model'
+        t = (h.get('text') or '').strip().replace("\n", " ")[:300]
+        if t:
+            contents.append({"role": r, "parts": [{"text": t}]})
+    contents.append({"role": "user", "parts": [{"text": question}]})
+    body = json.dumps({
+        "system_instruction": {"parts": [{"text": _FC_SYSTEM}]},
+        "contents": contents,
+        "tools": [{"functionDeclarations": decls}],
+        "toolConfig": {"functionCallingConfig": {"mode": "AUTO"}},
+        "generationConfig": {"temperature": 0, "maxOutputTokens": 256,
+                             "thinkingConfig": {"thinkingBudget": 0}},
+    }).encode('utf-8')
+    try:
+        req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read())
+        for p in data['candidates'][0]['content']['parts']:
+            fc = p.get('functionCall')
+            if fc and fc.get('name'):
+                return {'intent': fc['name'], **(fc.get('args') or {})}
+        return None
+    except (urllib.error.URLError, KeyError, IndexError, ValueError, TimeoutError):
+        return None
+
+
 def _format_history(history) -> str:
     """Vài lượt hội thoại gần nhất → để Gemini hiểu câu nối tiếp (vd trả lời tên KH
     cho yêu cầu báo giá đang dở)."""
@@ -731,15 +821,19 @@ def answer(question: str, user, history=None) -> str:
     history giúp hiểu câu nối tiếp (vd trả lời tên KH cho yêu cầu báo giá đang dở)."""
     from apps.accounts.roles import can_use_intent, role_of
 
-    intent = _llm_intent(question, history) or {}
-    kw = _keyword_intent(question)
-    # Ưu tiên từ khóa cho intent VẬN HÀNH KHO (LLM hay nhầm "bán chậm" → dormant_customers).
-    if kw.get('intent') in ('reorder_suggestion', 'slow_moving'):
-        intent = kw
-    elif intent.get('intent', 'unknown') == 'unknown':
-        intent = kw
-    name = intent.get('intent', 'unknown')
     role = role_of(user)
+    # HYBRID: 1) PLANNER function-calling (role-scoped, trích xuất chắc).
+    intent = _fc_planner(question, role, history)
+    # 2) Fallback intent-JSON + từ khóa nếu planner không gọi tool (lỗi/ngoài phạm vi).
+    if not intent:
+        intent = _llm_intent(question, history) or {}
+        kw = _keyword_intent(question)
+        # Ưu tiên từ khóa cho intent VẬN HÀNH KHO (LLM hay nhầm "bán chậm" → dormant_customers).
+        if kw.get('intent') in ('reorder_suggestion', 'slow_moving'):
+            intent = kw
+        elif intent.get('intent', 'unknown') == 'unknown':
+            intent = kw
+    name = intent.get('intent', 'unknown')
 
     # Gate role theo intent (trừ unknown — chỉ trả hướng dẫn)
     if name != 'unknown' and not can_use_intent(role, name):
