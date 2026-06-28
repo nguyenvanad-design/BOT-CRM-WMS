@@ -1069,6 +1069,20 @@ class OrchestratorV2REST:
                    "latency_ms": int((time.time()-t0)*1000)}
             return
 
+        # STOCK fast-path: hỏi tồn có mã → gọi thẳng API tồn, bỏ vòng lặp tool.
+        sp = _stock_fastpath(query)
+        if sp is not None:
+            log.info(f"[stream] STOCK fast-path: {query[:50]!r}")
+            ctx = self._ss.get_or_create(session_id)
+            if ctx:
+                self._ss.update(ctx, "LOOKUP", {}, ["check_stock"], query=query, response_text=sp)
+            yield {"type": "tool_done", "tool": "check_stock", "ms": 0}
+            for word in sp.split(" "):
+                yield {"type": "text", "chunk": word + " "}
+            yield {"type": "done", "intent": "LOOKUP", "tools_called": ["check_stock"],
+                   "latency_ms": int((time.time()-t0)*1000)}
+            return
+
         ctx      = self._ss.get_or_create(session_id)
         contents = _build_history(ctx, history)
         contents.append({"role": "user", "parts": [{"text": query}]})
