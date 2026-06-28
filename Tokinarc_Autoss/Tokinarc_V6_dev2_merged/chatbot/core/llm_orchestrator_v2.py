@@ -220,6 +220,43 @@ def _error_response(exc, tools_called, tool_results, t0, model, prefix="Orch"):
 # History builder
 # ══════════════════════════════════════════════════════════════════════════════
 
+# ─── STOCK FAST-PATH: hỏi tồn có mã → gọi THẲNG API tồn (bỏ vòng lặp tool) ───
+_STOCK_KW = ("còn hàng", "con hang", "còn không", "con khong", "còn ko", "con ko",
+             "tồn", "ton kho", "hết hàng", "het hang", "có sẵn", "co san",
+             "available", "in stock", "còn bao nhiêu", "con bao nhieu", "còn hàng không")
+_STOCK_CODE_RE = re.compile(r"\b\d{4,7}\b|\b[A-Za-z]{2,}\d{2,}[A-Za-z0-9]*\b")
+
+
+def _stock_fastpath(query: str) -> Optional[str]:
+    """Câu hỏi TỒN có mã rõ → gọi thẳng API tồn (1 call, ~0.3s) thay vì để planner
+    chạy vòng lặp nhiều tool (~15s). TỰ KIỂM CHỨNG: chỉ short-circuit khi API trả
+    dữ liệu thật cho mã (mã sai/không cấu hình → trả None → đi luồng planner bình thường)."""
+    if not query:
+        return None
+    ql = query.lower()
+    if not any(k in ql for k in _STOCK_KW):
+        return None
+    codes = _STOCK_CODE_RE.findall(query)
+    if not codes:
+        return None
+    try:
+        from core.stock_query import fetch_stock
+        data = fetch_stock(codes[:5])
+    except Exception:
+        return None
+    lines = []
+    for c in codes[:5]:
+        d = data.get(c)
+        if not d:
+            continue
+        nm = f" — {d['name']}" if d.get("name") else ""
+        lines.append(f"• Mã `{c}`{nm}: **{d.get('label', 'Liên hệ để biết')}**")
+    if not lines:
+        return None
+    return ("Dạ tình trạng hàng bên em:\n" + "\n".join(lines)
+            + "\n\nAnh/chị cần em tư vấn thêm hay đặt hàng không ạ?")
+
+
 def _build_history(ctx, client_history: Optional[List[dict]]) -> List[dict]:
     if client_history:
         return list(client_history)
@@ -625,6 +662,16 @@ class OrchestratorV2:
                     self._ss.update(ctx,"OUT_OF_SCOPE",{},[],query=query,response_text=oos)
                 return OrchestratorResponse(text=oos, intent="OUT_OF_SCOPE",
                     success=True, latency_ms=int((time.time()-t0)*1000), model="oos_fast_path")
+
+            # STOCK fast-path: hỏi tồn có mã → gọi thẳng API tồn, bỏ vòng lặp tool (15s → ~0.3s).
+            sp = _stock_fastpath(query)
+            if sp is not None:
+                log.info(f"[OrchestratorV2] STOCK fast-path: {query[:50]!r}")
+                ctx = self._ss.get_or_create(session_id)
+                if ctx:
+                    self._ss.update(ctx, "LOOKUP", {}, ["check_stock"], query=query, response_text=sp)
+                return OrchestratorResponse(text=sp, intent="LOOKUP", tools_called=["check_stock"],
+                    success=True, latency_ms=int((time.time()-t0)*1000), model="stock_fast_path")
 
         ctx = self._ss.get_or_create(session_id)
         base_history = _build_history(ctx, history)
@@ -1380,6 +1427,16 @@ class OrchestratorV2REST:
                     self._ss.update(ctx,"OUT_OF_SCOPE",{},[],query=query,response_text=oos)
                 return OrchestratorResponse(text=oos, intent="OUT_OF_SCOPE",
                     success=True, latency_ms=int((time.time()-t0)*1000), model="oos_fast_path")
+
+            # STOCK fast-path: hỏi tồn có mã → gọi thẳng API tồn, bỏ vòng lặp tool (~15s → ~0.3s).
+            sp = _stock_fastpath(query)
+            if sp is not None:
+                log.info(f"[OrchestratorV2REST] STOCK fast-path: {query[:50]!r}")
+                ctx = self._ss.get_or_create(session_id)
+                if ctx:
+                    self._ss.update(ctx, "LOOKUP", {}, ["check_stock"], query=query, response_text=sp)
+                return OrchestratorResponse(text=sp, intent="LOOKUP", tools_called=["check_stock"],
+                    success=True, latency_ms=int((time.time()-t0)*1000), model="stock_fast_path")
 
         ctx      = self._ss.get_or_create(session_id)
         contents = _build_history(ctx, history)

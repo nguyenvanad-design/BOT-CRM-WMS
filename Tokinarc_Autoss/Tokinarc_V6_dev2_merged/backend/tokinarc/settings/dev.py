@@ -8,6 +8,10 @@ DEBUG = True
 SECRET_KEY = 'dev-only-not-for-production-do-not-use-in-prod'
 ALLOWED_HOSTS = ['*']
 
+# Khóa cho endpoint hẹp (lead-intake + stock-availability cho bot khách). Dev mặc định
+# trùng chatbot/.env (CRM_INTAKE_KEY) để bot khách tra tồn được mà không cần export tay.
+LEAD_INTAKE_KEY = os.getenv('LEAD_INTAKE_KEY', 'dev-lead-intake-key')
+
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.postgresql',
