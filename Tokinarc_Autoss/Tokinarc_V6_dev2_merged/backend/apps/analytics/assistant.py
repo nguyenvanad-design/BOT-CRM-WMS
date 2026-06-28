@@ -179,8 +179,10 @@ _FC_SYSTEM = (
     "Đọc yêu cầu của nhân viên (kèm hội thoại trước nếu có) và GỌI ĐÚNG MỘT công cụ phù hợp, "
     "trích đủ tham số. Nếu câu mới là phần trả lời/bổ sung cho yêu cầu đang dở (vd cung cấp tên "
     "khách hàng cho báo giá), hãy gọi đúng công cụ của yêu cầu đó. Câu hỏi tra cứu kỹ thuật/sản "
-    "phẩm/thông số chung → gọi lookup_doc. Nếu không khớp công cụ nào (chào hỏi, ngoài phạm vi) → "
-    "KHÔNG gọi công cụ nào.\n"
+    "phẩm/thông số chung → gọi lookup_doc. Hỏi CÁCH DÙNG PHẦN MỀM (vào menu nào, bấm gì, thao tác "
+    "trên app — vd 'làm sao tạo báo giá', 'vào đâu xem công nợ', 'cách duyệt') → software_help (KHÁC "
+    "procedure: procedure là kỹ thuật lắp/sửa SÚNG HÀN thật). Nếu không khớp công cụ nào (chào hỏi, "
+    "ngoài phạm vi) → KHÔNG gọi công cụ nào.\n"
     "QUY TẮC GHI (create_*, wms_*):\n"
     "- LẦN ĐẦU nhận lệnh → confirm=false (bot XEM TRƯỚC, chưa ghi).\n"
     "- Nếu câu mới là SỬA/BỔ SUNG cho hành động ghi ĐANG CHỜ ở lượt trước (vd \"sửa công ty thành "
@@ -234,6 +236,9 @@ _FC_DECLS = [
     {"name": "compatibility", "description": "Phụ kiện đi kèm/tương thích với 1 sản phẩm.", "parameters": _p({})},
     {"name": "consumable_set", "description": "Bộ vật tư tiêu hao cho 1 model súng hàn.", "parameters": _p({})},
     {"name": "lookup_doc", "description": "Tra cứu tài liệu/sản phẩm/thông số Tokin chung.", "parameters": _p({})},
+    {"name": "software_help", "description": "Hướng dẫn DÙNG PHẦN MỀM: vào menu nào, bấm gì, các bước "
+     "thao tác trên app (khi nhân viên quên/chưa biết cách làm trên phần mềm). KHÁC procedure (procedure "
+     "là kỹ thuật lắp/sửa SÚNG HÀN thật).", "parameters": _p({})},
 ]
 
 
@@ -277,6 +282,28 @@ def _fc_planner(question: str, role: str, history=None) -> dict | None:
         return None
 
 
+def _gemini_generate(system: str, prompt: str, max_tokens: int = 700) -> str | None:
+    """Gọi Gemini sinh văn bản (system + prompt) → text. None nếu lỗi/không có key."""
+    key = _gemini_key()
+    if not key:
+        return None
+    model = _gemini_model()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    body = json.dumps({
+        "system_instruction": {"parts": [{"text": system}]},
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": max_tokens,
+                             "thinkingConfig": {"thinkingBudget": 0}},
+    }).encode('utf-8')
+    try:
+        req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read())
+        return data['candidates'][0]['content']['parts'][0]['text'].strip()
+    except (urllib.error.URLError, KeyError, IndexError, ValueError, TimeoutError):
+        return None
+
+
 def _keyword_intent(q: str) -> dict:
     ql = q.lower()
     if any(k in ql for k in ('tạo lead', 'tao lead', 'thêm lead', 'them lead', 'lead mới',
@@ -308,6 +335,13 @@ def _keyword_intent(q: str) -> dict:
         return {'intent': 'slow_moving'}
     if any(k in ql for k in ('tồn', 'ton kho', 'còn hàng', 'con hang', 'kho còn', 'số lượng tồn')):
         return {'intent': 'stock_lookup'}
+    # Hướng dẫn dùng PHẦN MỀM (đặt TRƯỚC procedure vì cùng có "hướng dẫn/cách").
+    if any(k in ql for k in ('làm sao', 'lam sao', 'làm thế nào', 'lam the nao', 'vào đâu', 'vao dau',
+                             'ở đâu', 'o dau', 'vào menu', 'bấm vào đâu', 'bam vao dau', 'thao tác trên',
+                             'dùng phần mềm', 'dung phan mem', 'sử dụng phần mềm', 'su dung phan mem',
+                             'hướng dẫn sử dụng', 'huong dan su dung', 'cách tạo', 'cach tao', 'cách lập',
+                             'cach lap', 'cách duyệt', 'cach duyet', 'cách xem', 'cach xem')):
+        return {'intent': 'software_help'}
     if any(k in ql for k in ('cách thay', 'cach thay', 'cách lắp', 'cach lap', 'quy trình', 'quy trinh',
                              'lắp đặt', 'lap dat', 'hướng dẫn', 'huong dan', 'torque', 'lực vặn', 'luc van',
                              'cắt liner', 'cat liner', 'chiều dài liner', 'inner tube', 'độ nhô', 'do nho',
@@ -653,6 +687,50 @@ def tool_wms_outbound(user, items: list[dict], customer_name: str = '', confirm:
 
 
 # ── Tool đọc: tra cứu tài liệu/sản phẩm Tokin (catalog) ─────────────────────
+_SOFTWARE_GUIDE = (
+    "Bạn là trợ lý HƯỚNG DẪN SỬ DỤNG phần mềm Tokinarc (ERP phân phối phụ tùng hàn của AUTOSS) cho "
+    "NHÂN VIÊN NỘI BỘ quên/chưa biết thao tác. Trả lời NGẮN, theo TỪNG BƯỚC, chỉ rõ VÀO MENU NÀO / "
+    "BẤM GÌ. Tiếng Việt thân thiện. Hỏi ngoài phần mềm → nói chưa rõ.\n\n"
+    "MENU (mỗi vai trò thấy khu của mình):\n"
+    "• CRM (sale/quản lý KD): Dashboard · Khách hàng · Leads · Cơ hội (nút Bảng/Kanban) · Báo giá · "
+    "Đơn bán · Hợp đồng · Hóa đơn(MISA) · Công nợ · Nhật ký của tôi · Visit Report · Hoạt động · "
+    "Service Ticket · Bảo hành · Trả hàng(RMA) · Sản phẩm.\n"
+    "• WMS (NV kho/QL kho): Dashboard kho · Mua hàng(Đơn mua, Nhà cung cấp) · Nhập kho · Xuất kho · "
+    "Tồn kho · Truy xuất(Serial/Lô) · Lịch sử kho · Kiểm kê & Tra cứu · Kho & vị trí · Bản đồ kho.\n"
+    "• CEO (giám đốc/quản lý): Cần duyệt · Dashboard điều hành · AI Summary · Doanh thu · Công nợ · "
+    "Forecast · Tồn kho · Tuổi tồn & Hàng chậm.\n"
+    "• Admin: Người dùng & quyền. Góc trên phải mọi màn: 'Tài khoản của tôi' (đổi mật khẩu), 'Đăng xuất'.\n\n"
+    "LUỒNG CHÍNH:\n"
+    "• Bán hàng: Leads → mở lead bấm 'Chuyển + Tạo cơ hội' (thành Khách hàng + Cơ hội) → Báo giá "
+    "(Tạo BG, nhập mã+SL, giá tự gợi theo phân khúc KH) → gửi & trình duyệt → quản lý/CEO vào 'Cần "
+    "duyệt' duyệt → bấm 'Tạo đơn' → Đơn bán → kho vào Xuất kho (soạn/pick → Giao) → Hóa đơn(MISA) → "
+    "Công nợ thu tiền.\n"
+    "• Mua/nhập: Mua hàng → Đơn mua (Tạo, chọn NCC) → quản lý/CEO duyệt → 'Hàng đang về' theo dõi → "
+    "hàng tới: Nhập kho (tạo phiếu hoặc từ đơn mua → quét/nhận → Xác nhận để cộng tồn).\n"
+    "• Kiểm kê: Kiểm kê & Tra cứu → tab Kiểm kê → 'Phiên mới' → quét đếm (mã+ô+số) → xem chênh lệch → "
+    "QL kho bấm 'Áp dụng' để chỉnh tồn. Tab Tra cứu: quét/nhập mã xem SP + tồn.\n"
+    "• Đổi mật khẩu: bấm TÊN MÌNH góc trên phải → 'Tài khoản của tôi' → nhập MK hiện tại + MK mới.\n"
+    "• Báo giá cho khách đang là LEAD: phải Chuyển lead → khách hàng trước.\n"
+    "• Khung chat 'Trợ lý nội bộ' (dưới màn): gõ thẳng lệnh để LÀM nhanh — vd 'tạo lead ...', "
+    "'làm báo giá cho ... 5 x 001002', 'nên nhập hàng gì', 'doanh thu tháng này' (tùy quyền)."
+)
+
+
+def tool_software_help(question: str, role: str = '') -> str:
+    """Hướng dẫn DÙNG PHẦN MỀM (vào menu nào, bấm gì) cho nhân viên quên/chưa biết."""
+    role_hint = f"(Người hỏi vai trò: {role}) " if role else ""
+    out = _gemini_generate(_SOFTWARE_GUIDE, role_hint + "Câu hỏi: " + question)
+    if out:
+        return out
+    return ("Em hướng dẫn dùng phần mềm. Vài nơi hay dùng:\n"
+            "• **Báo giá**: menu Báo giá → Tạo BG (nhập mã + số lượng).\n"
+            "• **Lead → khách**: Leads → mở lead → 'Chuyển + Tạo cơ hội'.\n"
+            "• **Nhập/Xuất kho**: menu Nhập kho / Xuất kho.\n"
+            "• **Kiểm kê**: Kiểm kê & Tra cứu → Phiên mới → quét đếm → Áp dụng.\n"
+            "• **Đổi mật khẩu**: bấm tên mình góc phải → Tài khoản của tôi.\n"
+            "Anh/chị muốn hướng dẫn thao tác cụ thể nào ạ?")
+
+
 def tool_lookup_doc(question: str) -> str:
     """Tra cứu phụ tùng/súng hàn Tokin từ catalog (mã hoặc tên). Đọc DB thật."""
     from apps.catalog.models import Part
@@ -887,11 +965,14 @@ def answer(question: str, user, history=None) -> str:
         return tool_consumable_set(question)
     if name == 'lookup_doc':
         return tool_lookup_doc(question)
+    if name == 'software_help':
+        return tool_software_help(question, role)
 
     return ("Em là **trợ lý nội bộ Tokinarc**. Tùy quyền của anh/chị, em có thể: "
             "**làm báo giá** (VD: \"làm báo giá cho Công ty ABC: 5 x 001002\"), "
             "xem **doanh thu**/**công nợ**/**top khách hàng**, **báo cáo CEO**, "
-            "**đánh giá kế hoạch** (pipeline). Anh/chị nói rõ yêu cầu nhé.")
+            "**đánh giá kế hoạch** (pipeline), hoặc **hướng dẫn dùng phần mềm** "
+            "(VD: \"làm sao tạo báo giá\", \"vào đâu xem công nợ\"). Anh/chị nói rõ yêu cầu nhé.")
 
 
 # ── Executive summary (tổng hợp liên phòng ban) ─────────────────────────────

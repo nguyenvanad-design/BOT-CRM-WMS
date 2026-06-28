@@ -135,6 +135,7 @@ ASSISTANT_INTENT_ROLES: dict[str, frozenset[str]] = {
     # Đọc sâu
     'customer_orders':    SALES_ROLES,      # đơn/công nợ của 1 KH
     'stock_lookup':       INTERNAL_ROLES,   # tồn của 1 mã ở các kho
+    'software_help':      INTERNAL_ROLES,   # hướng dẫn dùng phần mềm — mọi nhân viên
 }
 
 
