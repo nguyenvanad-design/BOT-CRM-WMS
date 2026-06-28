@@ -202,12 +202,26 @@ _FC_SYSTEM = (
     "trích đủ tham số. Nếu câu mới là phần trả lời/bổ sung cho yêu cầu đang dở (vd cung cấp tên "
     "khách hàng cho báo giá), hãy gọi đúng công cụ của yêu cầu đó. Câu hỏi tra cứu kỹ thuật/sản "
     "phẩm/thông số chung → gọi lookup_doc. Nếu không khớp công cụ nào (chào hỏi, ngoài phạm vi) → "
-    "KHÔNG gọi công cụ nào."
+    "KHÔNG gọi công cụ nào.\n"
+    "QUY TẮC GHI (create_*, wms_*):\n"
+    "- LẦN ĐẦU nhận lệnh → confirm=false (bot XEM TRƯỚC, chưa ghi).\n"
+    "- Nếu câu mới là SỬA/BỔ SUNG cho hành động ghi ĐANG CHỜ ở lượt trước (vd \"sửa công ty thành "
+    "XYZ\", \"sđt là 090…\", \"đổi tên thành …\", \"thêm 5 x 002001\") → GỌI LẠI ĐÚNG công cụ đó với "
+    "confirm=false, CẬP NHẬT tham số được sửa và GIỮ các tham số còn lại lấy từ bản xem trước trong "
+    "hội thoại.\n"
+    "- CHỈ đặt confirm=true KHI lượt trước đã có bản xem trước VÀ câu mới là xác nhận (ok/đồng ý/ghi "
+    "đi); khi đó gọi LẠI đúng công cụ và GIỮ NGUYÊN mọi tham số đã chốt."
 )
 
 
 def _p(props, required=None):
     return {"type": "object", "properties": props, "required": required or []}
+
+
+# Cờ xác nhận GHI: planner chỉ đặt true KHI nhân viên đã xem trước + nói ok/đồng ý.
+_CONFIRM = {"type": "boolean",
+            "description": "true CHỈ KHI nhân viên đã xem trước và xác nhận (ok/đồng ý/ghi đi) "
+                           "trong hội thoại; lần ĐẦU nhận lệnh hoặc đang sửa = false"}
 
 
 # (name khớp intent trong answer(); params khớp key intent.get(...) bên dispatch)
@@ -225,14 +239,16 @@ _FC_DECLS = [
     {"name": "slow_moving", "description": "Hàng BÁN CHẬM/CHẾT: tồn lâu không xuất, vốn chôn.", "parameters": _p({})},
     {"name": "create_lead", "description": "Tạo lead (khách tiềm năng) mới.",
      "parameters": _p({"lead_name": {"type": "string"}, "company": {"type": "string"},
-                       "phone": {"type": "string"}}, ["lead_name"])},
+                       "phone": {"type": "string"}, "confirm": _CONFIRM}, ["lead_name"])},
     {"name": "create_quote", "description": "Lập báo giá nháp cho 1 khách hàng (đã là Customer).",
-     "parameters": _p({"customer_name": {"type": "string"}}, ["customer_name"])},
+     "parameters": _p({"customer_name": {"type": "string"}, "confirm": _CONFIRM}, ["customer_name"])},
     {"name": "create_contract", "description": "Soạn hợp đồng từ 1 báo giá đã có.",
-     "parameters": _p({"customer_name": {"type": "string"}, "quote_code": {"type": "string"}})},
-    {"name": "wms_inbound", "description": "Lập phiếu NHẬP KHO.", "parameters": _p({})},
+     "parameters": _p({"customer_name": {"type": "string"}, "quote_code": {"type": "string"},
+                       "confirm": _CONFIRM})},
+    {"name": "wms_inbound", "description": "Lập phiếu NHẬP KHO.",
+     "parameters": _p({"confirm": _CONFIRM})},
     {"name": "wms_outbound", "description": "Lập phiếu XUẤT KHO/giao hàng.",
-     "parameters": _p({"customer_name": {"type": "string"}})},
+     "parameters": _p({"customer_name": {"type": "string"}, "confirm": _CONFIRM})},
     {"name": "customer_orders", "description": "Đơn hàng/lịch sử mua của 1 khách hàng.",
      "parameters": _p({"customer_name": {"type": "string"}})},
     {"name": "stock_lookup", "description": "Tra tồn kho 1 mã ở các kho.", "parameters": _p({})},
@@ -464,14 +480,26 @@ def _parse_phone(q: str) -> str:
     return m.group(0) if m else ''
 
 
-def tool_create_lead(user, name: str, company: str = '', phone: str = '', source: str = 'chatbot') -> str:
-    """Tạo LEAD (khách tiềm năng) vào CRM, owner = người dùng."""
+def _confirm_hint() -> str:
+    """Nhắc xác nhận trước khi GHI (mọi phòng ban: ok mới ghi, sai thì sửa)."""
+    return "\n\n→ Đúng chưa? Gõ **ok** để ghi · hoặc **sửa** (vd \"tên là …\", \"sđt 090…\", \"5 x 002001\")."
+
+
+def tool_create_lead(user, name: str, company: str = '', phone: str = '',
+                     source: str = 'chatbot', confirm: bool = False) -> str:
+    """Tạo LEAD (khách tiềm năng) vào CRM, owner = người dùng. Xem trước → ok mới ghi."""
     from apps.crm.models import Lead
     name = (name or '').strip()
     if not name:
         return ('Cần tên khách tiềm năng. VD: "tạo lead Nguyễn Văn A, công ty ABC, 0901234567".')
-    lead = Lead.objects.create(name=name, company=(company or '').strip(),
-                               phone=(phone or '').strip(), source=source or 'chatbot',
+    company = (company or '').strip()
+    phone = (phone or '').strip()
+    if not confirm:
+        return (f"📝 **Xem trước — sắp tạo lead:**\n"
+                f"• Tên: **{name}**\n• Công ty: {company or '—'}\n• SĐT: {phone or '—'}"
+                + _confirm_hint())
+    lead = Lead.objects.create(name=name, company=company,
+                               phone=phone, source=source or 'chatbot',
                                owner=user)
     extra = []
     if lead.company: extra.append(lead.company)
@@ -481,8 +509,8 @@ def tool_create_lead(user, name: str, company: str = '', phone: str = '', source
             f"Vào menu Leads để theo dõi / chuyển thành khách hàng.")
 
 
-def tool_create_quote(user, customer_name: str, items: list[dict]) -> str:
-    """Tạo BÁO GIÁ NHÁP (draft) cho user, lấy giá từ catalog. Cần duyệt sau."""
+def tool_create_quote(user, customer_name: str, items: list[dict], confirm: bool = False) -> str:
+    """Tạo BÁO GIÁ NHÁP (draft) cho user, lấy giá từ catalog. Xem trước → ok mới ghi."""
     from apps.catalog.models import Part
     from apps.crm.models import Quote, QuoteLine
     from apps.crm.views_ext import _next_code
@@ -509,7 +537,7 @@ def tool_create_quote(user, customer_name: str, items: list[dict]) -> str:
         return (f"Đã xác định KH **{cust.name}** nhưng chưa có dòng hàng. "
                 f"Nêu mã phụ tùng + số lượng, VD: \"5 x 001002, 10 cái 002001\".")
 
-    quote = Quote.objects.create(customer=cust, owner=user, code=_next_code(Quote, 'BG'))
+    # Phân giải mã + giá TRƯỚC (để xem trước); chưa ghi gì.
     found, missing = [], []
     for it in items:
         pn = str(it.get('part_no', '')).strip()
@@ -519,16 +547,23 @@ def tool_create_quote(user, customer_name: str, items: list[dict]) -> str:
         part = Part.objects.filter(tokin_part_no=pn).first()
         if not part:
             missing.append(pn); continue
-        QuoteLine.objects.create(
-            quote=quote, part_no=pn, part_name=part.display_name_vi or '',
-            qty=qty, unit_price_vnd=part.price_vnd or 0,
-        )
         found.append((pn, part.display_name_vi or pn, qty, int(part.price_vnd or 0)))
 
     if not found:
-        quote.delete()
         return (f"Không tạo được báo giá: không tìm thấy mã phụ tùng nào hợp lệ "
                 f"({', '.join(missing)}).")
+
+    rows = '\n'.join(f"• {n} (`{pn}`) × {qty} = {_vnd(p * qty)}" for pn, n, qty, p in found)
+    total = sum(p * qty for pn, n, qty, p in found)
+    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
+    if not confirm:
+        return (f"📝 **Xem trước — sắp tạo báo giá cho {cust.name}:**\n{rows}\n"
+                f"**Tổng tạm: {_vnd(total)}**{note}" + _confirm_hint())
+
+    # ĐÃ XÁC NHẬN → ghi.
+    quote = Quote.objects.create(customer=cust, owner=user, code=_next_code(Quote, 'BG'))
+    for pn, n, qty, p in found:
+        QuoteLine.objects.create(quote=quote, part_no=pn, part_name=n, qty=qty, unit_price_vnd=p)
     quote.recompute_total()
     quote.save(update_fields=['total_vnd'])
     # Báo manager+: báo giá tạo qua bot cũng cần duyệt (đồng bộ với đường API).
@@ -538,16 +573,14 @@ def tool_create_quote(user, customer_name: str, items: list[dict]) -> str:
                  f"Báo giá {quote.code} ({cust.name}) cần duyệt.",
                  link='/ceo/approvals', exclude_user=user)
 
-    rows = '\n'.join(f"• {n} (`{pn}`) × {qty} = {_vnd(p * qty)}" for pn, n, qty, p in found)
-    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
     lvl = " — giá trị lớn, sẽ cần CEO duyệt cấp 2" if quote.requires_l2() else ""
     return (f"✅ Đã tạo **báo giá nháp {quote.code}** cho **{cust.name}**:\n{rows}\n"
             f"**Tổng: {_vnd(quote.total_vnd)}**{lvl}.{note}\n"
             f"Báo giá đang ở trạng thái *Nháp* — vào màn Báo giá để gửi & trình duyệt.")
 
 
-def tool_create_contract(user, customer_name: str, quote_code: str) -> str:
-    """Soạn HỢP ĐỒNG NHÁP: ưu tiên từ báo giá đã duyệt (quote_code), hoặc cho 1 KH."""
+def tool_create_contract(user, customer_name: str, quote_code: str, confirm: bool = False) -> str:
+    """Soạn HỢP ĐỒNG NHÁP: ưu tiên từ báo giá đã duyệt (quote_code), hoặc cho 1 KH. Xem trước → ok mới ghi."""
     from apps.accounts.roles import is_manager
     from apps.crm.contracts_activities import _next_contract_code
     from apps.crm.models import Contract, Quote, QuoteStatus
@@ -563,6 +596,10 @@ def tool_create_contract(user, customer_name: str, quote_code: str) -> str:
         if quote.status not in (QuoteStatus.APPROVED, QuoteStatus.CONVERTED):
             return (f"Báo giá {quote.code} đang *{quote.get_status_display()}* — "
                     f"phải **đã duyệt** mới soạn hợp đồng được.")
+        if not confirm:
+            return (f"📝 **Xem trước — sắp soạn hợp đồng** từ báo giá **{quote.code}** "
+                    f"cho **{quote.customer.name}**, giá trị **{_vnd(quote.total_vnd)}**."
+                    + _confirm_hint())
         ct = Contract.objects.create(
             customer=quote.customer, quote=quote, owner=user,
             code=_next_contract_code(), value_vnd=quote.total_vnd,
@@ -579,6 +616,9 @@ def tool_create_contract(user, customer_name: str, quote_code: str) -> str:
     cust = _resolve_customer(customer_name, user)
     if not cust:
         return f"Không tìm thấy khách hàng khớp \"{customer_name}\" (trong phạm vi của bạn)."
+    if not confirm:
+        return (f"📝 **Xem trước — sắp soạn hợp đồng** cho **{cust.name}** (chưa có giá trị)."
+                + _confirm_hint())
     ct = Contract.objects.create(customer=cust, owner=user, code=_next_contract_code(),
                                  title=f"Hợp đồng — {cust.name}")
     return (f"✅ Đã soạn **hợp đồng nháp {ct.code}** cho **{cust.name}** (chưa có giá trị).\n"
@@ -620,8 +660,8 @@ def _resolve_part_lines(items: list[dict]):
     return found, missing
 
 
-def tool_wms_inbound(user, items: list[dict]) -> str:
-    """Lập PHIẾU NHẬP KHO nháp (draft). Nhận hàng thực hiện sau ở màn Nhập kho."""
+def tool_wms_inbound(user, items: list[dict], confirm: bool = False) -> str:
+    """Lập PHIẾU NHẬP KHO nháp (draft). Xem trước → ok mới ghi."""
     from apps.wms.models import InboundLine, InboundOrder
     wh = _default_warehouse()
     if not wh:
@@ -631,18 +671,21 @@ def tool_wms_inbound(user, items: list[dict]) -> str:
     found, missing = _resolve_part_lines(items)
     if not found:
         return f"Không lập được phiếu nhập: không có mã phụ tùng hợp lệ ({', '.join(missing)})."
+    rows = '\n'.join(f"• {n} (`{pn}`) × {qty}" for pn, n, qty, _ in found)
+    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
+    if not confirm:
+        return (f"📝 **Xem trước — sắp lập phiếu NHẬP kho** (kho {wh.code}):\n{rows}{note}"
+                + _confirm_hint())
     order = InboundOrder.objects.create(code=_next_wms_code(InboundOrder, 'IN'),
                                         warehouse=wh, created_by=user, updated_by=user)
     for _pn, _n, qty, part in found:
         InboundLine.objects.create(inbound=order, part=part, qty_expected=qty)
-    rows = '\n'.join(f"• {n} (`{pn}`) × {qty}" for pn, n, qty, _ in found)
-    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
     return (f"✅ Đã lập **phiếu nhập kho nháp {order.code}** (kho {wh.code}):\n{rows}{note}\n"
             f"Vào màn Nhập kho để xác nhận nhận hàng (cộng tồn).")
 
 
-def tool_wms_outbound(user, items: list[dict], customer_name: str = '') -> str:
-    """Lập PHIẾU XUẤT KHO nháp (draft). Soạn & giao hàng thực hiện sau ở màn Xuất kho."""
+def tool_wms_outbound(user, items: list[dict], customer_name: str = '', confirm: bool = False) -> str:
+    """Lập PHIẾU XUẤT KHO nháp (draft). Xem trước → ok mới ghi."""
     from apps.wms.models import OutboundLine, OutboundOrder
     wh = _default_warehouse()
     if not wh:
@@ -653,14 +696,17 @@ def tool_wms_outbound(user, items: list[dict], customer_name: str = '') -> str:
     if not found:
         return f"Không lập được phiếu xuất: không có mã phụ tùng hợp lệ ({', '.join(missing)})."
     cust = _resolve_customer(customer_name, user) if customer_name else None
+    rows = '\n'.join(f"• {n} (`{pn}`) × {qty}" for pn, n, qty, _ in found)
+    who = f" cho **{cust.name}**" if cust else ""
+    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
+    if not confirm:
+        return (f"📝 **Xem trước — sắp lập phiếu XUẤT kho** (kho {wh.code}){who}:\n{rows}{note}"
+                + _confirm_hint())
     order = OutboundOrder.objects.create(code=_next_wms_code(OutboundOrder, 'OUT'),
                                          warehouse=wh, customer=cust,
                                          created_by=user, updated_by=user)
     for _pn, _n, qty, part in found:
         OutboundLine.objects.create(outbound=order, part=part, qty_ordered=qty)
-    rows = '\n'.join(f"• {n} (`{pn}`) × {qty}" for pn, n, qty, _ in found)
-    who = f" cho **{cust.name}**" if cust else ""
-    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
     return (f"✅ Đã lập **phiếu xuất kho nháp {order.code}** (kho {wh.code}){who}:\n{rows}{note}\n"
             f"Vào màn Xuất kho để soạn hàng (pick) & giao.")
 
@@ -840,6 +886,13 @@ def answer(question: str, user, history=None) -> str:
         return (f"Xin lỗi, vai trò **{role}** không có quyền dùng chức năng này. "
                 f"Liên hệ quản lý nếu cần.")
 
+    # XÁC NHẬN trước khi GHI: chỉ ghi khi planner báo confirm + câu có từ khẳng định
+    # (2 lớp → không bao giờ ghi lần đầu / khi chưa "ok"). Fallback luôn = xem trước.
+    _AFFIRM = ('ok', 'oke', 'okay', 'đồng ý', 'dong y', 'xác nhận', 'xac nhan', 'ghi đi',
+               'ghi di', 'tạo đi', 'tao di', 'lập luôn', 'lap luon', 'đúng rồi', 'dung roi',
+               'chốt', 'chot', 'yes', 'duyệt')
+    _conf = bool(intent.get('confirm')) and any(a in question.lower() for a in _AFFIRM)
+
     if name == 'revenue':
         return tool_revenue(intent.get('period') or 'month')
     if name == 'customer_debt':
@@ -871,23 +924,23 @@ def answer(question: str, user, history=None) -> str:
                 raw = raw.replace(mcom.group(0), '')
             raw = re.sub(r'\b0\d{8,10}\b', '', raw.replace('.', ''))
             lead_name = raw.strip(' ,:-') or ''
-        return tool_create_lead(user, lead_name, company, phone)
+        return tool_create_lead(user, lead_name, company, phone, confirm=_conf)
     if name == 'create_quote':
         cust_name = intent.get('customer_name') or _detect_customer(question)
         items = intent.get('items') or _parse_items(question)
-        return tool_create_quote(user, cust_name, items)
+        return tool_create_quote(user, cust_name, items, confirm=_conf)
     if name == 'create_contract':
         cust_name = intent.get('customer_name') or _detect_customer(question)
         m = re.search(r'\bBG[-\s]?(\d+)\b', question, re.I)
         quote_code = f"BG-{int(m.group(1)):04d}" if m else (intent.get('quote_code') or '')
-        return tool_create_contract(user, cust_name, quote_code)
+        return tool_create_contract(user, cust_name, quote_code, confirm=_conf)
     if name == 'wms_inbound':
         items = intent.get('items') or _parse_items(question)
-        return tool_wms_inbound(user, items)
+        return tool_wms_inbound(user, items, confirm=_conf)
     if name == 'wms_outbound':
         items = intent.get('items') or _parse_items(question)
         cust_name = intent.get('customer_name') or _detect_customer(question)
-        return tool_wms_outbound(user, items, cust_name)
+        return tool_wms_outbound(user, items, cust_name, confirm=_conf)
     if name == 'customer_orders':
         cust_name = intent.get('customer_name') or _detect_customer(question)
         return tool_customer_orders(user, cust_name)

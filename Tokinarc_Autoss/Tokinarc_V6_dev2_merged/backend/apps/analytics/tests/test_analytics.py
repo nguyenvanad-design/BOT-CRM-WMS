@@ -100,12 +100,17 @@ def test_assistant_sale_create_quote(sale, seeded, no_llm):
     Part.objects.create(tokin_part_no='001002', category='tip',
                         display_name_vi='Bép hàn 0.8', price_vnd=120000)
 
+    from apps.analytics.assistant import tool_create_quote
     c = APIClient(); c.force_authenticate(sale)
     r = c.post('/api/v1/analytics/assistant/query/',
                {'query': 'làm báo giá cho ACME: 2 x 001002'}, format='json')
     assert r.status_code == 200
-    assert 'báo giá nháp' in r.data['text'].lower()
+    # Thiết kế mới: XEM TRƯỚC trước, CHƯA ghi.
+    assert 'xem trước' in r.data['text'].lower()
+    assert Quote.objects.filter(owner=sale).count() == 0
 
+    # Xác nhận (confirm=True) → ghi thật.
+    tool_create_quote(sale, 'ACME', [{'part_no': '001002', 'qty': 2}], confirm=True)
     q = Quote.objects.get(owner=sale)
     assert q.status == 'draft'
     assert q.customer.name == 'ACME'
@@ -116,12 +121,16 @@ def test_assistant_sale_create_quote(sale, seeded, no_llm):
 @pytest.mark.django_db
 def test_assistant_sale_create_lead(sale, no_llm):
     """Sale nhờ bot tạo lead → ghi Lead THẬT vào CRM, owner = sale."""
+    from apps.analytics.assistant import tool_create_lead
     from apps.crm.models import Lead
     c = APIClient(); c.force_authenticate(sale)
     r = c.post('/api/v1/analytics/assistant/query/',
                {'query': 'tạo lead Nguyễn Văn A, công ty ABC, 0901234567'}, format='json')
     assert r.status_code == 200
-    assert 'lead' in r.data['text'].lower()
+    assert 'xem trước' in r.data['text'].lower()        # XEM TRƯỚC, chưa ghi
+    assert Lead.objects.filter(owner=sale).count() == 0
+    # Xác nhận → ghi thật.
+    tool_create_lead(sale, 'Nguyễn Văn A', 'ABC', '0901234567', confirm=True)
     lead = Lead.objects.get(owner=sale)
     assert lead.name == 'Nguyễn Văn A'
     assert lead.company == 'ABC'
@@ -176,11 +185,15 @@ def test_assistant_create_contract_from_approved_quote(sale, seeded, no_llm):
     from apps.crm.models import Contract, Quote, QuoteStatus
     q = Quote.objects.create(code='BG-0007', customer=seeded, owner=sale,
                              total_vnd=5_000_000, status=QuoteStatus.APPROVED)
+    from apps.analytics.assistant import tool_create_contract
     c = APIClient(); c.force_authenticate(sale)
     r = c.post('/api/v1/analytics/assistant/query/',
                {'query': 'soạn hợp đồng từ báo giá BG-0007'}, format='json')
     assert r.status_code == 200
-    assert 'hợp đồng nháp' in r.data['text'].lower()
+    assert 'xem trước' in r.data['text'].lower()        # XEM TRƯỚC, chưa ghi
+    assert Contract.objects.filter(quote=q).count() == 0
+    # Xác nhận → ghi thật.
+    tool_create_contract(sale, '', 'BG-0007', confirm=True)
     ct = Contract.objects.get(quote=q)
     assert ct.status == 'draft'
     assert int(ct.value_vnd) == 5_000_000
@@ -208,12 +221,16 @@ def part1(db):
 @pytest.mark.django_db
 def test_assistant_warehouse_inbound(warehouse_user, wh, part1, no_llm):
     """Nhân viên kho lập phiếu NHẬP kho qua bot → tạo InboundOrder nháp THẬT."""
+    from apps.analytics.assistant import tool_wms_inbound
     from apps.wms.models import InboundOrder
     c = APIClient(); c.force_authenticate(warehouse_user)
     r = c.post('/api/v1/analytics/assistant/query/',
                {'query': 'nhập kho 100 x 001002'}, format='json')
     assert r.status_code == 200
-    assert 'phiếu nhập kho nháp' in r.data['text'].lower()
+    assert 'xem trước' in r.data['text'].lower()        # XEM TRƯỚC, chưa ghi
+    assert InboundOrder.objects.count() == 0
+    # Xác nhận → ghi thật.
+    tool_wms_inbound(warehouse_user, [{'part_no': '001002', 'qty': 100}], confirm=True)
     o = InboundOrder.objects.get()
     assert o.status == 'draft' and o.warehouse == wh
     assert o.lines.count() == 1 and o.lines.first().qty_expected == 100
@@ -222,12 +239,16 @@ def test_assistant_warehouse_inbound(warehouse_user, wh, part1, no_llm):
 @pytest.mark.django_db
 def test_assistant_warehouse_outbound(warehouse_user, wh, part1, no_llm):
     """Nhân viên kho lập phiếu XUẤT kho qua bot → tạo OutboundOrder nháp THẬT."""
+    from apps.analytics.assistant import tool_wms_outbound
     from apps.wms.models import OutboundOrder
     c = APIClient(); c.force_authenticate(warehouse_user)
     r = c.post('/api/v1/analytics/assistant/query/',
                {'query': 'xuất kho 20 x 001002'}, format='json')
     assert r.status_code == 200
-    assert 'phiếu xuất kho nháp' in r.data['text'].lower()
+    assert 'xem trước' in r.data['text'].lower()        # XEM TRƯỚC, chưa ghi
+    assert OutboundOrder.objects.count() == 0
+    # Xác nhận → ghi thật.
+    tool_wms_outbound(warehouse_user, [{'part_no': '001002', 'qty': 20}], confirm=True)
     o = OutboundOrder.objects.get()
     assert o.status == 'draft'
     assert o.lines.first().qty_ordered == 20
@@ -300,11 +321,12 @@ def test_assistant_manager_blocked_wms(manager, wh, part1, no_llm):
 def test_assistant_ceo_can_do_everything(ceo, wh, part1, seeded, no_llm):
     """CEO toàn quyền: lập phiếu kho + báo cáo điều hành + làm báo giá."""
     c = APIClient(); c.force_authenticate(ceo)
-    assert 'phiếu nhập kho nháp' in c.post('/api/v1/analytics/assistant/query/',
+    # Lệnh ghi → XEM TRƯỚC; đọc (báo cáo) → nội dung ngay.
+    assert 'xem trước' in c.post('/api/v1/analytics/assistant/query/',
         {'query': 'nhập kho 5 x 001002'}, format='json').data['text'].lower()
     assert 'Tổng quan' in c.post('/api/v1/analytics/assistant/query/',
         {'query': 'báo cáo điều hành'}, format='json').data['text']
-    assert 'báo giá nháp' in c.post('/api/v1/analytics/assistant/query/',
+    assert 'xem trước' in c.post('/api/v1/analytics/assistant/query/',
         {'query': 'làm báo giá cho ACME: 2 x 001002'}, format='json').data['text'].lower()
 
 
