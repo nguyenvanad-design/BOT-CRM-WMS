@@ -88,6 +88,9 @@ export function ChatWidget() {
     const query = q.trim()
     if ((!query && !file) || busy) return
     const sentFile = file
+    // Lịch sử gần đây (bỏ lỗi) → bot hiểu ngữ cảnh câu nối tiếp (vd trả lời tên KH cho báo giá dở).
+    const history = msgs.filter((m) => m.role !== 'error')
+      .map((m) => ({ role: m.role as 'user' | 'bot', text: m.text }))
     setInput(''); setFile(null)
     setExpanded(true)
     setMsgs((m) => [...m, {
@@ -96,7 +99,7 @@ export function ChatWidget() {
     }])
     setBusy(true)
     try {
-      const r = await askAssistant(query || 'Phân tích file này giúp tôi', sentFile)
+      const r = await askAssistant(query || 'Phân tích file này giúp tôi', sentFile, history)
       setMsgs((m) => [...m, { role: 'bot', text: r.text }])
     } catch (e) {
       setMsgs((m) => [...m, { role: 'error', text: apiError(e) }])

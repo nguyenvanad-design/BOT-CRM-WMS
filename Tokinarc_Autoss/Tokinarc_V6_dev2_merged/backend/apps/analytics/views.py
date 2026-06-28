@@ -100,7 +100,10 @@ class AssistantQueryView(APIView):
             return Response({'text': text, 'mode': 'attachment', 'success': True})
         if not q:
             return Response({'detail': 'Thiếu câu hỏi.'}, status=400)
-        return Response({'text': assistant.answer(q, request.user), 'success': True})
+        history = request.data.get('history')
+        if not isinstance(history, list):
+            history = None
+        return Response({'text': assistant.answer(q, request.user, history), 'success': True})
 
 
 class AssistantSummaryView(_Base):

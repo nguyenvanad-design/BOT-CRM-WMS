@@ -193,14 +193,34 @@ _INTENT_SCHEMA = (
 )
 
 
-def _llm_intent(question: str) -> dict | None:
+def _format_history(history) -> str:
+    """Vài lượt hội thoại gần nhất → để Gemini hiểu câu nối tiếp (vd trả lời tên KH
+    cho yêu cầu báo giá đang dở)."""
+    if not history:
+        return ""
+    lines = []
+    for h in history[-6:]:
+        role = (h.get('role') or '').lower()
+        who = "Nhân viên" if role in ('user', 'human') else "Trợ lý"
+        txt = (h.get('text') or '').strip().replace("\n", " ")[:300]
+        if txt:
+            lines.append(f"{who}: {txt}")
+    if not lines:
+        return ""
+    return ("HỘI THOẠI GẦN ĐÂY (dùng để hiểu NGỮ CẢNH câu mới — nếu câu mới là phần "
+            "trả lời/bổ sung cho yêu cầu đang dở, hãy giữ intent của yêu cầu đó và "
+            "điền thêm thông tin):\n" + "\n".join(lines) + "\n\n")
+
+
+def _llm_intent(question: str, history=None) -> dict | None:
     key = _gemini_key()
     if not key:
         return None
     model = _gemini_model()
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    prompt = _INTENT_SCHEMA + "\n\n" + _format_history(history) + "Câu MỚI cần phân loại: " + question
     body = json.dumps({
-        "contents": [{"parts": [{"text": _INTENT_SCHEMA + "\n\nCâu hỏi: " + question}]}],
+        "contents": [{"parts": [{"text": prompt}]}],
         # thinkingBudget=0: tắt "thinking" của gemini-2.5 (nếu không sẽ ăn hết token output)
         "generationConfig": {"temperature": 0, "maxOutputTokens": 256,
                              "thinkingConfig": {"thinkingBudget": 0}},
@@ -381,6 +401,18 @@ def tool_create_quote(user, customer_name: str, items: list[dict]) -> str:
         return "Cần cho biết **tên khách hàng** để lập báo giá. VD: \"làm báo giá cho Công ty ABC: 5 x 001002\"."
     cust = _resolve_customer(customer_name, user)
     if not cust:
+        # Có thể là LEAD chưa chuyển thành khách hàng → gợi chuyển (báo giá cần Customer).
+        from apps.accounts.roles import is_manager
+        from apps.crm.models import Lead
+        lead_qs = Lead.objects.filter(status__in=['new', 'contacted', 'qualified'])
+        if not is_manager(user):
+            lead_qs = lead_qs.filter(owner=user)
+        lead = lead_qs.filter(name__icontains=customer_name.strip()).first() \
+            or lead_qs.filter(company__icontains=customer_name.strip()).first()
+        if lead:
+            return (f"\"{lead.name}\" đang là **lead** (chưa phải khách hàng) → cần **chuyển thành khách hàng** "
+                    f"trước khi báo giá. Vào **Leads → {lead.name} → Chuyển + Tạo cơ hội**, rồi quay lại nói "
+                    f"\"làm báo giá cho {lead.company or lead.name}\".")
         return (f"Không tìm thấy khách hàng khớp \"{customer_name}\" (trong phạm vi của bạn). "
                 f"Kiểm tra lại tên/mã KH.")
     if not items:
@@ -694,11 +726,12 @@ def tool_consumable_set(question: str) -> str:
     return f"**{sset.display_name_vi}**:\n" + "\n".join(lines)
 
 
-def answer(question: str, user) -> str:
-    """Điểm vào chính: yêu cầu + user → trả lời/hành động (role-gated, data thật)."""
+def answer(question: str, user, history=None) -> str:
+    """Điểm vào chính: yêu cầu + user (+ lịch sử hội thoại) → trả lời/hành động.
+    history giúp hiểu câu nối tiếp (vd trả lời tên KH cho yêu cầu báo giá đang dở)."""
     from apps.accounts.roles import can_use_intent, role_of
 
-    intent = _llm_intent(question) or {}
+    intent = _llm_intent(question, history) or {}
     kw = _keyword_intent(question)
     # Ưu tiên từ khóa cho intent VẬN HÀNH KHO (LLM hay nhầm "bán chậm" → dormant_customers).
     if kw.get('intent') in ('reorder_suggestion', 'slow_moving'):
