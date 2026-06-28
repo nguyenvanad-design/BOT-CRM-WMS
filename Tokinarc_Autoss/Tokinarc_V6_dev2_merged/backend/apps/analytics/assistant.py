@@ -171,28 +171,6 @@ def _gemini_model() -> str:
             or 'gemini-2.5-flash')
 
 
-_INTENT_SCHEMA = (
-    "Bạn là bộ phân loại ý định cho trợ lý NỘI BỘ công ty phân phối súng hàn Tokinarc. "
-    "Cho câu hỏi/yêu cầu tiếng Việt, TRẢ VỀ DUY NHẤT một JSON, không giải thích, dạng: "
-    '{"intent": "...", "customer_name": "", "period": "", "months": 3, '
-    '"items": [{"part_no": "", "qty": 1}], "quote_code": ""}. '
-    "intent ∈ [revenue, customer_debt, top_customers, dormant_customers, ceo_report, "
-    "evaluate_plan, create_lead, create_quote, create_contract, wms_inbound, wms_outbound, "
-    "lookup_doc, stock_lookup, procedure, compatibility, consumable_set, unknown]. "
-    "procedure = hỏi cách thay/lắp/quy trình/torque/chiều dài liner/sửa lỗi súng hàn. "
-    "compatibility = hỏi đồ đi kèm/tương thích/dùng chung với 1 mã. "
-    "consumable_set = hỏi bộ vật tư tiêu hao cho 1 súng hàn. "
-    "Khi tạo lead: lead_name (tên người), company (công ty), phone (SĐT). "
-    "period ∈ [today, month, year, all] (chỉ cho revenue). "
-    "customer_name: tên KH nếu liên quan 1 KH cụ thể (công nợ / báo giá / hợp đồng). "
-    "months: số tháng cho dormant_customers (mặc định 3). "
-    "items: danh sách mã phụ tùng + số lượng khi LÀM BÁO GIÁ (create_quote); "
-    "rỗng nếu không phải báo giá. "
-    "ceo_report = xin tóm tắt điều hành; evaluate_plan = đánh giá kế hoạch/pipeline. "
-    "quote_code: mã báo giá (VD BG-0007) khi SOẠN HỢP ĐỒNG từ báo giá đã duyệt."
-)
-
-
 # ─── HYBRID PLANNER: Gemini function-calling (role-scoped) ───────────────────
 # Mỗi "tool" = 1 intent (khớp dispatch trong answer()). Planner chỉ được khai báo
 # các tool mà ROLE được phép → vừa chính xác hơn, vừa enforce quyền + ít token.
@@ -295,49 +273,6 @@ def _fc_planner(question: str, role: str, history=None) -> dict | None:
             if fc and fc.get('name'):
                 return {'intent': fc['name'], **(fc.get('args') or {})}
         return None
-    except (urllib.error.URLError, KeyError, IndexError, ValueError, TimeoutError):
-        return None
-
-
-def _format_history(history) -> str:
-    """Vài lượt hội thoại gần nhất → để Gemini hiểu câu nối tiếp (vd trả lời tên KH
-    cho yêu cầu báo giá đang dở)."""
-    if not history:
-        return ""
-    lines = []
-    for h in history[-6:]:
-        role = (h.get('role') or '').lower()
-        who = "Nhân viên" if role in ('user', 'human') else "Trợ lý"
-        txt = (h.get('text') or '').strip().replace("\n", " ")[:300]
-        if txt:
-            lines.append(f"{who}: {txt}")
-    if not lines:
-        return ""
-    return ("HỘI THOẠI GẦN ĐÂY (dùng để hiểu NGỮ CẢNH câu mới — nếu câu mới là phần "
-            "trả lời/bổ sung cho yêu cầu đang dở, hãy giữ intent của yêu cầu đó và "
-            "điền thêm thông tin):\n" + "\n".join(lines) + "\n\n")
-
-
-def _llm_intent(question: str, history=None) -> dict | None:
-    key = _gemini_key()
-    if not key:
-        return None
-    model = _gemini_model()
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-    prompt = _INTENT_SCHEMA + "\n\n" + _format_history(history) + "Câu MỚI cần phân loại: " + question
-    body = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        # thinkingBudget=0: tắt "thinking" của gemini-2.5 (nếu không sẽ ăn hết token output)
-        "generationConfig": {"temperature": 0, "maxOutputTokens": 256,
-                             "thinkingConfig": {"thinkingBudget": 0}},
-    }).encode('utf-8')
-    try:
-        req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            data = json.loads(resp.read())
-        text = data['candidates'][0]['content']['parts'][0]['text']
-        m = re.search(r'\{.*\}', text, re.S)
-        return json.loads(m.group(0)) if m else None
     except (urllib.error.URLError, KeyError, IndexError, ValueError, TimeoutError):
         return None
 
@@ -485,6 +420,19 @@ def _confirm_hint() -> str:
     return "\n\n→ Đúng chưa? Gõ **ok** để ghi · hoặc **sửa** (vd \"tên là …\", \"sđt 090…\", \"5 x 002001\")."
 
 
+def _preview(title: str, body: str = '') -> str:
+    """Khung 'xem trước' dùng chung cho mọi tool ghi → nhân sự ok mới ghi."""
+    head = f"📝 **Xem trước — {title}**"
+    return (f"{head}:\n{body}" if body else head) + _confirm_hint()
+
+
+def _part_rows(found, missing) -> tuple[str, str]:
+    """(rows, note) cho danh sách dòng hàng phiếu nhập/xuất."""
+    rows = '\n'.join(f"• {n} (`{pn}`) × {qty}" for pn, n, qty, _ in found)
+    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
+    return rows, note
+
+
 def tool_create_lead(user, name: str, company: str = '', phone: str = '',
                      source: str = 'chatbot', confirm: bool = False) -> str:
     """Tạo LEAD (khách tiềm năng) vào CRM, owner = người dùng. Xem trước → ok mới ghi."""
@@ -495,9 +443,8 @@ def tool_create_lead(user, name: str, company: str = '', phone: str = '',
     company = (company or '').strip()
     phone = (phone or '').strip()
     if not confirm:
-        return (f"📝 **Xem trước — sắp tạo lead:**\n"
-                f"• Tên: **{name}**\n• Công ty: {company or '—'}\n• SĐT: {phone or '—'}"
-                + _confirm_hint())
+        return _preview("sắp tạo lead",
+                        f"• Tên: **{name}**\n• Công ty: {company or '—'}\n• SĐT: {phone or '—'}")
     lead = Lead.objects.create(name=name, company=company,
                                phone=phone, source=source or 'chatbot',
                                owner=user)
@@ -557,8 +504,8 @@ def tool_create_quote(user, customer_name: str, items: list[dict], confirm: bool
     total = sum(p * qty for pn, n, qty, p in found)
     note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
     if not confirm:
-        return (f"📝 **Xem trước — sắp tạo báo giá cho {cust.name}:**\n{rows}\n"
-                f"**Tổng tạm: {_vnd(total)}**{note}" + _confirm_hint())
+        return _preview(f"sắp tạo báo giá cho {cust.name}",
+                        f"{rows}\n**Tổng tạm: {_vnd(total)}**{note}")
 
     # ĐÃ XÁC NHẬN → ghi.
     quote = Quote.objects.create(customer=cust, owner=user, code=_next_code(Quote, 'BG'))
@@ -597,9 +544,8 @@ def tool_create_contract(user, customer_name: str, quote_code: str, confirm: boo
             return (f"Báo giá {quote.code} đang *{quote.get_status_display()}* — "
                     f"phải **đã duyệt** mới soạn hợp đồng được.")
         if not confirm:
-            return (f"📝 **Xem trước — sắp soạn hợp đồng** từ báo giá **{quote.code}** "
-                    f"cho **{quote.customer.name}**, giá trị **{_vnd(quote.total_vnd)}**."
-                    + _confirm_hint())
+            return _preview(f"sắp soạn hợp đồng từ báo giá **{quote.code}** "
+                            f"cho **{quote.customer.name}**, giá trị **{_vnd(quote.total_vnd)}**")
         ct = Contract.objects.create(
             customer=quote.customer, quote=quote, owner=user,
             code=_next_contract_code(), value_vnd=quote.total_vnd,
@@ -617,8 +563,7 @@ def tool_create_contract(user, customer_name: str, quote_code: str, confirm: boo
     if not cust:
         return f"Không tìm thấy khách hàng khớp \"{customer_name}\" (trong phạm vi của bạn)."
     if not confirm:
-        return (f"📝 **Xem trước — sắp soạn hợp đồng** cho **{cust.name}** (chưa có giá trị)."
-                + _confirm_hint())
+        return _preview(f"sắp soạn hợp đồng cho **{cust.name}** (chưa có giá trị)")
     ct = Contract.objects.create(customer=cust, owner=user, code=_next_contract_code(),
                                  title=f"Hợp đồng — {cust.name}")
     return (f"✅ Đã soạn **hợp đồng nháp {ct.code}** cho **{cust.name}** (chưa có giá trị).\n"
@@ -671,11 +616,9 @@ def tool_wms_inbound(user, items: list[dict], confirm: bool = False) -> str:
     found, missing = _resolve_part_lines(items)
     if not found:
         return f"Không lập được phiếu nhập: không có mã phụ tùng hợp lệ ({', '.join(missing)})."
-    rows = '\n'.join(f"• {n} (`{pn}`) × {qty}" for pn, n, qty, _ in found)
-    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
+    rows, note = _part_rows(found, missing)
     if not confirm:
-        return (f"📝 **Xem trước — sắp lập phiếu NHẬP kho** (kho {wh.code}):\n{rows}{note}"
-                + _confirm_hint())
+        return _preview(f"sắp lập phiếu NHẬP kho (kho {wh.code})", f"{rows}{note}")
     order = InboundOrder.objects.create(code=_next_wms_code(InboundOrder, 'IN'),
                                         warehouse=wh, created_by=user, updated_by=user)
     for _pn, _n, qty, part in found:
@@ -696,12 +639,10 @@ def tool_wms_outbound(user, items: list[dict], customer_name: str = '', confirm:
     if not found:
         return f"Không lập được phiếu xuất: không có mã phụ tùng hợp lệ ({', '.join(missing)})."
     cust = _resolve_customer(customer_name, user) if customer_name else None
-    rows = '\n'.join(f"• {n} (`{pn}`) × {qty}" for pn, n, qty, _ in found)
+    rows, note = _part_rows(found, missing)
     who = f" cho **{cust.name}**" if cust else ""
-    note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
     if not confirm:
-        return (f"📝 **Xem trước — sắp lập phiếu XUẤT kho** (kho {wh.code}){who}:\n{rows}{note}"
-                + _confirm_hint())
+        return _preview(f"sắp lập phiếu XUẤT kho (kho {wh.code}){who}", f"{rows}{note}")
     order = OutboundOrder.objects.create(code=_next_wms_code(OutboundOrder, 'OUT'),
                                          warehouse=wh, customer=cust,
                                          created_by=user, updated_by=user)
@@ -868,17 +809,9 @@ def answer(question: str, user, history=None) -> str:
     from apps.accounts.roles import can_use_intent, role_of
 
     role = role_of(user)
-    # HYBRID: 1) PLANNER function-calling (role-scoped, trích xuất chắc).
-    intent = _fc_planner(question, role, history)
-    # 2) Fallback intent-JSON + từ khóa nếu planner không gọi tool (lỗi/ngoài phạm vi).
-    if not intent:
-        intent = _llm_intent(question, history) or {}
-        kw = _keyword_intent(question)
-        # Ưu tiên từ khóa cho intent VẬN HÀNH KHO (LLM hay nhầm "bán chậm" → dormant_customers).
-        if kw.get('intent') in ('reorder_suggestion', 'slow_moving'):
-            intent = kw
-        elif intent.get('intent', 'unknown') == 'unknown':
-            intent = kw
+    # HYBRID: PLANNER function-calling (role-scoped, trích xuất chắc) là chính; khi planner
+    # không gọi tool (lỗi mạng / ngoài phạm vi) → fallback BỘ TỪ KHÓA (không gọi LLM lần 2).
+    intent = _fc_planner(question, role, history) or _keyword_intent(question)
     name = intent.get('intent', 'unknown')
 
     # Gate role theo intent (trừ unknown — chỉ trả hướng dẫn)
