@@ -85,6 +85,20 @@ def _resolve_part_code(code: str) -> str:
     return p.pk if p else code
 
 
+def _next_doc_code(model, prefix: str) -> str:
+    """Sinh mã phiếu PREFIX-YYYY-NNN tăng dần trong năm (IN-2026-077, OUT-2026-112)."""
+    from datetime import date
+    pre = f"{prefix}-{date.today().year}-"
+    last = model.objects.filter(code__startswith=pre).order_by('-code').first()
+    n = 1
+    if last:
+        try:
+            n = int(last.code.rsplit('-', 1)[-1]) + 1
+        except (IndexError, ValueError):
+            n = 1
+    return f"{pre}{n:03d}"
+
+
 class WarehouseViewSet(viewsets.ModelViewSet):
     """Quản lý kho. Đọc: nội bộ. Tạo/sửa: QL kho trở lên.
     FE cũng đọc để quyết hiện/ẩn switcher (ẩn khi count==1)."""
@@ -414,7 +428,8 @@ class InboundViewSet(viewsets.ModelViewSet):
         serializer.save(updated_by=self.request.user)
 
     def perform_create(self, serializer):
-        inbound = serializer.save(created_by=self.request.user, updated_by=self.request.user)
+        code = serializer.validated_data.get('code') or _next_doc_code(InboundOrder, 'IN')
+        inbound = serializer.save(created_by=self.request.user, updated_by=self.request.user, code=code)
         # Báo nhân viên kho: có phiếu nhập mới cần nhận hàng (trừ người tự tạo).
         notify_roles(WAREHOUSE_STAFF, 'inbound_created',
                      f"Phiếu nhập {inbound.code} cần nhận hàng (kho {inbound.warehouse.code}).",
@@ -659,7 +674,8 @@ class OutboundViewSet(viewsets.ModelViewSet):
     queryset = OutboundOrder.objects.prefetch_related('lines')
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user, updated_by=self.request.user)
+        code = serializer.validated_data.get('code') or _next_doc_code(OutboundOrder, 'OUT')
+        serializer.save(created_by=self.request.user, updated_by=self.request.user, code=code)
 
     @action(detail=True, methods=['get'], url_path='export-xlsx')
     def export_xlsx(self, request, pk=None):

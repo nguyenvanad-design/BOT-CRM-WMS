@@ -109,10 +109,15 @@ def test_assistant_sale_create_quote(sale, seeded, no_llm):
     assert 'xem trước' in r.data['text'].lower()
     assert Quote.objects.filter(owner=sale).count() == 0
 
-    # Xác nhận (confirm=True) → ghi thật.
-    tool_create_quote(sale, 'ACME', [{'part_no': '001002', 'qty': 2}], confirm=True)
+    # Xác nhận (confirm=True) → ghi thật QUA API.
+    msg = tool_create_quote(sale, 'ACME', [{'part_no': '001002', 'qty': 2}], confirm=True)
     q = Quote.objects.get(owner=sale)
-    assert q.status == 'draft'
+    # Ghi qua API → theo ĐÚNG định tuyến duyệt của endpoint: CK 0% ≤ hạn mức sale
+    # → tự duyệt (đồng bộ với báo giá tạo trên UI, thay vì luôn 'draft' như code cũ).
+    assert q.status == 'approved'
+    # Câu chốt phản ánh ĐÚNG trạng thái: đã tự duyệt + gợi Tạo đơn, KHÔNG nói "trạng thái Nháp".
+    assert 'tự duyệt' in msg.lower() and 'tạo đơn' in msg.lower()
+    assert 'trạng thái *nháp*' not in msg.lower()
     assert q.customer.name == 'ACME'
     assert int(q.total_vnd) == 240000   # 2 × 120.000
     assert q.lines.count() == 1
@@ -192,10 +197,12 @@ def test_assistant_create_contract_from_approved_quote(sale, seeded, no_llm):
     assert r.status_code == 200
     assert 'xem trước' in r.data['text'].lower()        # XEM TRƯỚC, chưa ghi
     assert Contract.objects.filter(quote=q).count() == 0
-    # Xác nhận → ghi thật.
+    # Xác nhận → ghi thật QUA API.
     tool_create_contract(sale, '', 'BG-0007', confirm=True)
     ct = Contract.objects.get(quote=q)
-    assert ct.status == 'draft'
+    # Ghi qua API → theo định tuyến duyệt của endpoint: trong hạn mức sale → tự
+    # duyệt & chuyển bước ký (pending_sign), đồng bộ với hợp đồng tạo trên UI.
+    assert ct.status == 'pending_sign'
     assert int(ct.value_vnd) == 5_000_000
     assert ct.owner == sale
 

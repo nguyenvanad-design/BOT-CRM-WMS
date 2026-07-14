@@ -19,16 +19,22 @@ import os
 import re
 import urllib.error
 import urllib.request
-from datetime import date
 from pathlib import Path
 
-from django.db.models import F, Sum
-
-_ACTIVE = ['active', 'shipping', 'completed']
+from apps.analytics import api_client as apc
 
 
 # ── Tiền VND ──────────────────────────────────────────────────────────────
+def _num(x) -> int:
+    """Ép về int an toàn — API trả *_vnd có thể là chuỗi Decimal ('950000.00')."""
+    try:
+        return int(float(x or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _vnd(n) -> str:
+    n = _num(n)
     try:
         n = int(n or 0)
     except (TypeError, ValueError):
@@ -40,91 +46,73 @@ def _vnd(n) -> str:
     return f"{n:,}".replace(',', '.') + ' ₫'
 
 
-# ── Tools (đọc DB thật) ─────────────────────────────────────────────────────
-def tool_revenue(period: str = 'month') -> str:
-    from apps.sales.models import SalesOrder
-    qs = SalesOrder.objects.filter(status__in=_ACTIVE)
-    today = date.today()
-    if period == 'today':
-        qs = qs.filter(issued_date=today); label = f"hôm nay ({today:%d/%m/%Y})"
-    elif period == 'year':
-        qs = qs.filter(issued_date__year=today.year); label = f"năm {today.year}"
-    elif period == 'all':
-        label = "toàn thời gian"
-    else:
-        qs = qs.filter(issued_date__year=today.year, issued_date__month=today.month)
-        label = f"tháng {today.month}/{today.year}"
-    agg = qs.aggregate(rev=Sum('total_vnd'), paid=Sum('paid_vnd'))
-    rev = agg['rev'] or 0
-    cnt = qs.count()
-    return (f"Doanh thu {label}: **{_vnd(rev)}** từ {cnt} đơn hàng "
-            f"(đã thu {_vnd(agg['paid'] or 0)}).") if cnt else \
-           f"Doanh thu {label}: chưa có đơn hàng nào."
+# ── Tools (đọc QUA API — bot KHÔNG truy vấn DB trực tiếp) ────────────────────
+def _api_or_err(user, path, query=None):
+    """GET qua API; trả (data, None) hoặc (None, câu-lỗi) để tool trả thẳng."""
+    try:
+        return apc.get(user, path, query=query), None
+    except apc.ApiError as e:
+        if e.status == 403:
+            return None, (f"Xin lỗi, bạn không có quyền xem dữ liệu này.")
+        return None, f"Chưa lấy được dữ liệu (lỗi {e.status})."
 
 
-def tool_customer_debt(name: str | None = None) -> str:
-    from apps.sales.models import SalesOrder
-    from apps.crm.models import Customer
+def tool_revenue(user, period: str = 'month') -> str:
+    d, err = _api_or_err(user, '/api/v1/analytics/revenue-summary/', {'period': period})
+    if err:
+        return err
+    if not d['count']:
+        return f"Doanh thu {d['label']}: chưa có đơn hàng nào."
+    return (f"Doanh thu {d['label']}: **{_vnd(d['revenue_vnd'])}** từ {d['count']} đơn hàng "
+            f"(đã thu {_vnd(d['paid_vnd'])}).")
 
-    if name:
-        cust = (Customer.objects.filter(name__icontains=name, deleted_at__isnull=True).first()
-                or Customer.objects.filter(code__icontains=name).first())
-        if not cust:
-            return f"Không tìm thấy khách hàng khớp \"{name}\"."
-        agg = (SalesOrder.objects.filter(customer=cust, status__in=_ACTIVE)
-               .aggregate(t=Sum('total_vnd'), p=Sum('paid_vnd')))
-        debt = (agg['t'] or 0) - (agg['p'] or 0)
-        if debt <= 0:
-            return f"**{cust.name}** hiện không còn công nợ (đã thanh toán đủ)."
-        return f"**{cust.name}** còn nợ **{_vnd(debt)}** (tổng đơn {_vnd(agg['t'] or 0)}, đã trả {_vnd(agg['p'] or 0)})."
 
-    # Tổng quan công nợ + top khách nợ nhiều
-    rows = (SalesOrder.objects.filter(status__in=_ACTIVE, total_vnd__gt=F('paid_vnd'))
-            .values('customer__name')
-            .annotate(debt=Sum(F('total_vnd') - F('paid_vnd')))
-            .order_by('-debt')[:5])
+def tool_customer_debt(user, name: str | None = None) -> str:
+    d, err = _api_or_err(user, '/api/v1/analytics/customer-debt/',
+                         {'customer': name} if name else None)
+    if err:
+        return err
+    if d.get('found') is True:
+        if d['debt_vnd'] <= 0:
+            return f"**{d['name']}** hiện không còn công nợ (đã thanh toán đủ)."
+        return (f"**{d['name']}** còn nợ **{_vnd(d['debt_vnd'])}** "
+                f"(tổng đơn {_vnd(d['total_vnd'])}, đã trả {_vnd(d['paid_vnd'])}).")
+    if d.get('found') is False:
+        return f"Không tìm thấy khách hàng khớp \"{name}\"."
+    rows = d.get('results') or []
     if not rows:
         return "Hiện không có công nợ phải thu."
-    total = sum(r['debt'] for r in rows)
-    lines = '\n'.join(f"• {r['customer__name']}: {_vnd(r['debt'])}" for r in rows)
-    return f"Tổng công nợ phải thu (top {len(rows)}): **{_vnd(total)}**\n{lines}"
+    lines = '\n'.join(f"• {r['name']}: {_vnd(r['debt_vnd'])}" for r in rows)
+    return f"Tổng công nợ phải thu (top {len(rows)}): **{_vnd(d['total_vnd'])}**\n{lines}"
 
 
-def tool_top_customers(limit: int = 5) -> str:
-    from apps.sales.models import SalesOrder
-    rows = (SalesOrder.objects.filter(status__in=_ACTIVE)
-            .values('customer__name')
-            .annotate(rev=Sum('total_vnd')).order_by('-rev')[:limit])
-    if not rows:
+def tool_top_customers(user, limit: int = 5) -> str:
+    d, err = _api_or_err(user, '/api/v1/analytics/top-customers/', {'limit': limit})
+    if err:
+        return err
+    if not d:
         return "Chưa có dữ liệu doanh số theo khách hàng."
-    lines = '\n'.join(f"{i+1}. {r['customer__name']}: {_vnd(r['rev'])}"
-                      for i, r in enumerate(rows))
-    return f"Top {len(rows)} khách hàng theo doanh số:\n{lines}"
+    lines = '\n'.join(f"{i+1}. {r['name']}: {_vnd(r['revenue_vnd'])}" for i, r in enumerate(d))
+    return f"Top {len(d)} khách hàng theo doanh số:\n{lines}"
 
 
-def tool_dormant_customers(months: int = 3) -> str:
-    from datetime import timedelta
-
-    from apps.sales.models import SalesOrder
-    from apps.crm.models import Customer
-
-    cutoff = date.today() - timedelta(days=months * 30)
-    recent_ids = set(SalesOrder.objects.filter(issued_date__gte=cutoff)
-                     .values_list('customer_id', flat=True))
-    dormant = (Customer.objects.filter(deleted_at__isnull=True)
-               .exclude(id__in=recent_ids))
-    names = list(dormant.values_list('name', flat=True)[:10])
+def tool_dormant_customers(user, months: int = 3) -> str:
+    d, err = _api_or_err(user, '/api/v1/analytics/dormant-customers/', {'months': months})
+    if err:
+        return err
+    names = d.get('names') or []
     if not names:
         return f"Tất cả khách hàng đều có giao dịch trong {months} tháng gần đây."
     lines = '\n'.join(f"• {n}" for n in names)
-    return (f"Có {dormant.count()} khách hàng không mua trong {months} tháng qua "
+    return (f"Có {d['count']} khách hàng không mua trong {months} tháng qua "
             f"(nguy cơ rời):\n{lines}")
 
 
-def tool_reorder() -> str:
-    """AI Reorder: đề nghị nhập hàng theo tốc độ bán + tồn khả dụng."""
-    from . import services
-    d = services.reorder_suggestions()
+def tool_reorder(user) -> str:
+    """AI Reorder: đề nghị nhập hàng theo tốc độ bán + tồn khả dụng (đọc qua API)."""
+    d, err = _api_or_err(user, '/api/v1/analytics/reorder-suggestions/')
+    if err:
+        return err
     if d['count'] == 0:
         return "Hiện không có mã nào cần nhập gấp — tồn đủ dùng. ✅"
     lines = []
@@ -135,10 +123,11 @@ def tool_reorder() -> str:
             + "\n".join(lines))
 
 
-def tool_slow_moving(days: int = 90) -> str:
-    """AI Slow-moving: hàng bán chậm/chết — vốn đang chôn."""
-    from . import services
-    d = services.dead_stock(days)
+def tool_slow_moving(user, days: int = 90) -> str:
+    """AI Slow-moving: hàng bán chậm/chết — vốn đang chôn (đọc qua API)."""
+    d, err = _api_or_err(user, '/api/v1/analytics/slow-moving/', {'days': days})
+    if err:
+        return err
     if d['count'] == 0:
         return f"Không có hàng bán chậm trong {days} ngày qua. 🎉"
     tied = f"{int(d['tied_value_vnd']):,}".replace(',', '.')
@@ -377,11 +366,13 @@ def _keyword_intent(q: str) -> dict:
     return {'intent': 'unknown'}
 
 
-def _detect_customer(q: str) -> str:
-    """Đối chiếu câu hỏi với tên KH trong DB (bắt tên dù LLM/regex bỏ sót)."""
-    from apps.crm.models import Customer
+def _detect_customer(user, q: str) -> str:
+    """Đối chiếu câu hỏi với tên KH QUA API (bắt tên dù LLM/regex bỏ sót; đã lọc theo quyền)."""
     ql = q.lower()
-    for n in Customer.objects.filter(deleted_at__isnull=True).values_list('name', flat=True):
+    rows = apc.results(_safe_get(user, '/api/v1/crm/customers/',
+                                 {'page_size': 500, 'ordering': 'name'}))
+    for c in rows:
+        n = c.get('name') or ''
         if n and n.lower() in ql:
             return n
     return ''
@@ -407,16 +398,17 @@ def _parse_items(q: str) -> list[dict]:
     return items
 
 
-# ── Tool điều hành (đọc) ────────────────────────────────────────────────────
-def tool_ceo_report() -> str:
-    """Báo cáo điều hành cho CEO (tóm tắt toàn phòng ban, số liệu thật)."""
-    return executive_summary()['summary']
+# ── Tool điều hành (đọc qua API) ────────────────────────────────────────────
+def tool_ceo_report(user) -> str:
+    """Báo cáo điều hành cho CEO (tóm tắt toàn phòng ban, số liệu thật qua API)."""
+    return executive_summary(user)['summary']
 
 
-def tool_evaluate_plan() -> str:
-    """Đánh giá kế hoạch kinh doanh từ pipeline forecast (số liệu thật)."""
-    from . import services
-    rows = services.pipeline_forecast()
+def tool_evaluate_plan(user) -> str:
+    """Đánh giá kế hoạch kinh doanh từ pipeline forecast (đọc qua API)."""
+    rows, err = _api_or_err(user, '/api/v1/analytics/forecast/pipeline/')
+    if err:
+        return err
     if not rows:
         return "Chưa có cơ hội nào trong pipeline để đánh giá kế hoạch."
     total_w = sum(float(r['weighted_vnd'] or 0) for r in rows)
@@ -431,22 +423,42 @@ def tool_evaluate_plan() -> str:
 
 
 # ── Tool ghi: làm báo giá nháp ──────────────────────────────────────────────
-def _resolve_customer(name: str, user):
-    """Tìm KH theo tên/mã. Non-manager chỉ thấy KH của mình (khớp ownership)."""
-    from apps.accounts.roles import is_manager
-    from apps.crm.models import Customer
-    if not name:
-        return None
-    qs = Customer.objects.filter(deleted_at__isnull=True)
-    if not is_manager(user):
-        qs = qs.filter(owner_id=user.id)
-    return (qs.filter(name__icontains=name).first()
-            or qs.filter(code__icontains=name).first())
-
-
 def _parse_phone(q: str) -> str:
     m = re.search(r'\b0\d{8,10}\b', q.replace('.', '').replace(' ', ''))
     return m.group(0) if m else ''
+
+
+# ── Phân giải QUA API (không ORM): khách hàng + phụ tùng ────────────────────
+def _api_customer(user, name: str):
+    """Tìm khách hàng QUA API (endpoint tự lọc theo quyền sở hữu). Trả dict KH hoặc None."""
+    name = (name or '').strip()
+    if not name:
+        return None
+    try:
+        rows = apc.results(apc.get(user, '/api/v1/crm/customers/', query={'search': name}))
+    except apc.ApiError:
+        return None
+    if not rows:
+        return None
+    low = name.lower()
+    for c in rows:                                   # ưu tiên khớp MÃ chính xác
+        if (c.get('code') or '').lower() == low:
+            return c
+    for c in rows:                                   # rồi tên/mã chứa chuỗi
+        if low in (c.get('name') or '').lower() or low in (c.get('code') or '').lower():
+            return c
+    return rows[0]
+
+
+def _api_part(user, part_no: str):
+    """Lấy 1 phụ tùng QUA API theo mã (PK = tokin_part_no). None nếu không có."""
+    pn = (part_no or '').strip()
+    if not pn:
+        return None
+    try:
+        return apc.get(user, f'/api/v1/catalog/parts/{pn}/')
+    except apc.ApiError:
+        return None
 
 
 def _confirm_hint() -> str:
@@ -469,8 +481,7 @@ def _part_rows(found, missing) -> tuple[str, str]:
 
 def tool_create_lead(user, name: str, company: str = '', phone: str = '',
                      source: str = 'chatbot', confirm: bool = False) -> str:
-    """Tạo LEAD (khách tiềm năng) vào CRM, owner = người dùng. Xem trước → ok mới ghi."""
-    from apps.crm.models import Lead
+    """Tạo LEAD (khách tiềm năng) QUA API, owner = người dùng. Xem trước → ok mới ghi."""
     name = (name or '').strip()
     if not name:
         return ('Cần tên khách tiềm năng. VD: "tạo lead Nguyễn Văn A, công ty ABC, 0901234567".')
@@ -479,56 +490,55 @@ def tool_create_lead(user, name: str, company: str = '', phone: str = '',
     if not confirm:
         return _preview("sắp tạo lead",
                         f"• Tên: **{name}**\n• Công ty: {company or '—'}\n• SĐT: {phone or '—'}")
-    lead = Lead.objects.create(name=name, company=company,
-                               phone=phone, source=source or 'chatbot',
-                               owner=user)
-    extra = []
-    if lead.company: extra.append(lead.company)
-    if lead.phone: extra.append(lead.phone)
+    try:
+        lead = apc.post(user, '/api/v1/crm/leads/', {
+            'name': name, 'company': company, 'phone': phone, 'source': source or 'chatbot'})
+    except apc.ApiError as e:
+        return f"Chưa ghi được lead: {e.detail}"
+    extra = [x for x in (lead.get('company'), lead.get('phone')) if x]
     tail = f" ({', '.join(extra)})" if extra else ""
-    return (f"✅ Đã ghi **lead: {lead.name}**{tail} vào CRM (trạng thái Mới). "
+    return (f"✅ Đã ghi **lead: {lead['name']}**{tail} vào CRM (trạng thái Mới). "
             f"Vào menu Leads để theo dõi / chuyển thành khách hàng.")
 
 
 def tool_create_quote(user, customer_name: str, items: list[dict], confirm: bool = False) -> str:
-    """Tạo BÁO GIÁ NHÁP (draft) cho user, lấy giá từ catalog. Xem trước → ok mới ghi."""
-    from apps.catalog.models import Part
-    from apps.crm.models import Quote, QuoteLine
-    from apps.crm.views_ext import _next_code
-
+    """Tạo BÁO GIÁ NHÁP (draft) QUA API, lấy giá từ catalog. Xem trước → ok mới ghi."""
     if not customer_name:
         return "Cần cho biết **tên khách hàng** để lập báo giá. VD: \"làm báo giá cho Công ty ABC: 5 x 001002\"."
-    cust = _resolve_customer(customer_name, user)
+    cust = _api_customer(user, customer_name)
     if not cust:
         # Có thể là LEAD chưa chuyển thành khách hàng → gợi chuyển (báo giá cần Customer).
-        from apps.accounts.roles import is_manager
-        from apps.crm.models import Lead
-        lead_qs = Lead.objects.filter(status__in=['new', 'contacted', 'qualified'])
-        if not is_manager(user):
-            lead_qs = lead_qs.filter(owner=user)
-        lead = lead_qs.filter(name__icontains=customer_name.strip()).first() \
-            or lead_qs.filter(company__icontains=customer_name.strip()).first()
+        try:
+            leads = apc.results(apc.get(user, '/api/v1/crm/leads/',
+                                        query={'search': customer_name.strip()}))
+        except apc.ApiError:
+            leads = []
+        low = customer_name.strip().lower()
+        lead = next((l for l in leads
+                     if (l.get('status') in ('new', 'contacted', 'qualified'))
+                     and (low in (l.get('name') or '').lower()
+                          or low in (l.get('company') or '').lower())), None)
         if lead:
-            return (f"\"{lead.name}\" đang là **lead** (chưa phải khách hàng) → cần **chuyển thành khách hàng** "
-                    f"trước khi báo giá. Vào **Leads → {lead.name} → Chuyển + Tạo cơ hội**, rồi quay lại nói "
-                    f"\"làm báo giá cho {lead.company or lead.name}\".")
+            return (f"\"{lead['name']}\" đang là **lead** (chưa phải khách hàng) → cần **chuyển thành khách hàng** "
+                    f"trước khi báo giá. Vào **Leads → {lead['name']} → Chuyển + Tạo cơ hội**, rồi quay lại nói "
+                    f"\"làm báo giá cho {lead.get('company') or lead['name']}\".")
         return (f"Không tìm thấy khách hàng khớp \"{customer_name}\" (trong phạm vi của bạn). "
                 f"Kiểm tra lại tên/mã KH.")
     if not items:
-        return (f"Đã xác định KH **{cust.name}** nhưng chưa có dòng hàng. "
+        return (f"Đã xác định KH **{cust['name']}** nhưng chưa có dòng hàng. "
                 f"Nêu mã phụ tùng + số lượng, VD: \"5 x 001002, 10 cái 002001\".")
 
-    # Phân giải mã + giá TRƯỚC (để xem trước); chưa ghi gì.
+    # Phân giải mã + giá TRƯỚC qua API (để xem trước); chưa ghi gì.
     found, missing = [], []
     for it in items:
         pn = str(it.get('part_no', '')).strip()
         qty = max(1, int(it.get('qty', 1) or 1))
         if not pn:
             continue
-        part = Part.objects.filter(tokin_part_no=pn).first()
+        part = _api_part(user, pn)
         if not part:
             missing.append(pn); continue
-        found.append((pn, part.display_name_vi or pn, qty, int(part.price_vnd or 0)))
+        found.append((pn, part.get('display_name_vi') or pn, qty, int(part.get('price_vnd') or 0)))
 
     if not found:
         return (f"Không tạo được báo giá: không tìm thấy mã phụ tùng nào hợp lệ "
@@ -538,151 +548,146 @@ def tool_create_quote(user, customer_name: str, items: list[dict], confirm: bool
     total = sum(p * qty for pn, n, qty, p in found)
     note = f"\n⚠️ Không thấy mã: {', '.join(missing)}" if missing else ""
     if not confirm:
-        return _preview(f"sắp tạo báo giá cho {cust.name}",
+        return _preview(f"sắp tạo báo giá cho {cust['name']}",
                         f"{rows}\n**Tổng tạm: {_vnd(total)}**{note}")
 
-    # ĐÃ XÁC NHẬN → ghi.
-    quote = Quote.objects.create(customer=cust, owner=user, code=_next_code(Quote, 'BG'))
-    for pn, n, qty, p in found:
-        QuoteLine.objects.create(quote=quote, part_no=pn, part_name=n, qty=qty, unit_price_vnd=p)
-    quote.recompute_total()
-    quote.save(update_fields=['total_vnd'])
-    # Báo manager+: báo giá tạo qua bot cũng cần duyệt (đồng bộ với đường API).
-    from apps.accounts.roles import MANAGER_ROLES
-    from apps.common.models import notify_roles
-    notify_roles(MANAGER_ROLES, 'quote_approval',
-                 f"Báo giá {quote.code} ({cust.name}) cần duyệt.",
-                 link='/ceo/approvals', exclude_user=user)
+    # ĐÃ XÁC NHẬN → ghi QUA API (serializer tự tạo lines + tính total; view tự sinh
+    # code + định tuyến duyệt + notify manager — không cần bot làm tay).
+    try:
+        quote = apc.post(user, '/api/v1/crm/quotes/', {
+            'customer': cust['id'],
+            'lines': [{'part_no': pn, 'part_name': n, 'qty': qty, 'unit_price_vnd': p}
+                      for pn, n, qty, p in found],
+        })
+    except apc.ApiError as e:
+        return f"Chưa tạo được báo giá: {e.detail}"
 
-    lvl = " — giá trị lớn, sẽ cần CEO duyệt cấp 2" if quote.requires_l2() else ""
-    return (f"✅ Đã tạo **báo giá nháp {quote.code}** cho **{cust.name}**:\n{rows}\n"
-            f"**Tổng: {_vnd(quote.total_vnd)}**{lvl}.{note}\n"
-            f"Báo giá đang ở trạng thái *Nháp* — vào màn Báo giá để gửi & trình duyệt.")
+    # Câu chốt phản ánh ĐÚNG trạng thái sau khi ghi: view định tuyến duyệt theo chiết
+    # khấu — báo giá bot lập (0% CK) thường TỰ DUYỆT (trong hạn mức sale), không phải Nháp.
+    if quote.get('status') == 'approved':
+        tail = ("Báo giá **đã tự duyệt** (chiết khấu trong hạn mức) — vào màn Báo giá "
+                "bấm **Tạo đơn** để lên đơn bán.")
+    else:
+        lvl = " (giá trị lớn — sẽ cần CEO duyệt cấp 2)" if quote.get('requires_l2') else ""
+        tail = f"Báo giá đang chờ **trình duyệt**{lvl} — vào màn Báo giá để gửi & duyệt."
+    return (f"✅ Đã tạo **báo giá {quote['code']}** cho **{cust['name']}**:\n{rows}\n"
+            f"**Tổng: {_vnd(quote.get('total_vnd'))}**{note}\n{tail}")
 
 
 def tool_create_contract(user, customer_name: str, quote_code: str, confirm: bool = False) -> str:
-    """Soạn HỢP ĐỒNG NHÁP: ưu tiên từ báo giá đã duyệt (quote_code), hoặc cho 1 KH. Xem trước → ok mới ghi."""
-    from apps.accounts.roles import is_manager
-    from apps.crm.contracts_activities import _next_contract_code
-    from apps.crm.models import Contract, Quote, QuoteStatus
-
+    """Soạn HỢP ĐỒNG NHÁP QUA API: ưu tiên từ báo giá đã duyệt (quote_code), hoặc cho 1 KH."""
     # Từ báo giá đã duyệt
     if quote_code:
-        qs = Quote.objects.filter(code__iexact=quote_code)
-        if not is_manager(user):
-            qs = qs.filter(owner_id=user.id)
-        quote = qs.first()
+        rows = apc.results(_safe_get(user, '/api/v1/crm/quotes/', {'search': quote_code}))
+        quote = next((q for q in rows if (q.get('code') or '').lower() == quote_code.lower()), None)
         if not quote:
             return f"Không tìm thấy báo giá **{quote_code}** (trong phạm vi của bạn)."
-        if quote.status not in (QuoteStatus.APPROVED, QuoteStatus.CONVERTED):
-            return (f"Báo giá {quote.code} đang *{quote.get_status_display()}* — "
+        if quote.get('status') not in ('approved', 'converted'):
+            return (f"Báo giá {quote['code']} đang *{quote.get('status_display')}* — "
                     f"phải **đã duyệt** mới soạn hợp đồng được.")
         if not confirm:
-            return _preview(f"sắp soạn hợp đồng từ báo giá **{quote.code}** "
-                            f"cho **{quote.customer.name}**, giá trị **{_vnd(quote.total_vnd)}**")
-        ct = Contract.objects.create(
-            customer=quote.customer, quote=quote, owner=user,
-            code=_next_contract_code(), value_vnd=quote.total_vnd,
-            title=f"Hợp đồng theo báo giá {quote.code}",
-        )
-        return (f"✅ Đã soạn **hợp đồng nháp {ct.code}** cho **{quote.customer.name}** "
-                f"từ báo giá {quote.code}, giá trị **{_vnd(ct.value_vnd)}**.\n"
+            return _preview(f"sắp soạn hợp đồng từ báo giá **{quote['code']}** "
+                            f"cho **{quote.get('customer_name')}**, giá trị **{_vnd(quote.get('total_vnd'))}**")
+        try:
+            ct = apc.post(user, '/api/v1/crm/contracts/', {
+                'customer': quote['customer'], 'quote': quote['id'],
+                'value_vnd': quote.get('total_vnd'),
+                'title': f"Hợp đồng theo báo giá {quote['code']}"})
+        except apc.ApiError as e:
+            return f"Chưa soạn được hợp đồng: {e.detail}"
+        return (f"✅ Đã soạn **hợp đồng nháp {ct['code']}** cho **{quote.get('customer_name')}** "
+                f"từ báo giá {quote['code']}, giá trị **{_vnd(ct.get('value_vnd'))}**.\n"
                 f"Vào màn Hợp đồng để bổ sung điều khoản & trình duyệt.")
 
     # Tạo trực tiếp cho 1 KH (chưa có giá trị)
     if not customer_name:
         return ("Cần **mã báo giá đã duyệt** (VD: BG-0007) hoặc **tên khách hàng** "
                 "để soạn hợp đồng. VD: \"soạn hợp đồng từ báo giá BG-0007\".")
-    cust = _resolve_customer(customer_name, user)
+    cust = _api_customer(user, customer_name)
     if not cust:
         return f"Không tìm thấy khách hàng khớp \"{customer_name}\" (trong phạm vi của bạn)."
     if not confirm:
-        return _preview(f"sắp soạn hợp đồng cho **{cust.name}** (chưa có giá trị)")
-    ct = Contract.objects.create(customer=cust, owner=user, code=_next_contract_code(),
-                                 title=f"Hợp đồng — {cust.name}")
-    return (f"✅ Đã soạn **hợp đồng nháp {ct.code}** cho **{cust.name}** (chưa có giá trị).\n"
+        return _preview(f"sắp soạn hợp đồng cho **{cust['name']}** (chưa có giá trị)")
+    try:
+        ct = apc.post(user, '/api/v1/crm/contracts/', {
+            'customer': cust['id'], 'title': f"Hợp đồng — {cust['name']}"})
+    except apc.ApiError as e:
+        return f"Chưa soạn được hợp đồng: {e.detail}"
+    return (f"✅ Đã soạn **hợp đồng nháp {ct['code']}** cho **{cust['name']}** (chưa có giá trị).\n"
             f"Vào màn Hợp đồng để nhập giá trị, điều khoản & trình duyệt.")
 
 
-# ── Tool ghi: phiếu nhập / xuất kho ─────────────────────────────────────────
-def _default_warehouse():
-    from apps.wms.models import Warehouse
-    actives = Warehouse.objects.filter(is_active=True)
-    if actives.count() == 1:
-        return actives.first()
-    return actives.filter(is_default=True).first()   # None nếu nhiều kho, không default
+# ── Tool ghi: phiếu nhập / xuất kho (QUA API) ───────────────────────────────
+def _api_default_warehouse(user):
+    """Kho mặc định QUA API: nếu chỉ 1 kho active → dùng luôn; nhiều kho → lấy is_default."""
+    whs = apc.results(_safe_get(user, '/api/v1/wms/warehouses/'))
+    actives = [w for w in whs if w.get('is_active')]
+    if len(actives) == 1:
+        return actives[0]
+    return next((w for w in actives if w.get('is_default')), None)
 
 
-def _next_wms_code(model, prefix: str) -> str:
-    """Sinh mã PREFIX-YYYY-NNN tăng dần trong năm."""
-    year = date.today().year
-    pre = f"{prefix}-{year}-"
-    last = model.objects.filter(code__startswith=pre).order_by('-code').first()
-    n = (int(last.code.rsplit('-', 1)[-1]) + 1) if last else 1
-    return f"{pre}{n:03d}"
-
-
-def _resolve_part_lines(items: list[dict]):
-    """[{part_no, qty}] → (found[(pn,name,qty,Part)], missing[pn])."""
-    from apps.catalog.models import Part
+def _api_part_lines(user, items: list[dict]):
+    """[{part_no, qty}] → (found[(pn,name,qty,None)], missing[pn]) — resolve QUA API."""
     found, missing = [], []
     for it in items or []:
         pn = str(it.get('part_no', '')).strip()
         qty = max(1, int(it.get('qty', 1) or 1))
         if not pn:
             continue
-        part = Part.objects.filter(tokin_part_no=pn).first()
+        part = _api_part(user, pn)
         if part:
-            found.append((pn, part.display_name_vi or pn, qty, part))
+            found.append((pn, part.get('display_name_vi') or pn, qty, None))
         else:
             missing.append(pn)
     return found, missing
 
 
 def tool_wms_inbound(user, items: list[dict], confirm: bool = False) -> str:
-    """Lập PHIẾU NHẬP KHO nháp (draft). Xem trước → ok mới ghi."""
-    from apps.wms.models import InboundLine, InboundOrder
-    wh = _default_warehouse()
+    """Lập PHIẾU NHẬP KHO nháp QUA API. Xem trước → ok mới ghi."""
+    wh = _api_default_warehouse(user)
     if not wh:
         return "Hệ thống có nhiều kho — vui lòng lập phiếu nhập trên màn Nhập kho và chọn kho cụ thể."
     if not items:
         return "Cần mã phụ tùng + số lượng để lập phiếu nhập. VD: \"nhập kho 100 x 001002\"."
-    found, missing = _resolve_part_lines(items)
+    found, missing = _api_part_lines(user, items)
     if not found:
         return f"Không lập được phiếu nhập: không có mã phụ tùng hợp lệ ({', '.join(missing)})."
     rows, note = _part_rows(found, missing)
     if not confirm:
-        return _preview(f"sắp lập phiếu NHẬP kho (kho {wh.code})", f"{rows}{note}")
-    order = InboundOrder.objects.create(code=_next_wms_code(InboundOrder, 'IN'),
-                                        warehouse=wh, created_by=user, updated_by=user)
-    for _pn, _n, qty, part in found:
-        InboundLine.objects.create(inbound=order, part=part, qty_expected=qty)
-    return (f"✅ Đã lập **phiếu nhập kho nháp {order.code}** (kho {wh.code}):\n{rows}{note}\n"
+        return _preview(f"sắp lập phiếu NHẬP kho (kho {wh['code']})", f"{rows}{note}")
+    try:
+        order = apc.post(user, '/api/v1/wms/inbound/', {
+            'warehouse': wh['id'],
+            'lines': [{'part': pn, 'qty_expected': qty} for pn, _n, qty, _ in found]})
+    except apc.ApiError as e:
+        return f"Chưa lập được phiếu nhập: {e.detail}"
+    return (f"✅ Đã lập **phiếu nhập kho nháp {order['code']}** (kho {wh['code']}):\n{rows}{note}\n"
             f"Vào màn Nhập kho để xác nhận nhận hàng (cộng tồn).")
 
 
 def tool_wms_outbound(user, items: list[dict], customer_name: str = '', confirm: bool = False) -> str:
-    """Lập PHIẾU XUẤT KHO nháp (draft). Xem trước → ok mới ghi."""
-    from apps.wms.models import OutboundLine, OutboundOrder
-    wh = _default_warehouse()
+    """Lập PHIẾU XUẤT KHO nháp QUA API. Xem trước → ok mới ghi."""
+    wh = _api_default_warehouse(user)
     if not wh:
         return "Hệ thống có nhiều kho — vui lòng lập phiếu xuất trên màn Xuất kho và chọn kho cụ thể."
     if not items:
         return "Cần mã phụ tùng + số lượng để lập phiếu xuất. VD: \"xuất kho 20 x 001002\"."
-    found, missing = _resolve_part_lines(items)
+    found, missing = _api_part_lines(user, items)
     if not found:
         return f"Không lập được phiếu xuất: không có mã phụ tùng hợp lệ ({', '.join(missing)})."
-    cust = _resolve_customer(customer_name, user) if customer_name else None
+    cust = _api_customer(user, customer_name) if customer_name else None
     rows, note = _part_rows(found, missing)
-    who = f" cho **{cust.name}**" if cust else ""
+    who = f" cho **{cust['name']}**" if cust else ""
     if not confirm:
-        return _preview(f"sắp lập phiếu XUẤT kho (kho {wh.code}){who}", f"{rows}{note}")
-    order = OutboundOrder.objects.create(code=_next_wms_code(OutboundOrder, 'OUT'),
-                                         warehouse=wh, customer=cust,
-                                         created_by=user, updated_by=user)
-    for _pn, _n, qty, part in found:
-        OutboundLine.objects.create(outbound=order, part=part, qty_ordered=qty)
-    return (f"✅ Đã lập **phiếu xuất kho nháp {order.code}** (kho {wh.code}){who}:\n{rows}{note}\n"
+        return _preview(f"sắp lập phiếu XUẤT kho (kho {wh['code']}){who}", f"{rows}{note}")
+    try:
+        order = apc.post(user, '/api/v1/wms/outbound/', {
+            'warehouse': wh['id'], 'customer': cust['id'] if cust else None,
+            'lines': [{'part': pn, 'qty_ordered': qty} for pn, _n, qty, _ in found]})
+    except apc.ApiError as e:
+        return f"Chưa lập được phiếu xuất: {e.detail}"
+    return (f"✅ Đã lập **phiếu xuất kho nháp {order['code']}** (kho {wh['code']}){who}:\n{rows}{note}\n"
             f"Vào màn Xuất kho để soạn hàng (pick) & giao.")
 
 
@@ -731,74 +736,85 @@ def tool_software_help(question: str, role: str = '') -> str:
             "Anh/chị muốn hướng dẫn thao tác cụ thể nào ạ?")
 
 
-def tool_lookup_doc(question: str) -> str:
-    """Tra cứu phụ tùng/súng hàn Tokin từ catalog (mã hoặc tên). Đọc DB thật."""
-    from apps.catalog.models import Part
+def _safe_get(user, path, query=None):
+    """GET qua API, trả data hoặc None nếu lỗi (dùng cho tra cứu không cần báo lỗi chi tiết)."""
+    try:
+        return apc.get(user, path, query=query)
+    except apc.ApiError:
+        return None
 
+
+def tool_lookup_doc(user, question: str) -> str:
+    """Tra cứu phụ tùng/súng hàn Tokin từ catalog (mã hoặc tên) — QUA API."""
     codes = re.findall(r'\b[0-9]{4,}[A-Za-z0-9\-]*\b', question)
     part = None
     for cpn in codes:
-        part = Part.objects.filter(tokin_part_no=cpn).first()
+        part = _api_part(user, cpn)
         if part:
             break
     if not part:
-        # tìm theo tên: lấy cụm chữ có nghĩa cuối câu
+        # tìm theo tên: lấy cụm chữ có nghĩa cuối câu → search API → lấy detail mã đầu.
         kw = re.sub(r'(tra cứu|tìm|cho tôi|thông tin|tài liệu|sản phẩm|về|part|phụ tùng)', '',
                     question, flags=re.I).strip()
         if len(kw) >= 2:
-            part = Part.objects.filter(display_name_vi__icontains=kw).first()
+            res = apc.results(_safe_get(user, '/api/v1/catalog/parts/', {'search': kw}))
+            if res:
+                part = _api_part(user, res[0].get('tokin_part_no')) or res[0]
     if not part:
         return ("Không tìm thấy phụ tùng khớp. Cho mình **mã** (VD 001002) hoặc "
                 "**tên** chính xác hơn nhé.")
 
     spec = []
-    if part.wire_size_mm:  spec.append(f"dây {part.wire_size_mm}mm")
-    if part.thread_type:   spec.append(f"ren {part.thread_type}")
-    if part.material:      spec.append(part.material)
+    if part.get('wire_size_mm'):  spec.append(f"dây {part['wire_size_mm']}mm")
+    if part.get('thread_type'):   spec.append(f"ren {part['thread_type']}")
+    if part.get('material'):      spec.append(part['material'])
     spec_s = ", ".join(spec) or "—"
-    price = _vnd(part.price_vnd) if part.price_vnd else "liên hệ"
-    torches = part.applicable_torches or part.torch_models or []
+    price = _vnd(part['price_vnd']) if part.get('price_vnd') else "liên hệ"
+    torches = part.get('applicable_torches') or part.get('torch_models') or []
     t_s = (", ".join(map(str, torches[:6])) + ("…" if len(torches) > 6 else "")) if torches else "—"
-    return (f"**{part.display_name_vi}** (`{part.tokin_part_no}`)\n"
-            f"• Nhóm: {part.category or '—'} | Spec: {spec_s}\n"
-            f"• Giá: **{price}** / {part.price_unit}\n"
+    return (f"**{part.get('display_name_vi')}** (`{part.get('tokin_part_no')}`)\n"
+            f"• Nhóm: {part.get('category') or '—'} | Spec: {spec_s}\n"
+            f"• Giá: **{price}** / {part.get('price_unit')}\n"
             f"• Dùng cho súng: {t_s}")
 
 
-# ── Tool đọc sâu: đơn của KH, tồn của mã ────────────────────────────────────
+# ── Tool đọc sâu: đơn của KH, tồn của mã (QUA API) ──────────────────────────
 def tool_customer_orders(user, customer_name: str) -> str:
-    from apps.sales.models import SalesOrder
     if not customer_name:
         return "Cần tên khách hàng. VD: \"đơn của Công ty ABC\"."
-    cust = _resolve_customer(customer_name, user)
+    cust = _api_customer(user, customer_name)
     if not cust:
         return f"Không tìm thấy khách hàng \"{customer_name}\" (trong phạm vi của bạn)."
-    rows = (SalesOrder.objects.filter(customer=cust).order_by('-issued_date')[:8])
+    rows = apc.results(_safe_get(user, '/api/v1/sales/orders/',
+                                 {'customer': cust['id'], 'ordering': '-issued_date'}))[:8]
     if not rows:
-        return f"**{cust.name}** chưa có đơn hàng nào."
+        return f"**{cust['name']}** chưa có đơn hàng nào."
     lines = []
     for o in rows:
-        debt = (o.total_vnd or 0) - (o.paid_vnd or 0)
+        debt = _num(o.get('total_vnd')) - _num(o.get('paid_vnd'))
         tail = f" — còn nợ {_vnd(debt)}" if debt > 0 else " — đã thanh toán"
-        lines.append(f"• {o.code} ({o.get_status_display()}): {_vnd(o.total_vnd)}{tail}")
-    return f"Đơn hàng của **{cust.name}** (gần nhất):\n" + "\n".join(lines)
+        status = o.get('status_display') or o.get('status') or ''
+        lines.append(f"• {o.get('code')} ({status}): {_vnd(o.get('total_vnd'))}{tail}")
+    return f"Đơn hàng của **{cust['name']}** (gần nhất):\n" + "\n".join(lines)
 
 
-def tool_stock_lookup(question: str) -> str:
-    from apps.catalog.models import Part
-    from apps.wms.models import InventoryItem
+def tool_stock_lookup(user, question: str) -> str:
     codes = re.findall(r'\b[0-9]{4,}[A-Za-z0-9\-]*\b', question)
-    part = next((Part.objects.filter(pk=c).first() for c in codes
-                 if Part.objects.filter(pk=c).exists()), None)
+    part = None
+    for c in codes:
+        part = _api_part(user, c)
+        if part:
+            break
     if not part:
         return "Cho mình **mã phụ tùng** để tra tồn. VD: \"tồn 001002\"."
-    rows = (InventoryItem.objects.filter(part=part)
-            .select_related('bin', 'bin__zone__warehouse')[:20])
-    total = sum(r.qty_on_hand for r in rows)
+    rows = apc.results(_safe_get(user, '/api/v1/wms/inventory/',
+                                 {'part': part['tokin_part_no']}))[:20]
+    total = sum(r.get('qty_on_hand') or 0 for r in rows)
+    name, pn = part.get('display_name_vi'), part.get('tokin_part_no')
     if total == 0:
-        return f"**{part.display_name_vi}** (`{part.tokin_part_no}`): hết hàng (tồn 0)."
-    by = "\n".join(f"• {r.bin.full_code}: {r.qty_on_hand}" for r in rows if r.qty_on_hand)
-    return f"Tồn **{part.display_name_vi}** (`{part.tokin_part_no}`): **{total}**\n{by}"
+        return f"**{name}** (`{pn}`): hết hàng (tồn 0)."
+    by = "\n".join(f"• {r.get('bin_code')}: {r.get('qty_on_hand')}" for r in rows if r.get('qty_on_hand'))
+    return f"Tồn **{name}** (`{pn}`): **{total}**\n{by}"
 
 
 # ── Tool tra cứu kỹ thuật: lắp đặt/sửa chữa · tương thích · bộ tiêu hao ──────
@@ -807,78 +823,52 @@ _PROC_STOP = {'cách', 'cach', 'thay', 'lắp', 'lap', 'đặt', 'dat', 'quy', '
               'bao', 'nhiêu', 'nhieu', 'mm', 'như', 'nhu', 'thế', 'the', 'nào', 'nao', 'và', 'va'}
 
 
-def tool_procedure(question: str) -> str:
-    """Tra cứu lắp đặt/sửa chữa/thông số kỹ thuật từ ProcedureQA (migrate từ chatbot)."""
-    from django.db.models import Q as _Q
-
-    from apps.catalog.models import ProcedureQA
+def tool_procedure(user, question: str) -> str:
+    """Tra cứu lắp đặt/sửa chữa/thông số kỹ thuật từ ProcedureQA — QUA API."""
     toks = [t for t in re.split(r'[\s,?]+', question.lower())
             if t and t not in _PROC_STOP and len(t) >= 2]
     if not toks:
         return "Anh/chị cho em từ khóa (liner, tip, nozzle, torque, tên súng...) để tra hướng dẫn ạ."
-    cond = _Q()
-    for t in toks:
-        cond |= _Q(question__icontains=t) | _Q(answer__icontains=t)
-    rows = list(ProcedureQA.objects.filter(cond)[:30])
+    rows = apc.results(_safe_get(user, '/api/v1/catalog/procedures/', {'q': ' '.join(toks)}))
     if not rows:
         return ("Em chưa thấy hướng dẫn khớp. Thử từ khóa cụ thể hơn (liner, tip, nozzle, "
                 "torque, model súng...) ạ.")
-    rows.sort(key=lambda r: sum(t in (r.question + r.answer).lower() for t in toks), reverse=True)
-    out = [f"**{r.question}**\n{r.answer}" for r in rows[:3]]
+    rows.sort(key=lambda r: sum(t in (r.get('question', '') + r.get('answer', '')).lower()
+                                for t in toks), reverse=True)
+    out = [f"**{r.get('question')}**\n{r.get('answer')}" for r in rows[:3]]
     return "\n\n".join(out)
 
 
-def tool_compatibility(question: str) -> str:
-    """Đồ đi kèm/tương thích với 1 mã — từ CompatibilityEdge (7541 cạnh)."""
-    from apps.catalog.models import CompatibilityEdge, Part
+def tool_compatibility(user, question: str) -> str:
+    """Đồ đi kèm/tương thích với 1 mã — QUA API (CompatibilityEdge)."""
     codes = re.findall(r'\b\d{6}\b', question)
     if not codes:
         return "Anh/chị cho em **mã sản phẩm** (6 số, vd 001002) để tra đồ đi kèm ạ."
     pn = codes[0]
-    edges = list(CompatibilityEdge.objects.filter(from_part=pn)
-                 .order_by('-is_mandatory', 'priority_rank')[:15])
+    d = _safe_get(user, '/api/v1/catalog/parts/compatibility/', {'part': pn}) or {}
+    edges = d.get('results') or []
     if not edges:
         return f"Mã {pn} chưa có dữ liệu đồ đi kèm trong hệ thống."
-    names = {p.tokin_part_no: p.display_name_vi
-             for p in Part.objects.filter(tokin_part_no__in=[e.to_part for e in edges])}
-    lines = [f"• {e.to_part} — {names.get(e.to_part, '')}"
-             + (" *(bắt buộc)*" if e.is_mandatory else "") for e in edges]
+    lines = [f"• {e['to_part']} — {e.get('name', '')}"
+             + (" *(bắt buộc)*" if e.get('is_mandatory') else "") for e in edges]
     return f"Đồ đi kèm / tương thích với **{pn}**:\n" + "\n".join(lines)
 
 
-def tool_consumable_set(question: str) -> str:
-    """Bộ vật tư tiêu hao cho 1 súng hàn — từ ConsumableSet (20 bộ)."""
-    from apps.catalog.models import ConsumableSet, Torch
+def tool_consumable_set(user, question: str) -> str:
+    """Bộ vật tư tiêu hao cho 1 súng hàn — QUA API (ConsumableSet)."""
     m = re.search(r'\b([A-Za-z]{2,}-?\d{2,}[A-Za-z0-9]*)\b', question)
     model = (m.group(1).upper() if m else '')
-    sets = list(ConsumableSet.objects.prefetch_related('items'))
-    sset = None
-    if model:
-        # 1) khớp trực tiếp theo torch_models / set_id
-        for cs in sets:
-            if model in [str(t).upper() for t in (cs.torch_models or [])] or model in cs.set_id.upper():
-                sset = cs
-                break
-        # 2) torch_models rỗng → suy hệ + dòng điện từ Torch rồi khớp set
-        if sset is None:
-            t = Torch.objects.filter(model_code__iexact=model).first()
-            if t and getattr(t, 'ecosystem', '') and getattr(t, 'current_class', ''):
-                eco, cc = str(t.ecosystem).upper(), str(t.current_class).upper().replace('A', '')
-                for cs in sets:
-                    if (str(cs.ecosystem).upper() == eco
-                            and cc in str(cs.torch_current_class).upper()):
-                        sset = cs
-                        break
-    if sset is None:
-        sets = ConsumableSet.objects.all()[:8]
-        names = "\n".join(f"• {s.set_id}: {s.display_name_vi}" for s in sets)
-        return ("Anh/chị cho em **model súng hàn** (vd TK-308RR) để tra bộ tiêu hao ạ.\n"
-                f"Một số bộ có sẵn:\n{names}")
-    items = sset.items.order_by('-is_mandatory', 'priority_rank')
-    lines = [f"• {it.part_no} — {it.note or it.part_role}"
-             + (f" ×{it.default_quantity}" if it.default_quantity > 1 else '')
-             + (" *(bắt buộc)*" if it.is_mandatory else '') for it in items]
-    return f"**{sset.display_name_vi}**:\n" + "\n".join(lines)
+    d = _safe_get(user, '/api/v1/catalog/torches/consumable-set/', {'model': model}) or {}
+    if not d.get('matched'):
+        avail = d.get('available') or []
+        names = "\n".join(f"• {s['set_id']}: {s.get('name', '')}" for s in avail)
+        tail = f"\nMột số bộ có sẵn:\n{names}" if names else ""
+        return "Anh/chị cho em **model súng hàn** (vd TK-308RR) để tra bộ tiêu hao ạ." + tail
+    items = d.get('items') or []
+    lines = [f"• {it['part_no']} — {it.get('note') or it.get('part_role')}"
+             + (f" ×{it['default_quantity']}" if (it.get('default_quantity') or 0) > 1 else '')
+             + (" *(bắt buộc)*" if it.get('is_mandatory') else '') for it in items]
+    return f"**{d.get('name')}**:\n" + "\n".join(lines)
 
 
 def answer(question: str, user, history=None) -> str:
@@ -905,22 +895,22 @@ def answer(question: str, user, history=None) -> str:
     _conf = bool(intent.get('confirm')) and any(a in question.lower() for a in _AFFIRM)
 
     if name == 'revenue':
-        return tool_revenue(intent.get('period') or 'month')
+        return tool_revenue(user, intent.get('period') or 'month')
     if name == 'customer_debt':
-        cust_name = intent.get('customer_name') or _detect_customer(question)
-        return tool_customer_debt(cust_name or None)
+        cust_name = intent.get('customer_name') or _detect_customer(user, question)
+        return tool_customer_debt(user, cust_name or None)
     if name == 'top_customers':
-        return tool_top_customers()
+        return tool_top_customers(user)
     if name == 'dormant_customers':
-        return tool_dormant_customers(int(intent.get('months') or 3))
+        return tool_dormant_customers(user, int(intent.get('months') or 3))
     if name == 'reorder_suggestion':
-        return tool_reorder()
+        return tool_reorder(user)
     if name == 'slow_moving':
-        return tool_slow_moving()
+        return tool_slow_moving(user)
     if name == 'ceo_report':
-        return tool_ceo_report()
+        return tool_ceo_report(user)
     if name == 'evaluate_plan':
-        return tool_evaluate_plan()
+        return tool_evaluate_plan(user)
     if name == 'create_lead':
         lead_name = (intent.get('lead_name') or '').strip()
         company = (intent.get('company') or '').strip()
@@ -937,11 +927,11 @@ def answer(question: str, user, history=None) -> str:
             lead_name = raw.strip(' ,:-') or ''
         return tool_create_lead(user, lead_name, company, phone, confirm=_conf)
     if name == 'create_quote':
-        cust_name = intent.get('customer_name') or _detect_customer(question)
+        cust_name = intent.get('customer_name') or _detect_customer(user, question)
         items = intent.get('items') or _parse_items(question)
         return tool_create_quote(user, cust_name, items, confirm=_conf)
     if name == 'create_contract':
-        cust_name = intent.get('customer_name') or _detect_customer(question)
+        cust_name = intent.get('customer_name') or _detect_customer(user, question)
         m = re.search(r'\bBG[-\s]?(\d+)\b', question, re.I)
         quote_code = f"BG-{int(m.group(1)):04d}" if m else (intent.get('quote_code') or '')
         return tool_create_contract(user, cust_name, quote_code, confirm=_conf)
@@ -950,21 +940,21 @@ def answer(question: str, user, history=None) -> str:
         return tool_wms_inbound(user, items, confirm=_conf)
     if name == 'wms_outbound':
         items = intent.get('items') or _parse_items(question)
-        cust_name = intent.get('customer_name') or _detect_customer(question)
+        cust_name = intent.get('customer_name') or _detect_customer(user, question)
         return tool_wms_outbound(user, items, cust_name, confirm=_conf)
     if name == 'customer_orders':
-        cust_name = intent.get('customer_name') or _detect_customer(question)
+        cust_name = intent.get('customer_name') or _detect_customer(user, question)
         return tool_customer_orders(user, cust_name)
     if name == 'stock_lookup':
-        return tool_stock_lookup(question)
+        return tool_stock_lookup(user, question)
     if name == 'procedure':
-        return tool_procedure(question)
+        return tool_procedure(user, question)
     if name == 'compatibility':
-        return tool_compatibility(question)
+        return tool_compatibility(user, question)
     if name == 'consumable_set':
-        return tool_consumable_set(question)
+        return tool_consumable_set(user, question)
     if name == 'lookup_doc':
-        return tool_lookup_doc(question)
+        return tool_lookup_doc(user, question)
     if name == 'software_help':
         return tool_software_help(question, role)
 
@@ -976,52 +966,6 @@ def answer(question: str, user, history=None) -> str:
 
 
 # ── Executive summary (tổng hợp liên phòng ban) ─────────────────────────────
-def _gather_metrics() -> dict:
-    """Gom số liệu THẬT từ tất cả phòng ban (Sales/CRM/Dịch vụ/Kho)."""
-    from datetime import timedelta
-
-    from django.db.models import F
-
-    from apps.crm.models import Customer, Lead, Opportunity, Ticket
-    from apps.sales.models import SalesOrder
-    from apps.wms.models import InventoryItem
-    from . import services
-
-    today = date.today()
-    active = SalesOrder.objects.filter(status__in=_ACTIVE)
-    month = active.filter(issued_date__year=today.year, issued_date__month=today.month)
-    rev_month = month.aggregate(s=Sum('total_vnd'))['s'] or 0
-    paid_month = month.aggregate(s=Sum('paid_vnd'))['s'] or 0
-    debt = active.filter(total_vnd__gt=F('paid_vnd')).aggregate(
-        d=Sum(F('total_vnd') - F('paid_vnd')))['d'] or 0
-    overdue = sum(x['amount_due'] for x in services.debt_aging() if x['days_overdue'] > 0)
-    top = active.values('customer__name').annotate(r=Sum('total_vnd')).order_by('-r').first()
-    weighted = sum(float(x['weighted_vnd']) for x in services.pipeline_forecast())
-    cutoff = today - timedelta(days=90)
-    recent = set(SalesOrder.objects.filter(issued_date__gte=cutoff).values_list('customer_id', flat=True))
-    dormant = Customer.objects.filter(deleted_at__isnull=True).exclude(id__in=recent).count()
-    inv = services.inventory_value()
-
-    return {
-        'revenue_month':        int(rev_month),
-        'collected_month':      int(paid_month),
-        'debt_total':           int(debt),
-        'overdue':              int(overdue),
-        'top_customer':         top['customer__name'] if top else None,
-        'top_customer_revenue': int(top['r']) if top else 0,
-        'pipeline_weighted':    int(weighted),
-        'customers':            Customer.objects.filter(deleted_at__isnull=True).count(),
-        'dormant_customers':    dormant,
-        'open_leads':           Lead.objects.filter(status__in=['new', 'contacted']).count(),
-        'open_opportunities':   Opportunity.objects.exclude(stage__in=['won', 'lost']).count(),
-        'open_tickets':         Ticket.objects.filter(status__in=['open', 'in_progress']).count(),
-        'urgent_tickets':       Ticket.objects.filter(status__in=['open', 'in_progress'], priority='urgent').count(),
-        'inventory_value':      int(inv['inventory_value_vnd']),
-        'sku_count':            inv['sku_count'],
-        'low_stock':            InventoryItem.objects.filter(qty_on_hand__lte=F('min_level')).count(),
-    }
-
-
 def _template_summary(m: dict) -> str:
     """Tóm tắt mặc định (không cần LLM) — ghép câu từ số liệu thật."""
     lines = [
@@ -1162,68 +1106,13 @@ def analyze_attachment(question: str, file_bytes: bytes, mime: str, filename: st
         return f"Em chưa phân tích được file (lỗi gọi AI): {e}"
 
 
-def _gather_activities(days: int = 30, max_items: int = 12) -> dict:
-    """Gom HOẠT ĐỘNG gần đây: recap cuộc gặp/gọi + đếm ghi âm + hoạt động kho."""
-    from datetime import timedelta
-
-    from django.utils import timezone as _tz
-
-    from apps.crm.models import Activity, Visit
-    from apps.wms.models import StockMovement
-    try:
-        from apps.wms.models import CycleCount
-    except Exception:  # noqa: BLE001
-        CycleCount = None
-
-    today = date.today()
-    since_d = today - timedelta(days=days)
-    since_dt = _tz.now() - timedelta(days=days)
-
-    visits = (Visit.objects.filter(visit_date__gte=since_d)
-              .select_related('customer', 'owner').order_by('-visit_date'))
-    acts = (Activity.objects.filter(activity_date__gte=since_dt)
-            .select_related('customer', 'owner').order_by('-activity_date'))
-
-    def _clip(s, n=240):
-        return (s or '').strip().replace('\n', ' ')[:n]
-
-    visit_recaps = [{
-        'kh': v.customer.name if v.customer_id else '',
-        'ngay': str(v.visit_date), 'sale': v.owner.username if v.owner_id else '',
-        'recap': _clip(v.recap_text or v.summary), 'co_ghi_am': bool(v.recording_id),
-        'viec_tiep': v.next_action or '',
-    } for v in visits[:max_items] if (v.recap_text or v.summary)]
-
-    call_recaps = [{
-        'kh': a.customer.name if a.customer_id else '',
-        'loai': a.get_activity_type_display(),
-        'recap': _clip(a.recap_text or a.content), 'co_ghi_am': bool(a.recording_id),
-    } for a in acts[:max_items] if (a.recap_text or a.content)]
-
-    wh = {
-        'phieu_nhap': StockMovement.objects.filter(ts__gte=since_dt, delta__gt=0).count(),
-        'phieu_xuat': StockMovement.objects.filter(ts__gte=since_dt, delta__lt=0).count(),
-        'dieu_chinh_ton': StockMovement.objects.filter(ts__gte=since_dt, reason='adjust').count(),
-    }
-    if CycleCount is not None:
-        wh['kiem_ke'] = CycleCount.objects.filter(created_at__gte=since_dt).count()
-
-    return {
-        'ky_ngay': days,
-        'so_cuoc_gap': visits.count(),
-        'cuoc_gap_co_ghi_am': visits.exclude(recording__isnull=True).count(),
-        'so_cuoc_goi_email': acts.count(),
-        'goi_email_co_ghi_am': acts.exclude(recording__isnull=True).count(),
-        'recap_cuoc_gap': visit_recaps,
-        'recap_cuoc_goi': call_recaps,
-        'hoat_dong_kho': wh,
-    }
-
-
-def executive_summary() -> dict:
-    """Tóm tắt toàn bộ hoạt động phòng ban. Số liệu thật, lời do LLM (fallback template)."""
-    m = _gather_metrics()
-    m['hoat_dong'] = _gather_activities()
+def executive_summary(user) -> dict:
+    """Tóm tắt toàn bộ hoạt động phòng ban. Số liệu THẬT lấy QUA API (executive-metrics),
+    lời do LLM (fallback template). Bot không truy vấn DB trực tiếp."""
+    m = _safe_get(user, '/api/v1/analytics/executive-metrics/') or {}
+    if not m:
+        return {'summary': 'Chưa lấy được số liệu điều hành (kiểm tra quyền hoặc kết nối).',
+                'metrics': {}, 'generated_by': 'none'}
     ai = _llm_summary(m)
     return {
         'summary': ai or _template_summary(m),

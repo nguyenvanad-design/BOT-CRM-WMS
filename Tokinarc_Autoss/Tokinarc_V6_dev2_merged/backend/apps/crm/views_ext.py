@@ -21,7 +21,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -422,8 +422,9 @@ def _next_code_simple(prefix, model, field):
 class VisitViewSet(viewsets.ModelViewSet):
     serializer_class   = VisitSerializer
     permission_classes = [CustomerPermission]
-    filter_backends    = [DjangoFilterBackend]
+    filter_backends    = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields   = ['customer', 'opportunity']
+    search_fields      = ['code', 'customer__name']
 
     def get_queryset(self):
         return _own_filter(Visit.objects.all(), self.request.user)

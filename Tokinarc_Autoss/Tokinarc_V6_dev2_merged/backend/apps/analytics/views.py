@@ -7,7 +7,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.roles import INTERNAL_ROLES, MANAGER_ROLES
+from apps.accounts.roles import INTERNAL_ROLES, MANAGER_ROLES, WMS_CONTROL_ROLES
 
 from . import assistant, services
 
@@ -18,6 +18,16 @@ class IsManagerOrAdmin(BasePermission):
     def has_permission(self, request, view):
         u = request.user
         return bool(u and u.is_authenticated and getattr(u, 'role', '') in MANAGER_ROLES)
+
+
+class IsWmsControl(BasePermission):
+    """Kiểm soát kho: kho trưởng + quản lý/CEO (khớp WMS_CONTROL_ROLES) —
+    cho các báo cáo vận hành kho (đề nghị nhập, hàng chậm) mà kho trưởng cũng xem."""
+    message = "Chỉ kho trưởng/quản lý/CEO xem được báo cáo vận hành kho này."
+
+    def has_permission(self, request, view):
+        u = request.user
+        return bool(u and u.is_authenticated and getattr(u, 'role', '') in WMS_CONTROL_ROLES)
 
 
 class IsInternalStaff(BasePermission):
@@ -84,6 +94,55 @@ class PipelineForecastView(_Base):
         return Response(services.pipeline_forecast())
 
 
+class RevenueSummaryView(_Base):
+    """Doanh thu theo kỳ (manager+). ?period=today|month|year|all."""
+    def get(self, request):
+        return Response(services.revenue_summary(request.query_params.get('period') or 'month'))
+
+
+class CustomerDebtView(_Base):
+    """Công nợ 1 khách (?customer=tên) hoặc tổng quan top nợ (manager+)."""
+    def get(self, request):
+        return Response(services.customer_debt(request.query_params.get('customer') or None))
+
+
+class TopCustomersView(_Base):
+    """Top khách hàng theo doanh số (manager+). ?limit=5."""
+    def get(self, request):
+        limit = request.query_params.get('limit')
+        return Response(services.top_customers(int(limit) if limit else 5))
+
+
+class DormantCustomersView(_Base):
+    """Khách hàng lâu không mua (manager+). ?months=3."""
+    def get(self, request):
+        months = request.query_params.get('months')
+        return Response(services.dormant_customers(int(months) if months else 3))
+
+
+class ReorderSuggestionView(APIView):
+    """AI đề nghị nhập hàng theo tốc độ bán + tồn (kho trưởng/quản lý/CEO)."""
+    permission_classes = [IsWmsControl]
+
+    def get(self, request):
+        return Response(services.reorder_suggestions())
+
+
+class SlowMovingView(APIView):
+    """Hàng bán chậm/chết — vốn chôn (kho trưởng/quản lý/CEO). ?days=90."""
+    permission_classes = [IsWmsControl]
+
+    def get(self, request):
+        days = request.query_params.get('days')
+        return Response(services.dead_stock(int(days) if days else 90))
+
+
+class ExecutiveMetricsView(_Base):
+    """Số liệu điều hành đầy đủ + hoạt động (manager+) — nguồn cho tóm tắt CEO."""
+    def get(self, request):
+        return Response(services.executive_metrics())
+
+
 class AssistantQueryView(APIView):
     """Trợ lý NỘI BỘ (mọi nhân viên; mỗi intent tự gate role bên trong).
     POST {query} → {text}. Có thể tạo báo giá/hợp đồng/phiếu kho theo quyền."""
@@ -109,7 +168,7 @@ class AssistantQueryView(APIView):
 class AssistantSummaryView(_Base):
     """Tóm tắt điều hành toàn phòng ban (manager+). GET → {summary, metrics, generated_by}."""
     def get(self, request):
-        return Response(assistant.executive_summary())
+        return Response(assistant.executive_summary(request.user))
 
 
 class SummaryExportView(_Base):
@@ -121,7 +180,7 @@ class SummaryExportView(_Base):
         from django.http import HttpResponse
         from openpyxl import Workbook
 
-        data = assistant.executive_summary()
+        data = assistant.executive_summary(request.user)
         m = data['metrics']
         wb = Workbook(); ws = wb.active; ws.title = 'BaoCaoDieuHanh'
         ws.append(['Báo cáo điều hành Tokinarc', date.today().isoformat()])

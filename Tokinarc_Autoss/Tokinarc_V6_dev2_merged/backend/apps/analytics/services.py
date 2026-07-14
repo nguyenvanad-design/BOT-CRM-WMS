@@ -267,3 +267,170 @@ def pipeline_forecast() -> list[dict]:
             .order_by('stage'))
     return [{'stage': r['stage'], 'weighted_vnd': r['weighted'] or 0,
              'count': r['count']} for r in rows]
+
+
+_ACTIVE_ORDER = ['active', 'shipping', 'completed']
+
+
+def revenue_summary(period: str = 'month') -> dict:
+    """Doanh thu theo kỳ (today|month|year|all): tổng + đã thu + số đơn."""
+    from apps.sales.models import SalesOrder
+    qs = SalesOrder.objects.filter(status__in=_ACTIVE_ORDER)
+    today = date.today()
+    if period == 'today':
+        qs = qs.filter(issued_date=today); label = f"hôm nay ({today:%d/%m/%Y})"
+    elif period == 'year':
+        qs = qs.filter(issued_date__year=today.year); label = f"năm {today.year}"
+    elif period == 'all':
+        label = "toàn thời gian"
+    else:
+        qs = qs.filter(issued_date__year=today.year, issued_date__month=today.month)
+        label = f"tháng {today.month}/{today.year}"
+    agg = qs.aggregate(rev=Sum('total_vnd'), paid=Sum('paid_vnd'))
+    return {'period': period, 'label': label, 'revenue_vnd': int(agg['rev'] or 0),
+            'paid_vnd': int(agg['paid'] or 0), 'count': qs.count()}
+
+
+def customer_debt(name: str | None = None) -> dict:
+    """Công nợ 1 khách (name) hoặc tổng quan top khách nợ nhiều."""
+    from apps.sales.models import SalesOrder
+    from apps.crm.models import Customer
+
+    if name:
+        cust = (Customer.objects.filter(name__icontains=name, deleted_at__isnull=True).first()
+                or Customer.objects.filter(code__icontains=name).first())
+        if not cust:
+            return {'found': False, 'query': name}
+        agg = (SalesOrder.objects.filter(customer=cust, status__in=_ACTIVE_ORDER)
+               .aggregate(t=Sum('total_vnd'), p=Sum('paid_vnd')))
+        total, paid = int(agg['t'] or 0), int(agg['p'] or 0)
+        return {'found': True, 'name': cust.name, 'total_vnd': total,
+                'paid_vnd': paid, 'debt_vnd': total - paid}
+
+    rows = (SalesOrder.objects.filter(status__in=_ACTIVE_ORDER, total_vnd__gt=F('paid_vnd'))
+            .values('customer__name')
+            .annotate(debt=Sum(F('total_vnd') - F('paid_vnd')))
+            .order_by('-debt')[:5])
+    results = [{'name': r['customer__name'], 'debt_vnd': int(r['debt'] or 0)} for r in rows]
+    return {'found': None, 'results': results, 'total_vnd': sum(r['debt_vnd'] for r in results)}
+
+
+def top_customers(limit: int = 5) -> list[dict]:
+    """Top khách hàng theo doanh số (đơn active/shipping/completed)."""
+    from apps.sales.models import SalesOrder
+    rows = (SalesOrder.objects.filter(status__in=_ACTIVE_ORDER)
+            .values('customer__name').annotate(revenue=Sum('total_vnd'))
+            .order_by('-revenue')[:max(1, limit)])
+    return [{'name': r['customer__name'], 'revenue_vnd': int(r['revenue'] or 0)} for r in rows]
+
+
+def dormant_customers(months: int = 3) -> dict:
+    """Khách hàng không phát sinh đơn trong `months` tháng gần đây (nguy cơ rời)."""
+    from apps.sales.models import SalesOrder
+    from apps.crm.models import Customer
+    cutoff = date.today() - timedelta(days=months * 30)
+    recent = set(SalesOrder.objects.filter(issued_date__gte=cutoff)
+                 .values_list('customer_id', flat=True))
+    qs = Customer.objects.filter(deleted_at__isnull=True).exclude(id__in=recent)
+    return {'months': months, 'count': qs.count(),
+            'names': list(qs.values_list('name', flat=True)[:10])}
+
+
+def executive_metrics() -> dict:
+    """Gom TOÀN BỘ số liệu điều hành + hoạt động (chuyển từ assistant._gather_*).
+    Sống ở tầng API để trợ lý nội bộ đọc QUA API (không truy vấn DB trực tiếp)."""
+    from apps.crm.models import Customer, Lead, Opportunity, Ticket
+    from apps.sales.models import SalesOrder
+    from apps.wms.models import InventoryItem
+
+    today = date.today()
+    active = SalesOrder.objects.filter(status__in=_ACTIVE_ORDER)
+    month = active.filter(issued_date__year=today.year, issued_date__month=today.month)
+    rev_month = month.aggregate(s=Sum('total_vnd'))['s'] or 0
+    paid_month = month.aggregate(s=Sum('paid_vnd'))['s'] or 0
+    debt = active.filter(total_vnd__gt=F('paid_vnd')).aggregate(
+        d=Sum(F('total_vnd') - F('paid_vnd')))['d'] or 0
+    overdue = sum(x['amount_due'] for x in debt_aging() if x['days_overdue'] > 0)
+    top = active.values('customer__name').annotate(r=Sum('total_vnd')).order_by('-r').first()
+    weighted = sum(float(x['weighted_vnd']) for x in pipeline_forecast())
+    cutoff = today - timedelta(days=90)
+    recent = set(SalesOrder.objects.filter(issued_date__gte=cutoff).values_list('customer_id', flat=True))
+    dormant = Customer.objects.filter(deleted_at__isnull=True).exclude(id__in=recent).count()
+    inv = inventory_value()
+
+    m = {
+        'revenue_month':        int(rev_month),
+        'collected_month':      int(paid_month),
+        'debt_total':           int(debt),
+        'overdue':              int(overdue),
+        'top_customer':         top['customer__name'] if top else None,
+        'top_customer_revenue': int(top['r']) if top else 0,
+        'pipeline_weighted':    int(weighted),
+        'customers':            Customer.objects.filter(deleted_at__isnull=True).count(),
+        'dormant_customers':    dormant,
+        'open_leads':           Lead.objects.filter(status__in=['new', 'contacted']).count(),
+        'open_opportunities':   Opportunity.objects.exclude(stage__in=['won', 'lost']).count(),
+        'open_tickets':         Ticket.objects.filter(status__in=['open', 'in_progress']).count(),
+        'urgent_tickets':       Ticket.objects.filter(status__in=['open', 'in_progress'], priority='urgent').count(),
+        'inventory_value':      int(inv['inventory_value_vnd']),
+        'sku_count':            inv['sku_count'],
+        'low_stock':            InventoryItem.objects.filter(qty_on_hand__lte=F('min_level')).count(),
+    }
+    m['hoat_dong'] = _executive_activities()
+    return m
+
+
+def _executive_activities(days: int = 30, max_items: int = 12) -> dict:
+    """Recap cuộc gặp/gọi + đếm ghi âm + hoạt động kho (chuyển từ assistant._gather_activities)."""
+    from django.utils import timezone as _tz
+
+    from apps.crm.models import Activity, Visit
+    from apps.wms.models import StockMovement
+    try:
+        from apps.wms.models import CycleCount
+    except Exception:  # noqa: BLE001
+        CycleCount = None
+
+    today = date.today()
+    since_d = today - timedelta(days=days)
+    since_dt = _tz.now() - timedelta(days=days)
+
+    visits = (Visit.objects.filter(visit_date__gte=since_d)
+              .select_related('customer', 'owner').order_by('-visit_date'))
+    acts = (Activity.objects.filter(activity_date__gte=since_dt)
+            .select_related('customer', 'owner').order_by('-activity_date'))
+
+    def _clip(s, n=240):
+        return (s or '').strip().replace('\n', ' ')[:n]
+
+    visit_recaps = [{
+        'kh': v.customer.name if v.customer_id else '',
+        'ngay': str(v.visit_date), 'sale': v.owner.username if v.owner_id else '',
+        'recap': _clip(v.recap_text or v.summary), 'co_ghi_am': bool(v.recording_id),
+        'viec_tiep': v.next_action or '',
+    } for v in visits[:max_items] if (v.recap_text or v.summary)]
+
+    call_recaps = [{
+        'kh': a.customer.name if a.customer_id else '',
+        'loai': a.get_activity_type_display(),
+        'recap': _clip(a.recap_text or a.content), 'co_ghi_am': bool(a.recording_id),
+    } for a in acts[:max_items] if (a.recap_text or a.content)]
+
+    wh = {
+        'phieu_nhap': StockMovement.objects.filter(ts__gte=since_dt, delta__gt=0).count(),
+        'phieu_xuat': StockMovement.objects.filter(ts__gte=since_dt, delta__lt=0).count(),
+        'dieu_chinh_ton': StockMovement.objects.filter(ts__gte=since_dt, reason='adjust').count(),
+    }
+    if CycleCount is not None:
+        wh['kiem_ke'] = CycleCount.objects.filter(created_at__gte=since_dt).count()
+
+    return {
+        'ky_ngay': days,
+        'so_cuoc_gap': visits.count(),
+        'cuoc_gap_co_ghi_am': visits.exclude(recording__isnull=True).count(),
+        'so_cuoc_goi_email': acts.count(),
+        'goi_email_co_ghi_am': acts.exclude(recording__isnull=True).count(),
+        'recap_cuoc_gap': visit_recaps,
+        'recap_cuoc_goi': call_recaps,
+        'hoat_dong_kho': wh,
+    }

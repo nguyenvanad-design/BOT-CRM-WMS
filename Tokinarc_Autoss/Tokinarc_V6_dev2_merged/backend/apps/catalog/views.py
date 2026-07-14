@@ -57,7 +57,12 @@ class ProcedureViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         if intent in ('INSTALLATION', 'REPAIR', 'LOOKUP'):
             qs = qs.filter(intent=intent)
         if q:
-            qs = qs.filter(Q(question__icontains=q) | Q(answer__icontains=q))
+            # OR theo từng token (bot nội bộ truyền chuỗi token đã lọc stopword) → recall tốt hơn.
+            toks = [t for t in q.split() if len(t) >= 2] or [q]
+            cond = Q()
+            for t in toks:
+                cond |= Q(question__icontains=t) | Q(answer__icontains=t)
+            qs = qs.filter(cond)
         return qs
 
 
@@ -122,6 +127,21 @@ class PartViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         part.save(update_fields=['barcode'])
         return Response({'part_no': part.pk, 'name': part.display_name_vi, 'barcode': code})
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def compatibility(self, request):
+        """Đồ đi kèm/tương thích với 1 mã (nội bộ). ?part=001002 → danh sách to_part + bắt buộc."""
+        from apps.catalog.models import CompatibilityEdge
+        pn = (request.query_params.get('part') or '').strip()
+        if not pn:
+            return Response({'part': '', 'results': []})
+        edges = list(CompatibilityEdge.objects.filter(from_part=pn)
+                     .order_by('-is_mandatory', 'priority_rank')[:15])
+        names = {p.tokin_part_no: p.display_name_vi
+                 for p in Part.objects.filter(tokin_part_no__in=[e.to_part for e in edges])}
+        results = [{'to_part': e.to_part, 'name': names.get(e.to_part, ''),
+                    'is_mandatory': e.is_mandatory} for e in edges]
+        return Response({'part': pn, 'results': results})
+
     @action(detail=False, methods=['get'])
     def search(self, request):
         """
@@ -183,6 +203,40 @@ class TorchViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
 
     def get_serializer_class(self):
         return TorchDetailSerializer if self.action == 'retrieve' else TorchLiteSerializer
+
+    @action(detail=False, methods=['get'], url_path='consumable-set', permission_classes=[IsAuthenticated])
+    def consumable_set(self, request):
+        """Bộ vật tư tiêu hao cho 1 model súng (nội bộ). ?model=TK-308RR.
+        Khớp theo torch_models/set_id; nếu rỗng → suy hệ + dòng điện từ Torch rồi khớp set."""
+        from apps.catalog.models import ConsumableSet
+        model = (request.query_params.get('model') or '').strip().upper()
+        sets = list(ConsumableSet.objects.prefetch_related('items'))
+        sset = None
+        if model:
+            for cs in sets:
+                if model in [str(t).upper() for t in (cs.torch_models or [])] or model in cs.set_id.upper():
+                    sset = cs
+                    break
+            if sset is None:
+                t = Torch.objects.filter(model_code__iexact=model).first()
+                if t and getattr(t, 'ecosystem', '') and getattr(t, 'current_class', ''):
+                    eco, cc = str(t.ecosystem).upper(), str(t.current_class).upper().replace('A', '')
+                    for cs in sets:
+                        if (str(cs.ecosystem).upper() == eco
+                                and cc in str(cs.torch_current_class).upper()):
+                            sset = cs
+                            break
+        if sset is None:
+            avail = [{'set_id': s.set_id, 'name': s.display_name_vi}
+                     for s in ConsumableSet.objects.all()[:8]]
+            return Response({'matched': False, 'available': avail})
+        items = sset.items.order_by('-is_mandatory', 'priority_rank')
+        return Response({
+            'matched': True, 'set_id': sset.set_id, 'name': sset.display_name_vi,
+            'items': [{'part_no': it.part_no, 'note': it.note, 'part_role': it.part_role,
+                       'default_quantity': it.default_quantity, 'is_mandatory': it.is_mandatory}
+                      for it in items],
+        })
 
     @action(detail=False, methods=['get'])
     def search(self, request):

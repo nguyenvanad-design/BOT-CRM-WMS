@@ -134,6 +134,8 @@ class InboundOrderSerializer(serializers.ModelSerializer):
                   'supplier', 'invoice_no', 'shortage_note', 'received_at', 'lines', 'notes',
                   'created_at', 'updated_at']
         read_only_fields = ['id', 'status', 'received_at', 'created_at', 'updated_at']
+        # code: nếu client không gửi → view tự sinh (IN-YYYY-NNN).
+        extra_kwargs = {'code': {'required': False}}
 
     def create(self, validated_data):
         lines = validated_data.pop('lines', [])
@@ -175,6 +177,8 @@ class OutboundOrderSerializer(serializers.ModelSerializer):
                   'rule', 'status', 'shipped_at', 'lines', 'notes',
                   'created_at', 'updated_at']
         read_only_fields = ['id', 'status', 'shipped_at', 'created_at', 'updated_at']
+        # code: nếu client không gửi → view tự sinh (OUT-YYYY-NNN).
+        extra_kwargs = {'code': {'required': False}}
 
     def create(self, validated_data):
         lines = validated_data.pop('lines', [])
