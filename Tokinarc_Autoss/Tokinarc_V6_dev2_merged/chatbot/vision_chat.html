@@ -775,6 +775,7 @@ async function sendStream(text) {
       body: JSON.stringify({
         query:      text || modeHints[currentMode],
         session_id: SESSION_ID,
+        platform:   'web',
       }),
     });
 
@@ -863,6 +864,7 @@ async function sendRest(text, imgSrc) {
     const payload = {
       query:      text || modeHints[currentMode],
       session_id: SESSION_ID,
+      platform:   'web',
     };
     if (selectedB64) {
       const b64 = selectedB64.includes(',') ? selectedB64.split(',')[1] : selectedB64;

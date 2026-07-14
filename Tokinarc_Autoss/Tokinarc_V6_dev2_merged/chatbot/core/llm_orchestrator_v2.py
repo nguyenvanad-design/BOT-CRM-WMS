@@ -569,6 +569,12 @@ def _extract_session_data(tools_called, tool_results, query):
             entities.setdefault("torch_models",[])
             if args["torch_model"] not in entities["torch_models"]:
                 entities["torch_models"].append(args["torch_model"])
+        # LEAD: giữ tên/SĐT khách từ capture_lead → CRM link được thread hội thoại ↔ Lead
+        # (dùng cho cả /query và /stream: đẩy kèm khi log_turn về bot-conversations).
+        if tr.get("tool") == "capture_lead":
+            for _k in ("name", "phone", "company"):
+                if args.get(_k):
+                    entities[_k] = args[_k]
 
         _raw  = result.get("result", result)
         _ok   = _raw.get("success", result.get("success", False))
@@ -1236,7 +1242,7 @@ class OrchestratorV2REST:
             self._save_upsell_ctx(ctx, tool_results)
         yield {"type": "done", "intent": intent,
                "latency_ms": int((time.time()-t0)*1000),
-               "tools_called": tools_called}
+               "tools_called": tools_called, "entities": safe_ent}
 
     # ══════════════════════════════════════════════════════════════════════
     # Inject helpers — dùng chung cho run() và stream_response()

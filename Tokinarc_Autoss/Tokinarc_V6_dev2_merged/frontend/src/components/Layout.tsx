@@ -10,7 +10,7 @@ import {
   Ticket as TicketIcon, ShieldCheck, Wrench, Sparkles, Menu, X, Wallet,
   Package, Barcode, History, PackageCheck,
   Warehouse, Map as MapIcon, Crown, Bot, ClipboardCheck,
-  ShoppingCart, Building, Undo2, CalendarDays, UserCog,
+  ShoppingCart, Building, Undo2, CalendarDays, UserCog, MessageSquare,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useAuth, isWmsControl, isManager } from '@/lib/auth/store'
@@ -34,6 +34,7 @@ const CRM_NAV: NavGroup[] = [
   { group: 'Khách hàng', items: [
     { to: '/customers', icon: <Building2 size={16} />, label: 'Khách hàng' },
     { to: '/leads', icon: <Radar size={16} />, label: 'Leads' },
+    { to: '/bot-conversations', icon: <MessageSquare size={16} />, label: 'Inbox đa kênh' },
     { to: '/opportunities', icon: <Target size={16} />, label: 'Cơ hội' },
   ]},
   { group: 'Bán hàng', items: [

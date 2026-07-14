@@ -14,6 +14,7 @@ from .imports import (
     EntityImportTemplateView, EntityImportView,
 )
 from .activity_feed import MyActivityFeedView
+from .bot_conversations import BotConversationIngestView, BotConversationViewSet
 from .lead_intake import LeadIntakeView
 from .lead_report import LeadSourceReportView
 from .receivables import ReceivablesView
@@ -32,6 +33,7 @@ router.register(r'visits', VisitViewSet, basename='visit')
 router.register(r'tickets', TicketViewSet, basename='ticket')
 router.register(r'contracts', ContractViewSet, basename='contract')
 router.register(r'activities', ActivityViewSet, basename='activity')
+router.register(r'bot-conversations', BotConversationViewSet, basename='bot-conversation')
 
 # Đặt TRƯỚC router để 'customers/import/' không bị nuốt bởi 'customers/<pk>/'.
 urlpatterns = [
@@ -44,6 +46,8 @@ urlpatterns = [
          name='entity-import-template'),
     # Bot khách đẩy lead về CRM (ghi-1-chiều, xác thực X-Intake-Key).
     path('lead-intake/', LeadIntakeView.as_view(), name='lead-intake'),
+    # Bot khách đẩy từng lượt hội thoại về (đặt TRƯỚC router để không bị 'bot-conversations/<pk>' nuốt).
+    path('bot-conversations/ingest/', BotConversationIngestView.as_view(), name='bot-conversation-ingest'),
     # Nhật ký hoạt động của sale (gộp nhiều bảng theo thời gian).
     path('my-activity/', MyActivityFeedView.as_view(), name='my-activity'),
     # Báo cáo lead theo nguồn / chiến dịch.

@@ -645,7 +645,7 @@ async def query_v2(req: QueryRequestV2, _key: str = Depends(verify_api_key)):
             image_data = image_bytes,
         )
 
-        _log_query(result, req.query, req.session_id)
+        _log_query(result, req.query, req.session_id, req.platform)
 
         return QueryResponseV2(
             text                   = result.text,
@@ -691,6 +691,7 @@ async def stream_v2(req: QueryRequestV2, _key: str = Depends(verify_api_key)):
         _collected_text   = []
         _collected_intent = ""
         _collected_tools  = []
+        _collected_ent: dict = {}
         _t0 = time.perf_counter()
         try:
             gen = _state.orch_v2.stream_response(
@@ -704,6 +705,7 @@ async def stream_v2(req: QueryRequestV2, _key: str = Depends(verify_api_key)):
                     _collected_text.append(event.get("chunk", ""))
                 elif event.get("type") == "done":
                     _collected_intent = event.get("intent", "")
+                    _collected_ent = event.get("entities") or {}
                 elif event.get("type") == "tool_start":
                     _collected_tools.append(event.get("tool", ""))
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
@@ -738,6 +740,18 @@ async def stream_v2(req: QueryRequestV2, _key: str = Depends(verify_api_key)):
                 except Exception:
                     pass
 
+            # Đẩy hội thoại về CRM (STREAMING — endpoint UI khách dùng). Non-blocking.
+            # Kèm tên/SĐT nếu lượt này khách để lại liên hệ (capture_lead) → CRM link thread ↔ Lead.
+            try:
+                from core.conversation_logger import log_turn
+                log_turn(session_key=req.session_id or "", user_text=req.query or "",
+                         bot_text="".join(_collected_text), intent=_collected_intent,
+                         channel=req.platform or "web",
+                         customer_name=str(_collected_ent.get("name") or ""),
+                         customer_phone=str(_collected_ent.get("phone") or ""))
+            except Exception:
+                pass
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
@@ -763,6 +777,7 @@ async def stream_v5(req: QueryRequest, _key: str = Depends(verify_api_key)):
         _collected_text   = []
         _collected_intent = ""
         _collected_tools  = []
+        _collected_ent: dict = {}
         _t0 = time.perf_counter()
         try:
             gen = _state.orch_v2.stream_response(
@@ -775,6 +790,7 @@ async def stream_v5(req: QueryRequest, _key: str = Depends(verify_api_key)):
                     _collected_text.append(event.get("chunk", ""))
                 elif event.get("type") == "done":
                     _collected_intent = event.get("intent", "")
+                    _collected_ent = event.get("entities") or {}
                 elif event.get("type") == "tool_start":
                     _collected_tools.append(event.get("tool", ""))
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
@@ -798,6 +814,16 @@ async def stream_v5(req: QueryRequest, _key: str = Depends(verify_api_key)):
                     )
                 except Exception:
                     pass
+            # Đẩy hội thoại về CRM (STREAMING v5). Non-blocking. Kèm tên/SĐT nếu có.
+            try:
+                from core.conversation_logger import log_turn
+                log_turn(session_key=req.session_id or "", user_text=req.query or "",
+                         bot_text="".join(_collected_text), intent=_collected_intent,
+                         channel=req.platform or "web",
+                         customer_name=str(_collected_ent.get("name") or ""),
+                         customer_phone=str(_collected_ent.get("phone") or ""))
+            except Exception:
+                pass
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
@@ -823,7 +849,7 @@ async def query_v5(req: QueryRequest, _key: str = Depends(verify_api_key)):
             image_data = image_bytes,
         )
 
-        _log_query(result, req.query, req.session_id)
+        _log_query(result, req.query, req.session_id, req.platform)
 
         return QueryResponse(
             intent               = result.intent or "LOOKUP",
@@ -1083,6 +1109,7 @@ async def ws_query(websocket: WebSocket):
         session_id   = data.get("session_id")
         image_base64 = data.get("image_base64")
         image_url    = data.get("image_url")
+        platform     = data.get("platform", "web")
 
         if not (query_text or image_base64 or image_url):
             await websocket.send_json({"type": "error", "message": "Empty query"})
@@ -1108,7 +1135,7 @@ async def ws_query(websocket: WebSocket):
             image_data = image_bytes,
         )
 
-        _log_query(result, query_text, session_id)
+        _log_query(result, query_text, session_id, platform)
 
         await websocket.send_json({
             "type": "response",
@@ -1147,20 +1174,36 @@ async def ws_query(websocket: WebSocket):
 # Helpers
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _log_query(result: Any, query: str, session_id: Optional[str]):
-    """Fire-and-forget query logger."""
-    if _state.query_logger is None:
-        return
+def _log_query(result: Any, query: str, session_id: Optional[str], channel: str = "web"):
+    """Fire-and-forget query logger + đẩy hội thoại về CRM cho nhân viên xem/quản lý.
+    `channel` = platform của request (web/zalo/facebook…) để CRM biết nguồn."""
+    if _state.query_logger is not None:
+        try:
+            _state.query_logger.log(
+                {
+                    "intent":       getattr(result, "intent", ""),
+                    "text":         getattr(result, "text", ""),
+                    "latency_ms":   getattr(result, "latency_ms", 0),
+                    "tools_called": getattr(result, "tools_called", []),
+                    "success":      getattr(result, "success", False),
+                },
+                query=query, session_id=session_id,
+            )
+        except Exception:
+            pass
+
+    # Đẩy TỪNG LƯỢT hội thoại về CRM (non-blocking) → sale/quản lý xem trong app.
     try:
-        _state.query_logger.log(
-            {
-                "intent":       getattr(result, "intent", ""),
-                "text":         getattr(result, "text", ""),
-                "latency_ms":   getattr(result, "latency_ms", 0),
-                "tools_called": getattr(result, "tools_called", []),
-                "success":      getattr(result, "success", False),
-            },
-            query=query, session_id=session_id,
+        from core.conversation_logger import log_turn
+        ent = getattr(result, "entities", None) or {}
+        log_turn(
+            session_key=session_id or "",
+            user_text=query or "",
+            bot_text=getattr(result, "text", "") or "",
+            intent=getattr(result, "intent", "") or "",
+            channel=channel or "web",
+            customer_name=str(ent.get("name") or ent.get("customer_name") or ""),
+            customer_phone=str(ent.get("phone") or ent.get("customer_phone") or ""),
         )
     except Exception:
         pass

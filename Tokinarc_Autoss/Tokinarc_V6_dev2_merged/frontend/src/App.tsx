@@ -12,6 +12,7 @@ import { DashboardPage } from '@/pages/crm/Dashboard'
 import { CustomersPage } from '@/pages/Customers'
 import { Customer360Page } from '@/pages/crm/Customer360'
 import { LeadsPage } from '@/pages/crm/Leads'
+import { BotConversationsPage } from '@/pages/crm/BotConversations'
 import { OpportunitiesPage } from '@/pages/crm/Opportunities'
 import { OpportunityDetailPage } from '@/pages/crm/OpportunityDetail'
 import { QuotesPage } from '@/pages/crm/Quotes'
@@ -88,6 +89,7 @@ export function App() {
           <Route path="customers" element={<CustomersPage />} />
           <Route path="customers/:id" element={<Customer360Page />} />
           <Route path="leads" element={<LeadsPage />} />
+          <Route path="bot-conversations" element={<BotConversationsPage />} />
           <Route path="opportunities" element={<OpportunitiesPage />} />
           <Route path="opportunities/:id" element={<OpportunityDetailPage />} />
           <Route path="pipeline" element={<Navigate to="/opportunities" replace />} />
