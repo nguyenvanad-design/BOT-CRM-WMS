@@ -66,13 +66,34 @@ api.interceptors.response.use(
   },
 )
 
-/** Lấy message lỗi từ response Django (DRF detail / non_field_errors). */
+/** Lấy message lỗi từ response Django (DRF detail / non_field_errors).
+ * Luôn trả CHUỖI CÓ NỘI DUNG — không bao giờ rỗng (tránh hiển thị "Lỗi:" trống khi
+ * backend chưa chạy / proxy trả body rỗng). */
 export function apiError(e: unknown): string {
   const ax = e as AxiosError<any>
   const d = ax.response?.data
-  if (typeof d === 'string') return d
-  if (d?.detail) return d.detail
-  if (d?.non_field_errors?.length) return d.non_field_errors[0]
-  if (ax.message) return ax.message
-  return 'Đã có lỗi xảy ra.'
+
+  // Body là chuỗi có nội dung (bỏ qua trang HTML lỗi của proxy/server).
+  if (typeof d === 'string' && d.trim() && !/^\s*<(!doctype|html)/i.test(d)) {
+    return d.trim()
+  }
+  // DRF chuẩn: {detail} · {non_field_errors} · hoặc lỗi field đầu tiên ({phone:[...]}).
+  if (d && typeof d === 'object') {
+    if (typeof d.detail === 'string' && d.detail.trim()) return d.detail.trim()
+    if (Array.isArray(d.non_field_errors) && d.non_field_errors.length) {
+      return String(d.non_field_errors[0])
+    }
+    const firstFieldErr = Object.values(d).find((v) => Array.isArray(v) && v.length)
+    if (Array.isArray(firstFieldErr)) return String(firstFieldErr[0])
+  }
+  // Không có phản hồi (mất mạng) hoặc proxy trả rỗng vì backend chưa chạy.
+  const status = ax.response?.status
+  if (ax.code === 'ERR_NETWORK' || !ax.response) {
+    return 'Không kết nối được máy chủ — kiểm tra mạng hoặc backend (API) có đang chạy không.'
+  }
+  if (status && status >= 500) {
+    return `Máy chủ gặp sự cố (lỗi ${status}) — thử lại sau, hoặc kiểm tra backend đang chạy.`
+  }
+  if (status) return `Yêu cầu thất bại (lỗi ${status}).`
+  return ax.message || 'Đã có lỗi xảy ra.'
 }
