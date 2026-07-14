@@ -1,0 +1,305 @@
+<style>
+  :root{
+    --paper:#f5f1e8; --card:#fffdf7; --card2:#faf5ea; --chip:#efe8d6;
+    --ink:#2a251e; --muted:#8a8173; --faint:#b0a696; --line:#e6dece;
+    --flame:#c1541d; --steel:#35678f; --green:#3c7a50; --danger:#b0432f;
+    --shadow:0 1px 2px rgba(60,45,20,.04), 0 8px 24px -18px rgba(60,45,20,.28);
+    --mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#1a1714; --card:#23201a; --card2:#201c16; --chip:#2b261d;
+      --ink:#ece4d5; --muted:#9a9082; --faint:#6d6456; --line:#342e25;
+      --flame:#e2793d; --steel:#78a8d2; --green:#74c290; --danger:#e0785f;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px -20px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#1a1714; --card:#23201a; --card2:#201c16; --chip:#2b261d;
+    --ink:#ece4d5; --muted:#9a9082; --faint:#6d6456; --line:#342e25;
+    --flame:#e2793d; --steel:#78a8d2; --green:#74c290; --danger:#e0785f;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px -20px rgba(0,0,0,.7);
+  }
+  :root[data-theme="light"]{
+    --paper:#f5f1e8; --card:#fffdf7; --card2:#faf5ea; --chip:#efe8d6;
+    --ink:#2a251e; --muted:#8a8173; --faint:#b0a696; --line:#e6dece;
+    --flame:#c1541d; --steel:#35678f; --green:#3c7a50; --danger:#b0432f;
+    --shadow:0 1px 2px rgba(60,45,20,.04), 0 8px 24px -18px rgba(60,45,20,.28);
+  }
+
+  *{box-sizing:border-box}
+  .page{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh;
+    padding:0 24px 90px;position:relative}
+  .page::before{content:"";position:fixed;inset:0 0 auto 0;height:3px;
+    background:linear-gradient(90deg,var(--flame),var(--steel));z-index:5}
+  .wrap{max-width:1160px;margin:0 auto}
+
+  /* ── Header ── */
+  header{padding:64px 0 0}
+  .eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--flame);font-weight:600;margin:0 0 18px}
+  h1{font-family:var(--sans);font-weight:800;letter-spacing:-.025em;
+    font-size:clamp(2.3rem,5.4vw,3.7rem);line-height:1.02;margin:0;
+    text-wrap:balance;color:var(--ink)}
+  .lede{font-size:clamp(1.02rem,1.6vw,1.22rem);color:var(--muted);
+    max-width:44ch;margin:22px 0 0;text-wrap:pretty}
+  .source{font-family:var(--mono);font-size:.78rem;color:var(--faint);
+    margin:26px 0 0;letter-spacing:.02em}
+  .rule{height:1px;background:var(--line);border:0;margin:30px 0 0}
+
+  /* ── Section head ── */
+  .sec{margin-top:56px}
+  .sec-head{display:flex;align-items:center;gap:18px;margin:0 0 22px}
+  .sec-head span{font-family:var(--mono);font-size:.76rem;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
+  .sec-head::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ── Track cards ── */
+  .track{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:22px 24px;box-shadow:var(--shadow);margin-bottom:18px}
+  .track-title{display:flex;align-items:center;gap:11px;font-weight:700;
+    font-size:1.06rem;margin:0 0 18px;letter-spacing:-.01em}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  .dot.crm{background:var(--flame)} .dot.kho{background:var(--steel)}
+  .flow{display:flex;align-items:stretch;gap:4px;overflow-x:auto;
+    padding-bottom:6px;scrollbar-width:thin}
+  .chip{background:var(--card2);border:1px solid var(--line);border-radius:11px;
+    padding:12px 15px;min-width:132px;flex:0 0 auto}
+  .chip b{display:block;font-size:.96rem;font-weight:700;letter-spacing:-.01em}
+  .chip small{display:block;font-family:var(--mono);font-size:.72rem;
+    color:var(--muted);margin-top:4px;letter-spacing:-.01em}
+  .arrow{display:flex;align-items:center;color:var(--faint);font-size:1.1rem;
+    padding:0 3px;flex:none;user-select:none}
+
+  .note{font-size:.98rem;color:var(--muted);margin:18px 2px 0;max-width:74ch}
+  .note b{color:var(--ink);font-weight:700}
+  .note.callout{background:var(--card2);border:1px solid var(--line);
+    border-left:3px solid var(--flame);border-radius:0 10px 10px 0;
+    padding:14px 18px;margin-top:20px}
+
+  /* ── Table ── */
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);background:var(--card)}
+  table{width:100%;border-collapse:collapse;min-width:760px;
+    font-variant-numeric:tabular-nums}
+  thead th{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;
+    padding:16px 18px;border-bottom:1px solid var(--line);vertical-align:bottom}
+  tbody td{padding:15px 18px;border-bottom:1px solid var(--line);
+    font-size:.92rem;vertical-align:top;color:var(--ink)}
+  tbody tr:last-child td{border-bottom:0}
+  .role{font-weight:700;font-size:.98rem;position:relative;white-space:nowrap;
+    box-shadow:inset 3px 0 0 var(--flame)}
+  .scope small{display:block;color:var(--muted);font-size:.8rem;margin-top:3px;
+    white-space:normal}
+  .yes{color:var(--green);font-weight:700}
+  .no{color:var(--faint)}
+  .approve{color:var(--flame);font-weight:700}
+  .approve.l2{color:var(--danger)}
+  .sub{display:block;color:var(--muted);font-size:.78rem;margin-top:2px;font-weight:400}
+
+  /* ── Approval routing ── */
+  .route{display:flex;gap:4px;align-items:stretch;overflow-x:auto;padding-bottom:4px}
+  .step{flex:1 1 0;min-width:180px;background:var(--card);border:1px solid var(--line);
+    border-radius:13px;padding:16px 18px;box-shadow:var(--shadow)}
+  .step .tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;
+    color:var(--muted);text-transform:uppercase}
+  .step b{display:block;font-size:1.04rem;margin:7px 0 4px;letter-spacing:-.01em}
+  .step p{margin:0;font-size:.86rem;color:var(--muted)}
+  .step.s1 b{color:var(--green)} .step.s2 b{color:var(--flame)} .step.s3 b{color:var(--danger)}
+
+  /* ── Principle cards ── */
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px;box-shadow:var(--shadow)}
+  .pcard .k{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--flame);font-weight:600}
+  .pcard h3{margin:8px 0 8px;font-size:1.05rem;font-weight:700;letter-spacing:-.01em}
+  .pcard p{margin:0;font-size:.9rem;color:var(--muted)}
+
+  footer{margin-top:60px;padding-top:22px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:.74rem;color:var(--faint);
+    display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+  a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--flame);outline-offset:3px;border-radius:4px}
+  @media (max-width:560px){ header{padding-top:44px} .sec{margin-top:44px} }
+</style>
+
+<div class="page">
+  <div class="wrap">
+
+    <header>
+      <p class="eyebrow">Tokinarc / Autoss · ERP nội bộ</p>
+      <h1>Luồng nghiệp vụ theo vai trò</h1>
+      <p class="lede">Ai làm gì, theo trình tự nào, và giới hạn quyền ở đâu — cho 5 vai trò
+        vận hành: Sale, Quản lý KD, CEO, Nhân viên kho và Quản lý kho.</p>
+      <p class="source">Nguồn: apps/{crm, sales, wms, purchasing, accounts} · Trục CRM · Trục Kho · Trục Duyệt</p>
+      <hr class="rule" />
+    </header>
+
+    <!-- ── TOÀN CẢNH ── -->
+    <section class="sec">
+      <div class="sec-head"><span>Toàn cảnh — hai trục chạy song song</span></div>
+
+      <div class="track">
+        <p class="track-title"><span class="dot crm"></span>Trục CRM — bán hàng (Sale · Quản lý KD · CEO)</p>
+        <div class="flow">
+          <div class="chip"><b>Lead</b><small>new → qualified</small></div>
+          <div class="arrow">→</div>
+          <div class="chip"><b>Khách hàng</b><small>convert</small></div>
+          <div class="arrow">→</div>
+          <div class="chip"><b>Cơ hội</b><small>prospect → won</small></div>
+          <div class="arrow">→</div>
+          <div class="chip"><b>Báo giá</b><small>BG · duyệt</small></div>
+          <div class="arrow">→</div>
+          <div class="chip"><b>Đơn / Hợp đồng</b><small>to-order / to-contract</small></div>
+          <div class="arrow">→</div>
+          <div class="chip"><b>Giao · Thu</b><small>ship · công nợ</small></div>
+        </div>
+      </div>
+
+      <div class="track">
+        <p class="track-title"><span class="dot kho"></span>Trục Kho — cung ứng (Nhân viên kho · Quản lý kho)</p>
+        <div class="flow">
+          <div class="chip"><b>Đơn mua</b><small>PO · duyệt</small></div>
+          <div class="arrow">→</div>
+          <div class="chip"><b>Nhập kho</b><small>receive → confirm</small></div>
+          <div class="arrow">→</div>
+          <div class="chip"><b>Tồn kho</b><small>+tồn · serial · WAC</small></div>
+          <div class="arrow">→</div>
+          <div class="chip"><b>Xuất kho</b><small>pick → ship</small></div>
+          <div class="arrow">→</div>
+          <div class="chip"><b>Kiểm kê</b><small>count → apply</small></div>
+        </div>
+      </div>
+
+      <p class="note callout">Điểm nối 2 trục: <b>Báo giá đã duyệt → Đơn bán</b>; khi
+        <b>ship</b> đơn bán, hệ thống tự sinh <b>Phiếu xuất kho</b> cho kho soạn hàng.
+        Chiều ngược lại: <b>Đơn mua</b> về → <b>Phiếu nhập</b> → cộng tồn (kèm giá vốn WAC + serial súng).</p>
+    </section>
+
+    <!-- ── BẢNG VAI TRÒ ── -->
+    <section class="sec">
+      <div class="sec-head"><span>Nhìn nhanh — ai thấy gì, làm gì</span></div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Vai trò</th>
+              <th>Phạm vi dữ liệu</th>
+              <th>Duyệt BG / HĐ</th>
+              <th>Ghi kho</th>
+              <th>Kiểm soát tồn</th>
+              <th>Dashboard tài chính</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="role">Sale</td>
+              <td class="scope">Chỉ của mình<small>KH / lead / BG / đơn do mình sở hữu</small></td>
+              <td><span class="approve" style="color:var(--green)">Tự duyệt ≤ 5%</span></td>
+              <td class="no">—</td>
+              <td class="no">—</td>
+              <td class="no">—</td>
+            </tr>
+            <tr>
+              <td class="role">Quản lý KD</td>
+              <td class="scope">Toàn bộ Sales<small>xem &amp; giao việc mọi sale</small></td>
+              <td><span class="approve">Cấp 1 · 5–10%</span></td>
+              <td class="yes">Có <span class="sub">ít dùng</span></td>
+              <td class="yes">Có</td>
+              <td class="yes">Có</td>
+            </tr>
+            <tr>
+              <td class="role">CEO</td>
+              <td class="scope">Toàn công ty<small>liên phòng ban</small></td>
+              <td><span class="approve l2">Cấp 2 · &gt; 10%</span></td>
+              <td class="yes">Có</td>
+              <td class="yes">Có</td>
+              <td class="yes">Có</td>
+            </tr>
+            <tr>
+              <td class="role">Nhân viên kho</td>
+              <td class="scope">Nghiệp vụ kho<small>nhập / xuất / quét / soạn hàng</small></td>
+              <td class="no">—</td>
+              <td class="yes">Có <span class="sub">nhập · xuất · quét</span></td>
+              <td class="no">—</td>
+              <td class="no">—</td>
+            </tr>
+            <tr>
+              <td class="role">Quản lý kho</td>
+              <td class="scope">Kho + kiểm soát<small>toàn bộ kho được phân</small></td>
+              <td class="no">—</td>
+              <td class="yes">Có</td>
+              <td class="yes">Có <span class="sub">điều chỉnh tồn · duyệt kiểm kê</span></td>
+              <td class="no">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Quy ước: <b class="role" style="box-shadow:none;color:var(--green);font-weight:700">Có</b>
+        = được phép · <b style="color:var(--faint)">—</b> = ngoài phạm vi vai trò.
+        Quản lý kho có quyền <b>kiểm soát tồn</b> nhưng KHÔNG xem <b>dashboard tài chính</b> (khác Quản lý KD).</p>
+    </section>
+
+    <!-- ── ĐỊNH TUYẾN DUYỆT ── -->
+    <section class="sec">
+      <div class="sec-head"><span>Trục duyệt — báo giá đi đâu theo % chiết khấu</span></div>
+      <div class="route">
+        <div class="step s1">
+          <span class="tag">≤ 5% · hạn mức sale</span>
+          <b>Tự động duyệt</b>
+          <p>Sale lập báo giá, hệ thống duyệt luôn (approved) — dùng ngay để tạo đơn.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="step s2">
+          <span class="tag">&gt; 5% · vượt hạn mức</span>
+          <b>Quản lý KD duyệt (L1)</b>
+          <p>Chuyển hàng chờ ở trang “Cần duyệt”; quản lý duyệt hoặc từ chối kèm lý do.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="step s3">
+          <span class="tag">&gt; 10% · vượt hạn mức QL</span>
+          <b>CEO duyệt (L2)</b>
+          <p>Sau L1 chuyển <em>pending_ceo</em>; CEO duyệt cấp 2 mới được lên đơn.</p>
+        </div>
+      </div>
+      <p class="note callout"><b>Chống tự duyệt:</b> người tạo không tự duyệt (trừ admin); cấp 2 chặn cả
+        người đã duyệt cấp 1. Báo giá <b>hết hạn</b> (valid_until) → chặn tạo đơn, buộc làm báo giá mới.
+        Mọi lần duyệt / từ chối đều ghi <b>AuditLog</b> và báo (notify) đúng người.</p>
+    </section>
+
+    <!-- ── RANH GIỚI ── -->
+    <section class="sec">
+      <div class="sec-head"><span>Ba ranh giới bất biến</span></div>
+      <div class="grid3">
+        <div class="pcard">
+          <div class="k">Tách 2 bot</div>
+          <h3>Khách ≠ nội bộ</h3>
+          <p>Bot khách chỉ đọc catalog + ghi-1-chiều lead/hội thoại qua khóa. Trợ lý nội bộ chỉ nhân
+            viên đăng nhập (JWT) dùng, siết theo vai trò từng chức năng.</p>
+        </div>
+        <div class="pcard">
+          <div class="k">Ghi qua API</div>
+          <h3>Không ORM trực tiếp</h3>
+          <p>Trợ lý nội bộ gọi REST in-process bằng danh tính chính nhân viên → đi đúng permission +
+            serializer + AuditLog như thao tác trên web.</p>
+        </div>
+        <div class="pcard">
+          <div class="k">Ownership</div>
+          <h3>Thấy đúng phần mình</h3>
+          <p>Sale chỉ thấy bản ghi của mình; Quản lý+ thấy hết. Lập phiếu kho qua bot: chỉ Nhân viên
+            kho + CEO (Quản lý KD làm được trên web, không qua bot — chủ ý).</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>Tokinarc × Autoss · roles.py là nguồn sự thật cho vai trò &amp; quyền</span>
+      <span>Sale · Quản lý KD · CEO · Nhân viên kho · Quản lý kho</span>
+    </footer>
+
+  </div>
+</div>
