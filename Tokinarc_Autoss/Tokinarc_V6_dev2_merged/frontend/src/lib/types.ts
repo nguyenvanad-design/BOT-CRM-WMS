@@ -350,6 +350,9 @@ export interface Opportunity {
   owner: string
   owner_username: string
   notes: string
+  lost_reason: string
+  lost_reason_display: string
+  lost_note: string
   created_at: string
   updated_at: string
 }

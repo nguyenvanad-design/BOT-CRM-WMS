@@ -233,4 +233,10 @@ class ActivityViewSet(viewsets.ModelViewSet):
         return qs if is_manager(u) else qs.filter(customer__owner_id=u.id)
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        obj = serializer.save(owner=self.request.user)
+        # KANBAN TỰ ĐỘNG: ghi nhận cuộc gọi/email gắn deal → deal sang Thẩm định.
+        if obj.opportunity_id:
+            from . import opportunity_flow as oflow
+            from .models import OppStage
+            oflow.advance(obj.opportunity, OppStage.QUALIFY, self.request.user,
+                          source=f'activity:{obj.id}')

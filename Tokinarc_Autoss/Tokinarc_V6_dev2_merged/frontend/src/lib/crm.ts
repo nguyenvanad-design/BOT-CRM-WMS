@@ -66,6 +66,16 @@ export const OPP_STAGE_TONE: Record<OppStage, TagTone> = {
   prospect: 'gray', qualify: 'blue', proposal: 'blue',
   negotiate: 'warn', won: 'ok', lost: 'danger',
 }
+
+// Lý do THUA deal (khớp OppLostReason backend) — bắt buộc chọn khi đánh dấu thua.
+export const OPP_LOST_REASONS: { value: string; label: string }[] = [
+  { value: 'price',      label: 'Giá cao' },
+  { value: 'competitor', label: 'Chọn đối thủ' },
+  { value: 'budget',     label: 'Hết ngân sách / hoãn dự án' },
+  { value: 'no_need',    label: 'Hết nhu cầu' },
+  { value: 'no_contact', label: 'Mất liên lạc' },
+  { value: 'other',      label: 'Khác' },
+]
 /** Thứ tự cột kanban pipeline (bỏ lost ra cuối). */
 export const OPP_STAGE_ORDER: OppStage[] =
   ['prospect', 'qualify', 'proposal', 'negotiate', 'won', 'lost']

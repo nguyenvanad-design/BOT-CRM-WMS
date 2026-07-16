@@ -28,8 +28,9 @@ from rest_framework.response import Response
 from apps.accounts.roles import CEO_ROLES, MANAGER_ROLES, is_ceo, is_manager, role_of
 from apps.common.models import AuditLog, notify, notify_roles
 
+from . import opportunity_flow as oflow
 from .models import (
-    Lead, Opportunity, OppStage, Quote, QuoteStatus, Ticket, Visit,
+    Lead, Opportunity, OppLostReason, OppStage, Quote, QuoteStatus, Ticket, Visit,
 )
 from .permissions import CustomerPermission, IsAuthenticatedWithRole
 from .serializers_ext import (
@@ -181,6 +182,30 @@ class OpportunityViewSet(viewsets.ModelViewSet):
                {'from': old_stage, 'to': new_stage})
         return Response(OpportunitySerializer(opp).data)
 
+    @action(detail=True, methods=['post'], url_path='mark-lost')
+    def mark_lost(self, request, pk=None):
+        """Đánh dấu THUA — bắt buộc chọn lý do (win/loss analysis). Kanban tự động:
+        đây là cách DUY NHẤT deal sang Thua (không kéo thả)."""
+        opp = self.get_object()
+        if opp.stage == OppStage.WON:
+            return Response({'detail': 'Deal đã Thắng — không đánh dấu thua được.'}, status=400)
+        if opp.stage == OppStage.LOST:
+            return Response({'detail': 'Deal đã ở trạng thái Thua.'}, status=400)
+        reason = (request.data.get('reason') or '').strip()
+        if reason not in OppLostReason.values:
+            return Response({
+                'detail': 'Chọn lý do thua (bắt buộc).',
+                'choices': [{'value': v, 'label': l} for v, l in OppLostReason.choices],
+            }, status=400)
+        opp.stage = OppStage.LOST
+        opp.lost_reason = reason
+        opp.lost_note = str(request.data.get('note') or '').strip()
+        opp.probability = 0
+        opp.save(update_fields=['stage', 'lost_reason', 'lost_note', 'probability', 'updated_at'])
+        _audit(request, 'mark_lost', 'Opportunity', opp.id,
+               {'reason': reason, 'note': opp.lost_note[:120]})
+        return Response(OpportunitySerializer(opp).data)
+
 
 class QuoteViewSet(viewsets.ModelViewSet):
     serializer_class   = QuoteSerializer
@@ -212,6 +237,13 @@ class QuoteViewSet(viewsets.ModelViewSet):
             notify_roles(MANAGER_ROLES, 'quote_approval',
                          f"Báo giá {obj.code} ({obj.customer.name}) — chiết khấu {obj.discount_pct}% cần duyệt.",
                          link='/ceo/approvals', exclude_user=self.request.user)
+        # KANBAN TỰ ĐỘNG: có báo giá → deal sang Đề xuất; tự duyệt luôn → Đàm phán.
+        opp = oflow.opp_of_quote(obj)
+        if opp:
+            oflow.advance(opp, OppStage.PROPOSAL, self.request.user, source=f'quote:{obj.code}')
+            if obj.status == QuoteStatus.APPROVED:
+                oflow.advance(opp, OppStage.NEGOTIATE, self.request.user,
+                              source=f'quote-approved:{obj.code}')
 
     @action(detail=False, methods=['get'], url_path='pending-approvals')
     def pending_approvals(self, request):
@@ -290,6 +322,9 @@ class QuoteViewSet(viewsets.ModelViewSet):
             _audit(request, 'approve', 'Quote', quote.id, {'level': 1})
             notify(quote.owner, 'quote_approved', f"Báo giá {quote.code} đã được duyệt.", link='/quotes')
         quote.save(update_fields=fields)
+        if quote.status == QuoteStatus.APPROVED:
+            oflow.advance(oflow.opp_of_quote(quote), OppStage.NEGOTIATE, request.user,
+                          source=f'quote-approved:{quote.code}')
         return Response(QuoteSerializer(quote).data)
 
     @action(detail=True, methods=['post'], url_path='approve-l2')
@@ -316,6 +351,8 @@ class QuoteViewSet(viewsets.ModelViewSet):
         _audit(request, 'approve', 'Quote', quote.id, {'level': 2})
         notify(quote.owner, 'quote_approved',
                f"Báo giá {quote.code} đã được CEO duyệt (cấp 2).", link='/quotes')
+        oflow.advance(oflow.opp_of_quote(quote), OppStage.NEGOTIATE, request.user,
+                      source=f'quote-approved-l2:{quote.code}')
         return Response(QuoteSerializer(quote).data)
 
     @action(detail=True, methods=['post'])
@@ -358,6 +395,8 @@ class QuoteViewSet(viewsets.ModelViewSet):
         quote.status = QuoteStatus.CONVERTED
         quote.save(update_fields=['contract_order_code', 'status', 'updated_at'])
         _audit(request, 'to_contract', 'Quote', quote.id, {'order_code': order_code})
+        oflow.advance(oflow.opp_of_quote(quote), OppStage.WON, request.user,
+                      source=f'to-contract:{quote.code}')
         return Response({'contract_order_code': order_code,
                          'quote': QuoteSerializer(quote).data})
 
@@ -404,6 +443,9 @@ class QuoteViewSet(viewsets.ModelViewSet):
             quote.status = QuoteStatus.CONVERTED
             quote.save(update_fields=['contract_order_code', 'status', 'updated_at'])
         _audit(request, 'to_order', 'Quote', quote.id, {'order_code': code})
+        # KANBAN TỰ ĐỘNG: báo giá thành đơn thật → deal Thắng (probability 100).
+        oflow.advance(oflow.opp_of_quote(quote), OppStage.WON, request.user,
+                      source=f'to-order:{code}')
         return Response({'order_code': code, 'order_id': str(order.id),
                          'total_vnd': str(order.total_vnd)})
 
@@ -432,6 +474,10 @@ class VisitViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         obj = serializer.save(owner=self.request.user)
         _audit(self.request, 'create', 'Visit', obj.id)
+        # KANBAN TỰ ĐỘNG: có ghi nhận cuộc gặp gắn deal → deal sang Thẩm định.
+        if obj.opportunity_id:
+            oflow.advance(obj.opportunity, OppStage.QUALIFY, self.request.user,
+                          source=f'visit:{obj.id}')
 
 
 class TicketViewSet(viewsets.ModelViewSet):

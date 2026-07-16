@@ -202,6 +202,16 @@ class OppStage(models.TextChoices):
     LOST        = 'lost',        'Thua'
 
 
+class OppLostReason(models.TextChoices):
+    """Lý do THUA deal — bắt buộc chọn khi đánh dấu thua (phân tích win/loss)."""
+    PRICE      = 'price',      'Giá cao'
+    COMPETITOR = 'competitor', 'Chọn đối thủ'
+    BUDGET     = 'budget',     'Hết ngân sách / hoãn dự án'
+    NO_NEED    = 'no_need',    'Hết nhu cầu'
+    NO_CONTACT = 'no_contact', 'Mất liên lạc'
+    OTHER      = 'other',      'Khác'
+
+
 class Opportunity(BaseModel, SoftDeleteMixin):
     """Cơ hội bán hàng gắn với 1 Customer."""
     customer  = models.ForeignKey(
@@ -220,6 +230,10 @@ class Opportunity(BaseModel, SoftDeleteMixin):
         related_name='owned_opportunities',
     )
     notes     = models.TextField(blank=True)
+    # Win/loss: lý do thua (bắt buộc khi mark-lost) + ghi chú thêm của sale.
+    lost_reason = models.CharField(max_length=20, choices=OppLostReason.choices,
+                                   blank=True, default='')
+    lost_note   = models.TextField(blank=True)
 
     class Meta:
         db_table = 'crm_opportunity'

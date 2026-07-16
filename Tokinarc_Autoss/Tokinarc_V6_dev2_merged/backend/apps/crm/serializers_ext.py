@@ -51,15 +51,19 @@ class OpportunitySerializer(serializers.ModelSerializer):
     owner_username   = serializers.CharField(source='owner.username', read_only=True)
     customer_name    = serializers.CharField(source='customer.name', read_only=True)
     stage_display    = serializers.CharField(source='get_stage_display', read_only=True)
+    lost_reason_display = serializers.CharField(source='get_lost_reason_display', read_only=True)
 
     class Meta:
         model = Opportunity
         fields = [
             'id', 'customer', 'customer_name', 'title', 'stage', 'stage_display',
             'est_value_vnd', 'probability', 'expected_close',
-            'owner', 'owner_username', 'notes', 'created_at', 'updated_at',
+            'owner', 'owner_username', 'notes',
+            'lost_reason', 'lost_reason_display', 'lost_note',
+            'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'owner', 'created_at', 'updated_at']
+        # stage/lost_* chỉ đổi qua flow tự động + mark-lost (không sửa tay qua PATCH).
+        read_only_fields = ['id', 'owner', 'lost_reason', 'lost_note', 'created_at', 'updated_at']
 
 
 class MoveStageSerializer(serializers.Serializer):
