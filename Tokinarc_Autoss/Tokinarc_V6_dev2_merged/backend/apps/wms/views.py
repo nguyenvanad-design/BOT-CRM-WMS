@@ -38,7 +38,7 @@ WAREHOUSE_STAFF = frozenset({Role.WAREHOUSE, Role.WAREHOUSE_MANAGER})
 from . import services
 from .models import (
     ASN, Bin, CycleCount, CycleCountLine, InboundOrder, InventoryItem, Lot,
-    OutboundOrder, SerialNumber, StockMovement, Warehouse, Zone,
+    OutboundOrder, PickListItem, SerialNumber, StockMovement, Warehouse, Zone,
 )
 from .permissions import WMSPermission, WmsControlAccess
 from .serializers import (
@@ -768,6 +768,13 @@ class OutboundViewSet(viewsets.ModelViewSet):
         if outbound.status in ('shipped', 'cancelled'):
             return Response({'detail': 'Phiếu đã xử lý.', 'code': 'CONFLICT'},
                             status=status.HTTP_409_CONFLICT)
+        # Chống trừ tồn 2 LẦN: phiếu đã sinh pick-list (đang giữ tồn reserved) thì
+        # soạn theo pick-list rồi Giao — không trộn thêm quét tay (ship sẽ trừ theo pick).
+        if PickListItem.objects.filter(outbound_line__outbound=outbound,
+                                       is_picked=False).exists():
+            return Response({'detail': 'Phiếu này đã sinh pick-list (đang giữ tồn) — soạn theo '
+                             'pick-list rồi bấm Giao, không quét tay thêm.',
+                             'code': 'CONFLICT'}, status=status.HTTP_409_CONFLICT)
         code = _resolve_part_code(str(request.data.get('code', '')).strip())
         bin_code = str(request.data.get('bin_code', '')).strip()
         try:

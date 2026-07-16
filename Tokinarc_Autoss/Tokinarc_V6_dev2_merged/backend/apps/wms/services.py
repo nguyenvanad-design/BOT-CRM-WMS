@@ -213,8 +213,14 @@ def _candidate_inventory(outbound: OutboundOrder, line: OutboundLine):
 @transaction.atomic
 def confirm_pick_and_ship(outbound: OutboundOrder, user=None) -> None:
     """Xác nhận giao: trừ tồn theo SL đã soạn thực tế. Hỗ trợ GIAO MỘT PHẦN —
-    chỉ giao phần đã pick, phần còn lại là backorder (status=partial)."""
+    chỉ giao phần đã pick, phần còn lại là backorder (status=partial).
+
+    Hỗ trợ CẢ 2 luồng soạn hàng:
+      - Pick-list: trừ tồn TẠI ĐÂY theo từng PickListItem (nhả reserved).
+      - Quét (scan-pick): tồn ĐÃ trừ ngay lúc quét (qty_picked đã cộng, không có
+        PickListItem) → ở đây chỉ chốt trạng thái, KHÔNG trừ tồn lần 2."""
     total_shipped = 0
+    total_picked = 0   # tổng đã soạn (pick-list + quét) sau vòng lặp
     fully = True
     for line in outbound.lines.all():
         shipped_this = 0
@@ -245,9 +251,12 @@ def confirm_pick_and_ship(outbound: OutboundOrder, user=None) -> None:
                 qty_picked=F('qty_picked') + shipped_this)
         line.refresh_from_db()
         total_shipped += shipped_this
+        total_picked += line.qty_picked
         if line.qty_picked < line.qty_ordered:
             fully = False
-    if total_shipped == 0:
+    # Chỉ chặn khi CHƯA soạn được gì (cả pick-list lẫn quét). Luồng quét thuần có
+    # total_shipped == 0 nhưng qty_picked > 0 → vẫn cho chốt giao.
+    if total_picked == 0:
         raise ValueError("Chưa soạn (pick) sản phẩm nào để giao.")
     from django.utils import timezone
     outbound.status = 'shipped' if fully else 'partial'
