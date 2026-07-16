@@ -2,15 +2,17 @@
  * Tokinarc frontend — src/pages/wms/forms/OutboundForm.tsx
  * Tạo đơn xuất kho kèm dòng hàng. POST /wms/outbound/.
  */
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { PackageCheck, Plus, Trash2 } from 'lucide-react'
+import { Camera, PackageCheck, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, apiError } from '@/lib/api'
+import { resolveScanToItem } from '@/lib/scanResolve'
 import { useWarehouseOptions, useItemOptions, splitItem } from '@/lib/useWmsOptions'
 import { useCustomerOptions } from '@/lib/useCustomerOptions'
 import { RULE_LABEL } from '@/lib/wms'
+import { CameraScanner } from '@/components/CameraScanner'
 import { Modal } from '@/components/Modal'
 import { Button } from '@/components/ui'
 import { FieldRow, TextInput, SelectInput } from '@/components/form'
@@ -28,12 +30,28 @@ export function OutboundForm({ open, onClose }: { open: boolean; onClose: () => 
   const { options: whs } = useWarehouseOptions()
   const { options: items, isLoading: itemsLoading } = useItemOptions()
   const { options: customers } = useCustomerOptions()
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<Form>({ defaultValues: EMPTY })
+  const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<Form>({ defaultValues: EMPTY })
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' })
   const watched = (useWatch({ control, name: 'lines' }) as LineForm[] | undefined) ?? []
   const itemLabel = (v: string) => items.find((o) => o.value === v)?.label ?? v
   const filled = watched.filter((l) => l?.item)
   const totalQty = filled.reduce((s, l) => s + (Number(l.qty_ordered) || 0), 0)
+  const [showCam, setShowCam] = useState(false)
+
+  // Quét camera NGAY KHI TẠO PHIẾU XUẤT: quét mã → tự thêm dòng; cùng mã → +1 SL.
+  const onScan = async (raw: string) => {
+    const val = await resolveScanToItem(raw, items)
+    if (!val) { toast.error(`Không tìm thấy mặt hàng cho mã "${raw}"`); return }
+    const idx = watched.findIndex((l) => l?.item === val)
+    if (idx >= 0) {
+      setValue(`lines.${idx}.qty_ordered`, (Number(watched[idx].qty_ordered) || 0) + 1)
+    } else {
+      const empty = watched.findIndex((l) => !l?.item)
+      if (empty >= 0) setValue(`lines.${empty}.item`, val)
+      else append({ ...EMPTY_LINE, item: val })
+    }
+    toast.success(`✓ ${itemLabel(val)}`)
+  }
 
   useEffect(() => { if (open) reset(EMPTY) }, [open, reset])
 
@@ -83,10 +101,21 @@ export function OutboundForm({ open, onClose }: { open: boolean; onClose: () => 
 
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-txt-2">Dòng hàng</span>
-          <Button type="button" variant="ghost" size="sm" onClick={() => append({ ...EMPTY_LINE })}>
-            <Plus size={13} /> Thêm dòng
-          </Button>
+          <span className="inline-flex gap-1.5">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowCam((v) => !v)}>
+              <Camera size={13} /> {showCam ? 'Tắt quét' : 'Quét mã'}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => append({ ...EMPTY_LINE })}>
+              <Plus size={13} /> Thêm dòng
+            </Button>
+          </span>
         </div>
+        {showCam && (
+          <div className="mb-2">
+            <CameraScanner onScan={onScan} />
+            <p className="text-[11px] text-txt-2 mt-1">Quét tem hàng → tự thêm dòng; quét lại cùng mã → +1 SL.</p>
+          </div>
+        )}
         <div className="space-y-2 mb-3 overflow-x-auto">
           {fields.map((f, i) => (
             <div key={f.id} className="grid grid-cols-[1fr_0.5fr_auto] gap-2 items-start min-w-[420px]">
